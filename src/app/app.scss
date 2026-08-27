@@ -1,0 +1,272 @@
+@use '../styles/tokens' as t;
+
+// Barra superior. En móvil solo lleva marca y acciones; la navegación vive abajo.
+.fs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  padding: 0.75rem 0;
+  background-color: var(--fs-surface);
+  border-bottom: 1px solid var(--fs-line);
+  backdrop-filter: saturate(1.4) blur(8px);
+}
+
+// La fila de la barra: marca, navegación y acciones. Antes eran cuatro utilidades sueltas
+// en la plantilla; aquí se lee de una vez lo que hace.
+.fs-topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fs-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+// El contenido respira un poco más en escritorio, donde hay sitio.
+.fs-main {
+  padding-block: 1rem;
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  .fs-main {
+    padding-block: 1.5rem;
+  }
+}
+
+.fs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  color: var(--fs-ink);
+  text-decoration: none;
+
+  i {
+    color: var(--fs-brand);
+  }
+}
+
+// La navegación de arriba y la de abajo son la misma decisión tomada dos veces: en escritorio
+// manda esta, y en cuanto la pantalla se estrecha la releva la barra inferior, al alcance del
+// pulgar. Nunca se ven las dos.
+.fs-topnav {
+  display: none;
+  gap: 0.25rem;
+  margin-left: 1.5rem;
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  .fs-topnav {
+    display: flex;
+  }
+}
+
+.fs-topnav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: t.$fs-radius-sm;
+  font-size: 0.9375rem;
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background-color: var(--fs-hover);
+    color: var(--fs-ink);
+  }
+
+  &.is-active {
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-weight: 500;
+  }
+}
+
+// En un teléfono el nombre no cabe, y tampoco hace falta: quien lo mira sabe quién es.
+// Va en bloque y no en línea porque el recorte con puntos suspensivos no llega a ocurrir
+// sobre un elemento en línea, donde el `max-width` ni siquiera se aplica.
+.fs-user {
+  display: none;
+  max-width: 14rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-user {
+    display: block;
+  }
+}
+
+// Barra inferior de móvil. Cinco huecos iguales con el registro en el centro, que es la
+// posición que más fácil alcanza el pulgar.
+.fs-tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 1030;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  height: calc(t.$fs-tabbar-height + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background-color: var(--fs-surface);
+  border-top: 1px solid var(--fs-line);
+}
+
+// Solo existe mientras no haya sitio arriba para la navegación. Va después de la regla que
+// la dibuja: con la misma especificidad, manda la que se declara la última.
+@media (min-width: t.$fs-bp-lg) {
+  .fs-tabbar {
+    display: none;
+  }
+}
+
+.fs-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  // Objetivo táctil cómodo aunque el icono y el texto ocupen menos.
+  min-height: 3rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.6875rem;
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+
+  i {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  &.is-active {
+    color: var(--fs-brand);
+    font-weight: 500;
+  }
+}
+
+.fs-tab--action {
+  position: relative;
+}
+
+.fs-tab__fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-top: -1.5rem;
+  border-radius: 50%;
+  background-color: var(--fs-brand);
+  color: #fff;
+  font-size: 1.4rem;
+  box-shadow: var(--fs-shadow-raised);
+  transition: transform 0.15s ease;
+}
+
+.fs-tab--action:active .fs-tab__fab {
+  transform: scale(0.94);
+}
+
+// Avisos. Sobre la barra inferior en móvil y abajo a la derecha en escritorio, siempre
+// fuera del camino de lo que se está haciendo.
+.fs-toasts {
+  position: fixed;
+  z-index: 1080;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(t.$fs-tabbar-height + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(24rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+@media (min-width: 992px) {
+  .fs-toasts {
+    left: auto;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    transform: none;
+  }
+}
+
+.fs-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: t.$fs-radius;
+  background-color: var(--fs-ink);
+  color: var(--fs-paper);
+  font-size: 0.875rem;
+  box-shadow: var(--fs-shadow-raised);
+  pointer-events: auto;
+
+  i:first-child {
+    color: var(--fs-income);
+  }
+}
+
+.fs-toast--error i:first-child {
+  color: var(--fs-expense);
+}
+
+.fs-toast span {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-toast__close {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  opacity: 0.6;
+  line-height: 1;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// El aviso sube al aparecer y se encoge al irse, en lugar de esfumarse de golpe: así se
+// entiende que se ha marchado él solo y no que se ha perdido algo.
+.fs-toast.is-in {
+  animation: fs-toast-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-toast.is-out {
+  animation: fs-toast-out 0.2s ease both;
+}
+
+@keyframes fs-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fs-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(0.35rem) scale(0.96);
+  }
+}

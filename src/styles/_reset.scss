@@ -1,0 +1,131 @@
+@use 'tokens' as t;
+
+// Puesta a cero.
+//
+// Sustituye al «reboot» de Bootstrap, que era lo único suyo que la aplicación necesitaba de
+// verdad. Se queda en lo imprescindible: lo que no arregla una diferencia real entre
+// navegadores no está aquí.
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// Los márgenes por defecto de los navegadores no siguen ningún ritmo: los pone quien
+// maqueta, no el agente de usuario.
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+html {
+  // El desplazamiento por anclas y el foco no dan saltos secos, pero se respeta a quien
+  // pide menos movimiento.
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--fs-font);
+  font-size: var(--fs-text-base);
+  line-height: 1.55;
+  color: var(--fs-ink);
+  background-color: var(--fs-paper);
+  // Las cifras se leen mejor con las formas por defecto de la fuente; el ajuste óptico de
+  // los títulos se pide donde toca.
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// Los títulos heredan el peso y el interletrado de la aplicación, no el del navegador.
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.011em;
+}
+
+// Nada se sale de su caja por ser un elemento reemplazado.
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+// Los controles no heredan la tipografía por su cuenta en ningún navegador.
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+// Una palabra larga —un tag, un correo— parte antes que desbordar.
+p,
+h1,
+h2,
+h3,
+h4,
+li,
+dd {
+  overflow-wrap: break-word;
+}
+
+a {
+  color: var(--fs-brand);
+  text-decoration-color: color-mix(in srgb, var(--fs-brand) 35%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-color: currentcolor;
+}
+
+// El foco se ve siempre, también sobre fondos de color, y con la misma forma en toda la
+// aplicación.
+:focus-visible {
+  outline: 2px solid var(--fs-brand);
+  outline-offset: 2px;
+  border-radius: t.$fs-radius-sm;
+}
+
+// El ratón no necesita el aro; el teclado sí, y esa es justo la diferencia que marca
+// `:focus-visible`.
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

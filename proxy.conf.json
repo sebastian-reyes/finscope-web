@@ -1,0 +1,8 @@
+{
+  "/auth": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true },
+  "/categories": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true },
+  "/tags": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true },
+  "/shops": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true },
+  "/transactions": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true },
+  "/transaction-types": { "target": "http://localhost:9090", "secure": false, "changeOrigin": true }
+}

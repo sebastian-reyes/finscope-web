@@ -1,0 +1,127 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="fs-quick">
+  <div class="fs-quick__amount">
+    <label class="fs-label fs-quick__label" for="quickAmount">Monto</label>
+    <div
+      class="fs-quick__field"
+      [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+    >
+      <span class="fs-quick__currency" aria-hidden="true">{{ currency }}</span>
+      <input
+        #amountField
+        id="quickAmount"
+        type="number"
+        inputmode="decimal"
+        step="0.01"
+        min="0.01"
+        placeholder="0.00"
+        class="fs-quick__input fs-num"
+        formControlName="amount"
+        autocomplete="off"
+      />
+    </div>
+    @if (form.controls.amount.touched && form.controls.amount.invalid) {
+      <p class="fs-quick__error">Escribe un monto mayor que cero.</p>
+    }
+  </div>
+
+  <div class="fs-quick__kind" role="group" aria-label="Tipo de movimiento">
+    <button
+      type="button"
+      class="fs-kind fs-kind--expense"
+      [class.is-active]="kind() === 'EXPENSE'"
+      [attr.aria-pressed]="kind() === 'EXPENSE'"
+      (click)="setKind('EXPENSE')"
+    >
+      <i class="bi bi-arrow-down-left" aria-hidden="true"></i>Egreso
+    </button>
+    <button
+      type="button"
+      class="fs-kind fs-kind--income"
+      [class.is-active]="kind() === 'INCOME'"
+      [attr.aria-pressed]="kind() === 'INCOME'"
+      (click)="setKind('INCOME')"
+    >
+      <i class="bi bi-arrow-up-right" aria-hidden="true"></i>Ingreso
+    </button>
+  </div>
+
+  <div>
+    <span class="fs-label fs-quick__label" id="quickCategoryLabel">Categoría</span>
+    <fs-category-picker
+      [categories]="categories()"
+      [kind]="kind()"
+      [selected]="categoryId()"
+      (selectedChange)="onCategoryChange($event)"
+      (created)="catalogueChanged.emit()"
+      [disabled]="saving()"
+      aria-labelledby="quickCategoryLabel"
+    />
+    @if (categoryMissing()) {
+      <p class="fs-quick__error">Elige una categoría para saber en qué se fue.</p>
+    }
+  </div>
+
+  <div>
+    <label class="fs-label fs-quick__label" for="quickTags">
+      Tags <span class="fs-quick__optional">opcional</span>
+    </label>
+    <fs-tags-field
+      inputId="quickTags"
+      [(tags)]="pickedTags"
+      [catalogue]="tags()"
+      [disabled]="saving()"
+    />
+  </div>
+
+  @if (showDetails()) {
+    <div class="fs-quick__extra" animate.enter="fs-anim-expand">
+      <div>
+        <label class="fs-label fs-quick__label" for="quickDescription">Descripción</label>
+        <input
+          id="quickDescription"
+          type="text"
+          class="fs-field"
+          maxlength="255"
+          formControlName="description"
+        />
+      </div>
+      <div>
+        <label class="fs-label fs-quick__label" for="quickDate">Fecha</label>
+        <fs-date-field
+          inputId="quickDate"
+          mode="datetime"
+          placeholder="Ahora mismo"
+          [clearable]="true"
+          [value]="form.controls.date.value"
+          (valueChange)="form.controls.date.setValue($event)"
+          [disabled]="saving()"
+        />
+        <p class="fs-quick__hint">Si la dejas vacía se usa ahora mismo.</p>
+      </div>
+    </div>
+  }
+
+  <div class="fs-quick__actions">
+    <button
+      type="button"
+      class="fs-btn fs-btn--ghost fs-quick__more"
+      (click)="showDetails.set(!showDetails())"
+    >
+      <i
+        class="bi"
+        [class.bi-chevron-right]="!showDetails()"
+        [class.bi-chevron-down]="showDetails()"
+        aria-hidden="true"
+      ></i>
+      {{ showDetails() ? 'Menos detalles' : 'Más detalles' }}
+    </button>
+
+    <button type="submit" class="fs-btn fs-btn--solid fs-quick__submit" [disabled]="saving()">
+      @if (saving()) {
+        <span class="fs-spinner" aria-hidden="true"></span>Guardando…
+      } @else {
+        Guardar
+      }
+    </button>
+  </div>
+</form>

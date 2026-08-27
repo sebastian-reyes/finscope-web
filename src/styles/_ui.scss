@@ -1,0 +1,310 @@
+@use 'tokens' as t;
+
+// Primitivas de la interfaz.
+//
+// Lo que antes ponía Bootstrap —botones, campos, avisos, la rejilla y un puñado de
+// utilidades— reescrito a la medida de la aplicación. Son cuatro piezas porque cuatro son
+// las que se usan: cargar un marco entero para esto costaba 338 kB de CSS del que sobraba
+// más del noventa por ciento.
+
+// --- Ancho de página ---------------------------------------------------------------------
+.fs-page {
+  width: 100%;
+  max-width: t.$fs-page-width;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-page {
+    padding-inline: 1.5rem;
+  }
+}
+
+// --- Botones -----------------------------------------------------------------------------
+// Una sola forma, cuatro tonos de voz. El primario es el único con relleno macizo, y por eso
+// no debería haber dos en la misma pantalla compitiendo por la misma decisión.
+.fs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: var(--fs-radius-control);
+  background-color: transparent;
+  color: var(--fs-ink);
+  font-size: var(--fs-text-base);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.006em;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease;
+}
+
+// Todo lo que se pulsa se hunde un pelo al pulsarlo. Es el único aviso de que el dedo ha
+// llegado antes de que la pantalla cambie, y en un móvil se agradece.
+.fs-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.fs-btn:disabled {
+  opacity: 0.55;
+}
+
+// Macizo, para la acción por la que se ha entrado en la pantalla.
+.fs-btn--solid {
+  background-color: var(--fs-brand);
+  color: var(--fs-on-brand);
+}
+
+.fs-btn--solid:hover:not(:disabled) {
+  background-color: var(--fs-brand-strong);
+}
+
+// Con tinte, para lo que acompaña sin mandar.
+.fs-btn--soft {
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+}
+
+.fs-btn--soft:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--fs-brand-tint) 70%, var(--fs-brand) 12%);
+}
+
+// Perfilado, para lo secundario que aun así hay que ver.
+.fs-btn--outline {
+  border-color: var(--fs-line-strong);
+  color: var(--fs-ink);
+}
+
+.fs-btn--outline:hover:not(:disabled) {
+  background-color: var(--fs-hover);
+  border-color: var(--fs-ink-faint);
+}
+
+// Sin caja, para lo que solo debe estar disponible.
+.fs-btn--ghost {
+  padding-inline: 0.5rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-btn--ghost:hover:not(:disabled) {
+  background-color: var(--fs-hover);
+  color: var(--fs-ink);
+}
+
+.fs-btn--danger {
+  background-color: var(--fs-expense);
+  color: #fff;
+}
+
+.fs-btn--danger:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--fs-expense) 85%, #000);
+}
+
+// Un borrado no se ofrece como un botón rojo macizo hasta que hay que confirmarlo: antes es
+// solo texto, para no invitar al accidente.
+.fs-btn--quiet-danger {
+  padding-inline: 0.5rem;
+  color: var(--fs-expense);
+}
+
+.fs-btn--quiet-danger:hover:not(:disabled) {
+  background-color: var(--fs-expense-tint);
+}
+
+.fs-btn--sm {
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  font-size: var(--fs-text-sm);
+}
+
+// Cuadrado y sin texto: el icono es el mensaje, y el nombre va en `aria-label`.
+.fs-btn--icon {
+  width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border-radius: t.$fs-radius-pill;
+  color: var(--fs-ink-muted);
+}
+
+.fs-btn--icon:hover:not(:disabled) {
+  background-color: var(--fs-hover);
+  color: var(--fs-ink);
+}
+
+.fs-btn--block {
+  width: 100%;
+}
+
+// --- Campos ------------------------------------------------------------------------------
+// El campo va hundido respecto a la superficie que lo contiene, que es lo que hace que se
+// lea como algo en lo que se escribe y no como una etiqueta más.
+.fs-field {
+  display: block;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-control);
+  background-color: var(--fs-surface-sunken);
+  color: var(--fs-ink);
+  font-size: var(--fs-text-base);
+  line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.fs-field::placeholder {
+  color: var(--fs-ink-faint);
+}
+
+.fs-field:hover:not(:disabled) {
+  border-color: var(--fs-line-strong);
+}
+
+.fs-field:focus {
+  outline: none;
+  border-color: var(--fs-brand);
+  box-shadow: var(--fs-focus-tint);
+}
+
+.fs-field:disabled {
+  opacity: 0.6;
+}
+
+.fs-field.is-invalid {
+  border-color: var(--fs-expense);
+}
+
+// Para editar en la propia fila de una lista, donde el campo compite con el alto del texto
+// que sustituye.
+.fs-field--sm {
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  font-size: var(--fs-text-sm);
+}
+
+// Rótulo del campo: pequeño, apagado y sin peso, porque el dato manda sobre su nombre.
+.fs-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: var(--fs-text-sm);
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-label__optional {
+  font-weight: 400;
+  color: var(--fs-ink-faint);
+}
+
+// Explicación bajo un campo. Es donde va lo que si no acabaría en un tooltip que nadie abre.
+.fs-hint {
+  margin: 0.4rem 0 0;
+  font-size: var(--fs-text-xs);
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+.fs-error {
+  margin: 0.35rem 0 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-expense);
+}
+
+// --- Avisos ------------------------------------------------------------------------------
+// Sin fondo saturado ni borde grueso: un tinte y un icono bastan para que se lea como una
+// advertencia sin que la pantalla parezca rota.
+.fs-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: t.$fs-radius;
+  background-color: var(--fs-expense-tint);
+  color: var(--fs-expense-ink);
+  font-size: var(--fs-text-sm);
+  line-height: 1.5;
+}
+
+.fs-alert i {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--fs-expense);
+}
+
+// Un aviso que no es un fallo —la sesión que caduca— no se pinta de rojo: eso reservaría el
+// color de alarma para algo que no lo es.
+.fs-alert--warn {
+  background-color: var(--fs-shade);
+  color: var(--fs-ink);
+}
+
+.fs-alert--warn i {
+  color: var(--fs-ink-muted);
+}
+
+.fs-alert__title {
+  margin: 0 0 0.15rem;
+  font-weight: 600;
+}
+
+.fs-alert p {
+  margin: 0;
+}
+
+// --- Espera ------------------------------------------------------------------------------
+.fs-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: fs-spin 0.7s linear infinite;
+}
+
+@keyframes fs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// --- Utilidades --------------------------------------------------------------------------
+// Solo las que resuelven algo que no puede vivir en el componente: esconder para la vista
+// pero no para un lector de pantalla, y cortar un texto que no debe partir.
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.text-truncate {
+  // `min-width: 0` incluido: sin el, dentro de un flex el corte no llega a ocurrir nunca.
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-nowrap {
+  white-space: nowrap;
+}

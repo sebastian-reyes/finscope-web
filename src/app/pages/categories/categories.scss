@@ -1,0 +1,288 @@
+@use '../../../styles/tokens' as t;
+
+// La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;
+// aquí vive solo lo propio de este catálogo.
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-skeleton {
+  height: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.fs-foot {
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+// --- Grupos por ámbito ----------------------------------------------------------------
+// El catálogo se parte en tres tarjetas y no en una lista con una etiqueta por fila. Una
+// categoría de ingresos y una de egresos nunca se ofrecen en el mismo formulario, así que
+// tampoco tienen por qué convivir aquí: separarlas es lo que hace que se distingan sin
+// tener que leer nada.
+.fs-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid var(--fs-line);
+}
+
+// El color no viaja solo en ningún sitio de la aplicación: la flecha dice la dirección y el
+// título la nombra, de modo que el grupo se reconoce sin distinguir el verde del rojo.
+.fs-group__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
+  font-size: 0.95rem;
+}
+
+.fs-group__head--EXPENSE .fs-group__icon {
+  background-color: var(--fs-expense-tint);
+  color: var(--fs-expense);
+}
+
+.fs-group__head--INCOME .fs-group__icon {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income);
+}
+
+.fs-group__head--BOTH .fs-group__icon {
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+}
+
+.fs-group__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fs-group__count {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background-color: var(--fs-surface-sunken);
+  font-size: 0.75rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-group__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  border: 1px dashed var(--fs-line);
+  border-radius: 50%;
+  background: none;
+  color: var(--fs-ink-muted);
+  transition:
+    border-style 0.12s ease,
+    color 0.12s ease;
+
+  &:hover {
+    border-style: solid;
+    color: var(--fs-brand);
+  }
+}
+
+.fs-group__empty {
+  margin: 0.85rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-faint);
+}
+
+// --- Filas ----------------------------------------------------------------------------
+.fs-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--fs-line);
+}
+
+.fs-row:last-child {
+  border-bottom: none;
+}
+
+// La fila entera lleva a los movimientos de esa categoría, que es lo que se quiere hacer al
+// mirarla; las acciones de mantenimiento quedan aparte, a la derecha.
+.fs-row__main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0;
+  border-radius: t.$fs-radius-sm;
+  text-decoration: none;
+}
+
+.fs-row__count {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+  text-align: right;
+
+  &.is-idle {
+    color: var(--fs-ink-faint);
+  }
+}
+
+.fs-row__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background-color: var(--fs-surface-sunken);
+  font-size: 0.6875rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-row__actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+// La papelera no se enciende hasta que el puntero llega: nueve filas con el icono ya en rojo
+// convierten un catálogo en un campo de minas, y el borrado todavía pide confirmación
+// después.
+.fs-row__actions .fs-btn--quiet-danger {
+  color: var(--fs-ink-faint);
+}
+
+.fs-row__actions .fs-btn--quiet-danger:hover {
+  color: var(--fs-expense);
+}
+
+.fs-row__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+// --- Edición en la propia fila --------------------------------------------------------
+// En rejilla y no en una fila que se dobla: al editar hay cuatro cosas en juego y, puestas
+// una detrás de otra, la fila se descuadraba en cuanto la pantalla se estrechaba.
+.fs-edit {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.fs-edit__name {
+  grid-column: 1 / -1;
+}
+
+.fs-edit__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-self: end;
+}
+
+.fs-edit__note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 575.98px) {
+  .fs-edit {
+    grid-template-columns: 1fr;
+  }
+
+  .fs-edit__actions {
+    justify-self: stretch;
+  }
+}
+
+// --- Elección del ámbito --------------------------------------------------------------
+// Mismos colores y mismos iconos que el par egreso/ingreso del formulario de registro, para
+// que elegir el ámbito de una categoría se lea igual que elegir el tipo de un movimiento.
+.fs-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.fs-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 999px;
+  background-color: transparent;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fs-scope--EXPENSE.is-active {
+  background-color: var(--fs-expense-tint);
+  border-color: var(--fs-expense);
+  color: var(--fs-expense);
+}
+
+.fs-scope--INCOME.is-active {
+  background-color: var(--fs-income-tint);
+  border-color: var(--fs-income);
+  color: var(--fs-income);
+}
+
+.fs-scope--BOTH.is-active {
+  background-color: var(--fs-brand-tint);
+  border-color: var(--fs-brand);
+  color: var(--fs-brand);
+}
+
+// --- Alta -----------------------------------------------------------------------------
+.fs-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.fs-create__field {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.fs-create__scope {
+  display: flex;
+  flex-direction: column;
+}

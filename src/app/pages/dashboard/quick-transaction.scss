@@ -1,0 +1,197 @@
+@use '../../../styles/tokens' as t;
+
+.fs-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fs-quick__label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-quick__optional {
+  font-weight: 400;
+  color: var(--fs-ink-faint);
+}
+
+// El monto es el campo protagonista: tipografía grande y sin la caja habitual, para que se
+// escriba como en una calculadora y no como en un formulario.
+.fs-quick__field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius;
+  background-color: var(--fs-surface-sunken);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--fs-brand);
+    box-shadow: 0 0 0 0.2rem rgba(42, 92, 184, 0.15);
+  }
+
+  &.is-invalid {
+    border-color: var(--fs-expense);
+  }
+}
+
+.fs-quick__currency {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-quick__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fs-ink);
+
+  &:focus {
+    outline: none;
+  }
+
+  // Las flechitas del input numérico estorban en un campo de dinero.
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  appearance: textfield;
+}
+
+.fs-quick__error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--fs-expense);
+}
+
+.fs-quick__hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--fs-ink-faint);
+}
+
+// Dos mitades iguales: elegir entre egreso e ingreso es una decisión binaria y se toma de
+// un toque, sin desplegar nada.
+.fs-quick__kind {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.fs-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius;
+  background-color: transparent;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fs-kind--expense.is-active {
+  background-color: var(--fs-expense-tint);
+  border-color: var(--fs-expense);
+  color: var(--fs-expense);
+}
+
+.fs-kind--income.is-active {
+  background-color: var(--fs-income-tint);
+  border-color: var(--fs-income);
+  color: var(--fs-income);
+}
+
+// Descripción y fecha, cuando se piden. En una columna mientras no quepan; en cuanto hay
+// sitio, la descripción se lleva la parte ancha, que es la que se escribe.
+.fs-quick__extra {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-quick__extra {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+}
+
+.fs-quick__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fs-quick__more {
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+
+  i {
+    margin-right: 0.25rem;
+  }
+}
+
+.fs-quick__submit {
+  min-width: 9rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+}
+
+// Los tags que ya se usan, a un toque. El chip conserva su color e icono de siempre, así
+// que se reconoce igual aquí que en la lista de movimientos; el botón solo añade el estado
+// de elegido, con un aro en vez de un cambio de color, para no pisar la identidad del chip.
+.fs-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.fs-suggestion {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  line-height: 0;
+  // Objetivo táctil holgado sin agrandar el chip.
+  outline-offset: 2px;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.fs-suggestion:active {
+  transform: scale(0.96);
+}
+
+.fs-suggestion.is-picked {
+  box-shadow: 0 0 0 2px var(--fs-brand);
+}
+
+.fs-suggestion:disabled {
+  opacity: 0.5;
+}

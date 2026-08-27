@@ -1,0 +1,60 @@
+@use 'tokens' as t;
+
+// El calendario de air-datepicker: primero la librería y justo después su retematizado.
+//
+// Van juntos y en este orden a propósito. La librería se pinta casi entera con variables
+// CSS, que se pueden reescribir desde cualquier sitio, pero un puñado de reglas suyas
+// —el blanco de la flecha, el color de la celda elegida— hay que ganárselas por orden de
+// aparición: emitidas después de estas, mandarían ellas.
+@import 'air-datepicker/air-datepicker';
+
+.air-datepicker {
+  --adp-font-family: inherit;
+  --adp-font-size: var(--fs-text-base);
+  --adp-width: 17.5rem;
+  // Por encima de la hoja del editor, que es donde más se usa.
+  --adp-z-index: 1090;
+  --adp-padding: 0.5rem;
+  --adp-background-color: var(--fs-surface);
+  --adp-background-color-hover: var(--fs-hover);
+  --adp-background-color-active: var(--fs-shade);
+  --adp-color: var(--fs-ink);
+  --adp-color-secondary: var(--fs-ink-faint);
+  --adp-accent-color: var(--fs-brand);
+  --adp-color-current-date: var(--fs-brand);
+  --adp-color-other-month: var(--fs-ink-faint);
+  --adp-color-other-month-hover: var(--fs-ink-muted);
+  --adp-color-disabled: var(--fs-ink-faint);
+  --adp-border-color: var(--fs-line);
+  --adp-border-color-inner: var(--fs-line);
+  --adp-border-color-inline: var(--fs-line);
+  --adp-border-radius: #{t.$fs-radius};
+  --adp-cell-border-radius: #{t.$fs-radius-sm};
+  // El naranja de fábrica para los nombres de los días no pinta nada en esta paleta.
+  --adp-day-name-color: var(--fs-ink-muted);
+  --adp-day-name-color-hover: var(--fs-brand);
+  --adp-cell-background-color-hover: var(--fs-hover);
+  --adp-cell-background-color-selected: var(--fs-brand);
+  --adp-cell-background-color-selected-hover: var(--fs-brand);
+  --adp-time-track-color: var(--fs-line);
+  --adp-time-track-color-hover: var(--fs-ink-muted);
+  --adp-btn-color: var(--fs-brand);
+  --adp-btn-color-hover: var(--fs-ink);
+
+  box-shadow: var(--fs-shadow-raised);
+}
+
+// La flecha que apunta al campo lleva el blanco escrito a fuego en la librería.
+.air-datepicker--pointer::after {
+  background: var(--fs-surface);
+}
+
+.air-datepicker-nav--title,
+.air-datepicker-nav--title i {
+  color: var(--fs-ink);
+  font-weight: 600;
+}
+
+.air-datepicker-cell.-selected- {
+  color: var(--fs-on-brand);
+}

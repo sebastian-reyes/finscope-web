@@ -1,0 +1,52 @@
+// La cabecera, el rótulo de sección y el panel salen de la capa base; aquí vive solo lo
+// propio de esta pantalla.
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  // El formulario no se estira a lo ancho de un monitor: un nombre y un correo se leen
+  // mejor en una columna estrecha que repartidos por media pantalla.
+  max-width: 28rem;
+}
+
+.fs-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+// El correo se lee, no se escribe: va como texto y no como un campo desactivado, que
+// invitaría a intentar cambiarlo.
+.fs-static {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--fs-ink);
+}
+
+.fs-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+// Los botones solo aparecen cuando hay algo que guardar, así que llegan con la fila entera:
+// no hay un hueco reservado esperándolos.
+.fs-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.fs-seg {
+  margin-top: 1rem;
+}

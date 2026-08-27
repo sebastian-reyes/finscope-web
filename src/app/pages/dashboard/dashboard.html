@@ -1,0 +1,128 @@
+<header class="fs-period">
+  <button class="fs-period__step" type="button" (click)="shiftMonth(-1)" aria-label="Mes anterior">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+  </button>
+  <h1 class="fs-period__title">
+    <span class="visually-hidden">{{ title() }}</span>
+    <fs-date-field
+      variant="plain"
+      ariaLabel="Mes que se está mirando"
+      mode="month"
+      [value]="monthValue()"
+      (valueChange)="setMonthValue($event)"
+      [max]="today"
+    />
+  </h1>
+  <button
+    class="fs-period__step"
+    type="button"
+    (click)="shiftMonth(1)"
+    [disabled]="isCurrentMonth()"
+    aria-label="Mes siguiente"
+  >
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </button>
+</header>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">{{ error() }}</div>
+}
+
+<div class="fs-dash">
+  <section class="fs-panel fs-balance fs-dash__balance" aria-labelledby="balanceTitle">
+    <p class="fs-balance__label" id="balanceTitle">Balance del periodo</p>
+
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--hero"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else if (summary(); as totals) {
+      <p class="fs-balance__value">
+        <fs-amount [amount]="totals.net" [signed]="true" />
+      </p>
+      <p class="fs-balance__hint">
+        {{
+          totals.net >= 0
+            ? 'Has ingresado más de lo que has gastado.'
+            : 'Has gastado más de lo que has ingresado.'
+        }}
+      </p>
+
+      <div class="fs-split">
+        <div class="fs-split__item">
+          <span class="fs-split__label">
+            <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+          </span>
+          <fs-amount [amount]="totals.income" code="INCOME" />
+        </div>
+        <div class="fs-split__item">
+          <span class="fs-split__label">
+            <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+          </span>
+          <fs-amount [amount]="totals.expense" code="EXPENSE" />
+        </div>
+        <div class="fs-split__item">
+          <span class="fs-split__label">
+            <i class="bi bi-receipt" aria-hidden="true"></i>Movimientos
+          </span>
+          <span class="fs-num fs-split__count">{{ totals.transactionCount }}</span>
+        </div>
+      </div>
+    }
+  </section>
+
+  <section class="fs-panel fs-card fs-dash__quick" aria-labelledby="quickTitle">
+    <h2 class="fs-card__title" id="quickTitle">
+      <i class="bi bi-plus-circle" aria-hidden="true"></i>Registrar movimiento
+    </h2>
+    <fs-quick-transaction
+      [types]="types()"
+      [categories]="categories()"
+      [tags]="tags()"
+      [focusRequest]="focusRequest()"
+      (saved)="onSaved($event)"
+      (catalogueChanged)="onCatalogueChanged()"
+    />
+  </section>
+
+  <section class="fs-panel fs-card fs-dash__spending" aria-labelledby="spendingTitle">
+    <h2 class="fs-card__title" id="spendingTitle">
+      <i class="bi bi-pie-chart" aria-hidden="true"></i>En qué se va
+    </h2>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--chart"></div>
+    } @else if (summary(); as totals) {
+      <fs-spending-by-category-chart [byCategory]="totals.byCategory" />
+      <p class="fs-note">
+        Cada movimiento cuenta en una sola categoría, así que estas porciones reparten exactamente
+        lo gastado en el periodo.
+      </p>
+    }
+  </section>
+
+  <section class="fs-panel fs-card fs-dash__trend" aria-labelledby="trendTitle">
+    <h2 class="fs-card__title" id="trendTitle">
+      <i class="bi bi-graph-up" aria-hidden="true"></i>Evolución
+    </h2>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--chart"></div>
+    } @else if (series(); as data) {
+      <fs-trend-chart [series]="data" />
+      <p class="fs-note">
+        Solo aparecen los días con movimientos: un hueco significa que ese día no se movió nada.
+      </p>
+    }
+  </section>
+
+  <section class="fs-panel fs-card fs-dash__recent" aria-labelledby="recentTitle">
+    <h2 class="fs-card__title" id="recentTitle">
+      <i class="bi bi-clock-history" aria-hidden="true"></i>Últimos movimientos
+    </h2>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--line"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else {
+      <fs-recent-transactions [transactions]="recent()" [highlightId]="highlightId()" />
+    }
+  </section>
+</div>

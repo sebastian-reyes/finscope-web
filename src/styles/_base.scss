@@ -1,0 +1,442 @@
+@use 'sass:color';
+@use 'tokens' as t;
+
+// Capa base: los tokens publicados como variables y las piezas que comparten todas las
+// pantallas. Lo que use más de un componente vive aquí; lo que use uno solo, en el suyo.
+
+:root {
+  color-scheme: light;
+
+  // --- Tipografía ------------------------------------------------------------------------
+  // Una sola familia, la del sistema: en un teléfono es la que ya está cargada y la que el
+  // usuario reconoce, y no cuesta una descarga que retrase el primer dato en pantalla.
+  --fs-font: system-ui, -apple-system, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
+  --fs-text-xs: 0.75rem;
+  --fs-text-sm: 0.8125rem;
+  --fs-text-base: 0.9375rem;
+  --fs-text-md: 1.0625rem;
+  --fs-text-lg: 1.375rem;
+
+  // --- Papeles ---------------------------------------------------------------------------
+  // La superficie es un papel distinto del fondo. Sin esto, tarjetas y fondo comparten color
+  // y la pantalla se queda plana.
+  --fs-paper: #{t.$fs-paper};
+  --fs-surface: #{t.$fs-surface};
+  --fs-surface-sunken: #{t.$fs-paper};
+  // Lo que se enciende bajo el puntero. Es un tinte del papel, no un gris inventado.
+  --fs-hover: #{rgba(t.$fs-ink, 0.04)};
+  --fs-shade: #{rgba(t.$fs-ink, 0.08)};
+
+  // --- Tinta -----------------------------------------------------------------------------
+  --fs-ink: #{t.$fs-ink};
+  --fs-ink-muted: #{t.$fs-ink-muted};
+  --fs-ink-faint: #{t.$fs-ink-faint};
+
+  // --- Líneas ----------------------------------------------------------------------------
+  --fs-line: #{t.$fs-line};
+  --fs-line-strong: #{color.adjust(t.$fs-line, $lightness: -8%)};
+
+  // --- Marca -----------------------------------------------------------------------------
+  --fs-brand: #{t.$fs-brand};
+  --fs-brand-strong: #{t.$fs-brand-strong};
+  --fs-brand-tint: #{t.$fs-brand-tint};
+  --fs-brand-rgb: 42, 92, 184;
+  /* Lo que se escribe encima del azul macizo. */
+  --fs-on-brand: #ffffff;
+  --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand, 0.16)};
+
+  // --- Semántica del dinero --------------------------------------------------------------
+  --fs-income: #{t.$fs-income};
+  --fs-income-tint: #{t.$fs-income-tint};
+  --fs-expense: #{t.$fs-expense};
+  --fs-expense-tint: #{t.$fs-expense-tint};
+  // El rojo de un aviso se lee sobre su propio tinte, y ahí el color del signo no tiene
+  // contraste suficiente para un párrafo entero.
+  --fs-expense-ink: #{color.adjust(t.$fs-expense, $lightness: -14%)};
+
+  // --- Forma y relieve -------------------------------------------------------------------
+  --fs-radius: #{t.$fs-radius};
+  --fs-radius-lg: #{t.$fs-radius-lg};
+  // Los controles llevan un radio propio, más cerrado: con el de las tarjetas, un botón
+  // pequeño se convierte en una pastilla y pierde la lectura de botón.
+  --fs-radius-control: 0.625rem;
+  --fs-shadow: #{t.$fs-shadow};
+  --fs-shadow-raised: #{t.$fs-shadow-raised};
+
+  --fs-tabbar-height: #{t.$fs-tabbar-height};
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --fs-paper: #{t.$fs-paper-dark};
+  --fs-surface: #{t.$fs-surface-dark};
+  --fs-surface-sunken: #{t.$fs-paper-dark};
+  --fs-hover: #{rgba(#fff, 0.05)};
+  --fs-shade: #{rgba(#fff, 0.09)};
+
+  --fs-ink: #{t.$fs-ink-dark};
+  --fs-ink-muted: #{t.$fs-ink-muted-dark};
+  --fs-ink-faint: #{t.$fs-ink-faint-dark};
+
+  --fs-line: #{t.$fs-line-dark};
+  --fs-line-strong: #{color.adjust(t.$fs-line-dark, $lightness: 8%)};
+
+  // El azul de marca se eligió para papel blanco y sobre fondo oscuro queda apagado: aquí
+  // manda su versión clara, y lo que se escribe encima pasa a ser oscuro para que el
+  // contraste siga estando del lado correcto.
+  --fs-brand: #{t.$fs-brand-dark};
+  --fs-brand-strong: #a3c0f2;
+  --fs-brand-tint: #1a2537;
+  --fs-brand-rgb: 123, 164, 236;
+  --fs-on-brand: #{t.$fs-paper-dark};
+  --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand-dark, 0.22)};
+
+  --fs-income: #{t.$fs-income-dark};
+  --fs-income-tint: #1a2b25;
+  --fs-expense: #{t.$fs-expense-dark};
+  --fs-expense-tint: #2e1e1c;
+  --fs-expense-ink: #f0a49c;
+
+  --fs-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
+  --fs-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+body {
+  // El teclado de un móvil no debe poder tapar el contenido al que se está escribiendo.
+  overscroll-behavior-y: none;
+}
+
+// Los importes se leen en columna y comparándolos entre sí: sin cifras de ancho fijo, el
+// ojo tiene que releer cada una para saber cuál es mayor.
+.fs-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+// Semántica financiera. Nunca viaja sola: quien la usa pone además signo e icono.
+.fs-income {
+  color: var(--fs-income);
+}
+
+.fs-expense {
+  color: var(--fs-expense);
+}
+
+// --- Superficies -------------------------------------------------------------------------
+// La superficie estándar de la aplicación. Sin sombra: el relieve lo da el escalón entre el
+// papel del fondo y el de la tarjeta, y una sombra encima de eso solo añade suciedad. Lo que
+// flota de verdad —una hoja, un desplegable— sí la lleva, y así se distingue de un panel.
+.fs-panel {
+  background-color: var(--fs-surface);
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-lg);
+}
+
+// Deja sitio a la barra inferior en móvil, incluida la zona segura de los iPhone.
+.fs-safe-bottom {
+  padding-bottom: calc(var(--fs-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  .fs-safe-bottom {
+    padding-bottom: 2rem;
+  }
+}
+
+// --- Piezas repetidas de pantalla --------------------------------------------------------
+// Cabecera, rótulo de sección, estado vacío y esqueleto de carga los usan todas las
+// pantallas: viven aquí para que una sección nueva se vea como las que ya existen sin tener
+// que copiar sus reglas.
+
+.fs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.fs-head__title {
+  margin: 0 0 0.25rem;
+  font-size: var(--fs-text-lg);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.fs-head__hint {
+  margin: 0;
+  max-width: 42rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-head__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+// El rótulo de sección no es un título: es una etiqueta que ordena. Va en versalita, apagado
+// y pequeño, para que no compita con el dato que encabeza.
+.fs-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fs-ink-faint);
+}
+
+.fs-count {
+  padding: 0.05rem 0.4rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  letter-spacing: 0;
+}
+
+.fs-note {
+  margin: 0.75rem 0 0;
+  font-size: var(--fs-text-xs);
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+.fs-muted {
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+}
+
+.fs-danger {
+  color: var(--fs-expense);
+  text-decoration: none;
+}
+
+// Una lista vacía suele ser un estado normal y no un error: se explica qué falta y se ofrece
+// el camino para salir de ahí.
+.fs-blank {
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.fs-blank i {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 2rem;
+  color: var(--fs-ink-faint);
+}
+
+.fs-blank__title {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.fs-blank__hint {
+  margin: 0 auto 1.25rem;
+  max-width: 28rem;
+  font-size: var(--fs-text-base);
+  color: var(--fs-ink-muted);
+}
+
+// El esqueleto pone el alto quien lo usa: cada pantalla imita el hueco de su contenido.
+.fs-skeleton {
+  border-radius: t.$fs-radius-sm;
+  background: linear-gradient(90deg, var(--fs-hover) 25%, var(--fs-shade) 37%, var(--fs-hover) 63%);
+  background-size: 400% 100%;
+  animation: fs-shimmer 1.4s ease infinite;
+}
+
+@keyframes fs-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+// --- Fichas de categoría y de tag --------------------------------------------------------
+// La paleta vive aquí, y no dentro de un componente, porque la comparten el chip de tag y el
+// de categoría: el color se deduce del nombre y tiene que salir igual lo pinte quien lo
+// pinte.
+.fs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.2rem 0.6rem;
+  border-radius: t.$fs-radius-pill;
+  font-size: var(--fs-text-sm);
+  line-height: 1.35;
+  background-color: var(--fs-chip-bg);
+  color: var(--fs-chip-ink);
+}
+
+.fs-chip__count {
+  opacity: 0.7;
+  font-size: var(--fs-text-xs);
+}
+
+.fs-chip--0 {
+  --fs-chip-bg: #e8eefb;
+  --fs-chip-ink: #2c4c8f;
+}
+.fs-chip--1 {
+  --fs-chip-bg: #e6f2ec;
+  --fs-chip-ink: #216b50;
+}
+.fs-chip--2 {
+  --fs-chip-bg: #fdeee2;
+  --fs-chip-ink: #8f5220;
+}
+.fs-chip--3 {
+  --fs-chip-bg: #f0e9fa;
+  --fs-chip-ink: #5a3f96;
+}
+.fs-chip--4 {
+  --fs-chip-bg: #fbe9ef;
+  --fs-chip-ink: #91375a;
+}
+.fs-chip--5 {
+  --fs-chip-bg: #e4f1f6;
+  --fs-chip-ink: #1f5f78;
+}
+.fs-chip--6 {
+  --fs-chip-bg: #f2f0e4;
+  --fs-chip-ink: #6a6425;
+}
+.fs-chip--7 {
+  --fs-chip-bg: #eceef1;
+  --fs-chip-ink: #454f5c;
+}
+
+[data-theme='dark'] .fs-chip--0 {
+  --fs-chip-bg: #1c2740;
+  --fs-chip-ink: #9dbaf0;
+}
+[data-theme='dark'] .fs-chip--1 {
+  --fs-chip-bg: #172b25;
+  --fs-chip-ink: #74c9a2;
+}
+[data-theme='dark'] .fs-chip--2 {
+  --fs-chip-bg: #30241a;
+  --fs-chip-ink: #dda877;
+}
+[data-theme='dark'] .fs-chip--3 {
+  --fs-chip-bg: #262039;
+  --fs-chip-ink: #b39fe0;
+}
+[data-theme='dark'] .fs-chip--4 {
+  --fs-chip-bg: #331e28;
+  --fs-chip-ink: #dc95ac;
+}
+[data-theme='dark'] .fs-chip--5 {
+  --fs-chip-bg: #16292f;
+  --fs-chip-ink: #7fb8cb;
+}
+[data-theme='dark'] .fs-chip--6 {
+  --fs-chip-bg: #2a2818;
+  --fs-chip-ink: #c3bd7d;
+}
+[data-theme='dark'] .fs-chip--7 {
+  --fs-chip-bg: #242a31;
+  --fs-chip-ink: #a4aebc;
+}
+
+// --- Control segmentado ------------------------------------------------------------------
+// Lo usan los filtros, el catálogo y el acceso: son opciones pocas y excluyentes, y se ven
+// todas a la vez en lugar de esconderse en un desplegable que hay que abrir para saber qué
+// hay dentro.
+.fs-seg {
+  position: relative;
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-surface-sunken);
+}
+
+// La pastilla que marca la opción elegida. Es un pseudoelemento para no meter un nodo más en
+// cada uso, y se coloca con las medidas que publica la directiva `.fs-seg`: se desliza de
+// una opción a otra en lugar de saltar, que es lo que cuenta que son las caras de una misma
+// decisión.
+.fs-seg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  // La vertical se centra sola: así la pastilla queda a la altura de las opciones sin
+  // depender de cuánto relleno o cuánto borde tenga el control.
+  top: 50%;
+  width: var(--fs-seg-w, 0);
+  height: var(--fs-seg-h, 0);
+  transform: translate(var(--fs-seg-x, 0), -50%);
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-surface);
+  box-shadow: var(--fs-shadow);
+  pointer-events: none;
+}
+
+// La transición se enciende después de la primera medida, para que la pastilla no entre
+// deslizándose desde la esquina cada vez que se abre la pantalla.
+.fs-seg.is-ready::before {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fs-seg__btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border: none;
+  border-radius: t.$fs-radius-pill;
+  background: none;
+  font-size: var(--fs-text-base);
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  transition: color 0.15s ease;
+}
+
+.fs-seg__btn.is-active {
+  color: var(--fs-ink);
+}
+
+.fs-seg__btn:active,
+.fs-scope:active,
+.fs-times__item:active {
+  transform: scale(0.96);
+}
+
+// --- Entradas compartidas ----------------------------------------------------------------
+// Para usarlas con `animate.enter` allí donde aparece algo nuevo. Viven aquí y no en cada
+// componente porque la forma de aparecer debería ser la misma en toda la aplicación: lo que
+// surge, surge igual.
+.fs-anim-pop {
+  animation: fs-anim-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-anim-expand {
+  animation: fs-anim-expand 0.22s ease both;
+}
+
+@keyframes fs-anim-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes fs-anim-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+}

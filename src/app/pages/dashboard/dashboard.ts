@@ -1,0 +1,194 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { forkJoin, map } from 'rxjs';
+import { FinscopeService } from '../../core/finscope.service';
+import { TransactionEditorService } from '../../core/transaction-editor.service';
+import { describeError } from '../../core/api-error';
+import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
+import {
+  SummaryGranularity,
+  SummarySeriesResponse,
+  TransactionResponse,
+  TransactionSummaryResponse,
+} from '../../core/models';
+import { AmountComponent } from '../../shared/ui/amount';
+import { DateFieldComponent } from '../../shared/ui/date-field';
+import { QuickTransactionComponent } from './quick-transaction';
+import { RecentTransactionsComponent } from './recent-transactions';
+import { SpendingByCategoryChartComponent } from './spending-by-category-chart';
+import { TrendChartComponent } from './trend-chart';
+
+/** Cuántos movimientos recientes se enseñan antes de mandar al historial completo. */
+const RECENT_SIZE = 6;
+
+/** Cuánto se queda resaltado el movimiento que se acaba de registrar. */
+const HIGHLIGHT_MS = 1800;
+
+/**
+ * Pantalla de inicio.
+ *
+ * Contesta, en este orden, a cuánto tengo, en qué se me va y qué he movido últimamente, y
+ * deja registrar sin cambiar de sitio. El periodo por defecto es el mes en curso, que es la
+ * unidad en la que se piensa un sueldo.
+ */
+@Component({
+  selector: 'app-dashboard',
+  imports: [
+    AmountComponent,
+    DateFieldComponent,
+    QuickTransactionComponent,
+    RecentTransactionsComponent,
+    SpendingByCategoryChartComponent,
+    TrendChartComponent,
+  ],
+  templateUrl: './dashboard.html',
+  styleUrl: './dashboard.scss',
+})
+export class DashboardPage {
+  private readonly api = inject(FinscopeService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly editor = inject(TransactionEditorService);
+
+  protected readonly summary = signal<TransactionSummaryResponse | null>(null);
+  protected readonly series = signal<SummarySeriesResponse | null>(null);
+  protected readonly recent = signal<TransactionResponse[]>([]);
+  /** Los mismos catálogos que usa la hoja de registro, para no pedirlos dos veces. */
+  protected readonly types = this.editor.types;
+  protected readonly categories = this.editor.categories;
+  protected readonly tags = this.editor.catalogue;
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+
+  /** Movimiento recién registrado, que se señala un momento entre los últimos. */
+  protected readonly highlightId = signal<number | null>(null);
+
+  /** Mes que se está mirando. Se mueve con las flechas de la cabecera. */
+  protected readonly period = signal(currentMonth());
+
+  /**
+   * Tramos de la evolución. Dentro de un mes el día es lo que se entiende; el resto del
+   * periodo es cosa del historial.
+   */
+  private readonly granularity: SummaryGranularity = 'DAY';
+
+  /**
+   * Marca de la última petición de registrar llegada por la URL.
+   * Se escucha en lugar de leerse una vez porque el botón central puede pulsarse estando ya
+   * en esta pantalla, y entonces no hay componente nuevo que construir.
+   */
+  protected readonly focusRequest = toSignal(
+    this.route.queryParamMap.pipe(map((params) => Number(params.get('registrar')) || null)),
+    { initialValue: null },
+  );
+
+  protected readonly title = computed(() => {
+    const { month, year } = this.period();
+    return monthLabel(month!, year!);
+  });
+
+  /** Mes que se está mirando, en el formato que entiende el selector de mes. */
+  protected readonly monthValue = computed(() => {
+    const { month, year } = this.period();
+    return `${year}-${String(month).padStart(2, '0')}`;
+  });
+
+  /** Hoy, como tope del calendario: no hay balance que mirar en el futuro. */
+  protected readonly today = toInputDateTime(new Date()).slice(0, 10);
+
+  protected readonly isCurrentMonth = computed(() => {
+    const now = new Date();
+    const { month, year } = this.period();
+    return month === now.getMonth() + 1 && year === now.getFullYear();
+  });
+
+  constructor() {
+    this.editor.refreshCatalogues();
+    this.load();
+
+    // Lo registrado desde el botón central de la barra inferior no pasa por el formulario
+    // de esta pantalla, pero cambia el balance que se está mirando: sin esto, se guardaría
+    // un gasto y el número de arriba seguiría diciendo lo de antes.
+    this.editor.changes$.pipe(takeUntilDestroyed()).subscribe((change) => {
+      if (change.kind === 'saved') {
+        this.highlight(change.id);
+      }
+      this.load();
+    });
+  }
+
+  /** Salta al mes elegido en el calendario. */
+  protected setMonthValue(value: string): void {
+    if (!value) {
+      return;
+    }
+    const [year, month] = value.split('-').map(Number);
+    this.period.set({ month, year });
+    this.load();
+  }
+
+  /** Desplaza el periodo un mes hacia atrás o hacia delante. */
+  protected shiftMonth(delta: number): void {
+    const { month, year } = this.period();
+    const moved = new Date(year!, month! - 1 + delta, 1);
+    this.period.set({ month: moved.getMonth() + 1, year: moved.getFullYear() });
+    this.load();
+  }
+
+  protected load(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    const filters = this.period();
+    forkJoin({
+      summary: this.api.getSummary(filters),
+      series: this.api.getSummarySeries(filters, this.granularity),
+      recent: this.api.listTransactions({
+        ...filters,
+        page: 0,
+        size: RECENT_SIZE,
+        sort: 'date,desc',
+      }),
+    }).subscribe({
+      next: ({ summary, series, recent }) => {
+        this.summary.set(summary);
+        this.series.set(series);
+        this.recent.set(recent.content);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        this.error.set(describeError(error));
+        this.loading.set(false);
+      },
+    });
+  }
+
+  /**
+   * Tras registrar un movimiento hay que recalcularlo todo, incluidos los catálogos: el
+   * número de movimientos de cada categoría y de cada tag es lo que ordena sus fichas en el
+   * formulario, y acaba de cambiar.
+   */
+  protected onSaved(id: number): void {
+    this.highlight(id);
+    this.load();
+    this.editor.refreshCatalogues();
+  }
+
+  /** Alguien creó una categoría desde el formulario: el catálogo de aquí ya no vale. */
+  protected onCatalogueChanged(): void {
+    this.editor.refreshCatalogues();
+  }
+
+  /**
+   * Señala el movimiento recién registrado y lo deja de señalar solo.
+   *
+   * @param id identificador del movimiento
+   */
+  private highlight(id: number): void {
+    this.highlightId.set(id);
+    setTimeout(() => {
+      if (this.highlightId() === id) {
+        this.highlightId.set(null);
+      }
+    }, HIGHLIGHT_MS);
+  }
+}

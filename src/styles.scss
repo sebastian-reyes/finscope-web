@@ -1,0 +1,16 @@
+// Hoja global de FinScope.
+//
+// Aquí no hay ningún marco de terceros. Lo hubo: la aplicación nació sobre Bootstrap y se le
+// fue quedando pequeño según crecía su propio idioma —el panel, el control segmentado, las
+// fichas, la hoja del editor—, hasta que lo único que seguía aportando eran botones, campos,
+// avisos y una rejilla usada en tres sitios. Eso es `ui`, y cuesta unos pocos kilobytes en
+// lugar de los 338 kB de CSS y 108 kB de JS que ocupaba el marco entero.
+//
+// El orden es el contrato: la puesta a cero prepara el documento, las primitivas construyen
+// los controles, el calendario trae su librería y la capa base añade lo que comparten las
+// pantallas —y, de paso, gana por orden de aparición allí donde hace falta.
+
+@use 'styles/reset';
+@use 'styles/ui';
+@use 'styles/datepicker';
+@use 'styles/base';

@@ -1,0 +1,352 @@
+@use '../../../styles/tokens' as t;
+
+// El editor se abre encima de la pantalla en la que se esté. El velo no es un div de más:
+// es el propio elemento del componente, y la hoja va dentro. En móvil sube desde abajo, que
+// es donde está el pulgar y de donde vienen las hojas del sistema; a partir de tablet se
+// centra como un diálogo, porque una hoja a pantalla completa en un monitor no tiene
+// sentido.
+:host {
+  position: fixed;
+  inset: 0;
+  // Por encima de la barra inferior y por debajo de los avisos, que tienen que poder
+  // leerse aunque el editor esté abierto.
+  z-index: 1050;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(9, 13, 20, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+// La hoja entra y sale con curvas distintas a propósito: al abrirse frena despacio, como si
+// tuviera peso, y al cerrarse coge carrerilla y se va, porque ahí ya no hay nada que mirar.
+//
+// Las clases las pone quien monta el editor, sobre la etiqueta del componente, y por eso la
+// animación que manda es esta y no la de la hoja: `animate.enter` mira, en el frame
+// siguiente, si el elemento al que le ha puesto la clase tiene alguna animación viva —la
+// suya, no la de sus hijos— y si no la tiene se la quita. Con la subida colgando solo de la
+// hoja, se cortaba a los 16 ms y el editor aparecía de golpe.
+//
+// Por lo mismo, esta tiene que durar más que la de dentro: Angular retira la clase en
+// cuanto termina, y con ella se llevaría por delante lo que aún estuviera corriendo.
+:host(.is-opening) {
+  animation: fs-veil 0.38s ease both;
+}
+
+:host(.is-closing) {
+  animation: fs-veil 0.24s ease reverse both;
+}
+
+.fs-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 92vh;
+  // Nada asoma por debajo del tope ni por fuera de las esquinas redondeadas.
+  overflow: hidden;
+  background-color: var(--fs-surface);
+  border-top-left-radius: t.$fs-radius-lg;
+  border-top-right-radius: t.$fs-radius-lg;
+  box-shadow: var(--fs-shadow-raised);
+}
+
+:host(.is-opening) .fs-sheet {
+  animation: fs-rise 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:host(.is-closing) .fs-sheet {
+  animation: fs-rise 0.22s cubic-bezier(0.5, 0, 0.75, 0) reverse both;
+}
+
+// Asa de arrastre. No arrastra nada, pero es lo que hace que se lea como una hoja que se
+// puede cerrar y no como una pantalla nueva sin salida.
+.fs-sheet__grip {
+  width: 2.5rem;
+  height: 0.25rem;
+  margin: 0.5rem auto 0;
+  border-radius: 999px;
+  background-color: var(--fs-line);
+}
+
+.fs-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem 0.5rem;
+}
+
+.fs-sheet__title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.fs-sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--fs-ink-muted);
+
+  &:hover {
+    background-color: var(--fs-hover);
+  }
+}
+
+.fs-sheet__body {
+  // Se lleva el hueco que sobra y cede el que haga falta: es la parte que se desplaza.
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 1.25rem 1.25rem;
+  overflow-y: auto;
+}
+
+.fs-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-label__optional {
+  font-weight: 400;
+  color: var(--fs-ink-faint);
+}
+
+.fs-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+.fs-error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--fs-expense);
+}
+
+// El monto se escribe como en una calculadora: tipografía grande y sin la caja habitual de
+// formulario, porque es el dato por el que se entra aquí.
+.fs-amount-field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius;
+  background-color: var(--fs-surface-sunken);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: var(--fs-brand);
+    box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+  }
+
+  &.is-invalid {
+    border-color: var(--fs-expense);
+  }
+}
+
+.fs-amount-field__currency {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-amount-field__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fs-ink);
+  appearance: textfield;
+
+  &:focus {
+    outline: none;
+  }
+
+  // Las flechitas del campo numérico estorban en un campo de dinero.
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+}
+
+.fs-kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.fs-kind {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius;
+  background-color: transparent;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fs-kind--expense.is-active {
+  background-color: var(--fs-expense-tint);
+  border-color: var(--fs-expense);
+  color: var(--fs-expense);
+}
+
+.fs-kind--income.is-active {
+  background-color: var(--fs-income-tint);
+  border-color: var(--fs-income);
+  color: var(--fs-income);
+}
+
+// El formulario es quien reparte el alto de la hoja entre el cuerpo y el pie. Sin esto era
+// un bloque normal en medio de la columna, y un bloque no baja de lo que mide su contenido:
+// el cuerpo no llegaba a desplazarse nunca, el formulario crecía por encima del tope de la
+// hoja y el pie acababa fuera de la pantalla. Se veía al estrenar un aviso de validación,
+// que es lo que le daba el empujón que faltaba, pero el pie ya estaba fuera antes.
+.fs-sheet__form {
+  display: flex;
+  flex-direction: column;
+  // `min-height: 0` es la pieza que lo arregla: por defecto un elemento flexible no encoge
+  // por debajo de su contenido, y sin poder encoger no hay nada que desplazar.
+  min-height: 0;
+}
+
+// El pie queda fijo mientras el cuerpo se desplaza: guardar tiene que estar siempre a la
+// vista, sobre todo en un móvil con el teclado abierto.
+.fs-sheet__foot {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--fs-line);
+  background-color: var(--fs-surface);
+}
+
+.fs-sheet__buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.fs-sheet__save {
+  min-width: 9rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+}
+
+.fs-sheet__delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  text-decoration: none;
+}
+
+.fs-sheet__warn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+@media (min-width: 576px) {
+  :host {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  // El velo sigue siendo el reloj de la entrada; aquí solo se acorta, porque el diálogo
+  // recorre mucho menos que la hoja.
+  :host(.is-opening) {
+    animation-duration: 0.3s;
+  }
+
+  :host(.is-closing) {
+    animation-duration: 0.18s;
+  }
+
+  .fs-sheet {
+    max-width: 32rem;
+    max-height: 88vh;
+    border-radius: t.$fs-radius-lg;
+  }
+
+  // En escritorio no hay borde de pantalla del que salir, así que el diálogo sube un palmo
+  // en lugar de la hoja entera: el gesto es el mismo, medido para la distancia que hay.
+  :host(.is-opening) .fs-sheet {
+    animation: fs-lift 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  :host(.is-closing) .fs-sheet {
+    animation: fs-lift 0.16s cubic-bezier(0.5, 0, 0.75, 0) reverse both;
+  }
+
+  .fs-sheet__grip {
+    display: none;
+  }
+
+  .fs-sheet__head {
+    padding-top: 1.25rem;
+  }
+}
+
+// El velo se pone antes de que la hoja acabe de subir, pero la animación sigue viva hasta
+// el final: esa cola es lo que mantiene la clase puesta mientras dura el movimiento.
+@keyframes fs-veil {
+  from {
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+}
+
+// La hoja entra desde fuera de la pantalla, no desde dos dedos más abajo: recorrer su
+// propio alto es lo que la cuenta como algo que sube desde el borde de abajo —de donde
+// vienen las hojas del sistema y donde está el pulgar— en vez de como una tarjeta que
+// aparece ya puesta.
+@keyframes fs-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fs-lift {
+  from {
+    transform: translateY(1.75rem) scale(0.98);
+    opacity: 0;
+  }
+}

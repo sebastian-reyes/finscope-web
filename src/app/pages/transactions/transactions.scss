@@ -1,0 +1,411 @@
+@use '../../../styles/tokens' as t;
+
+// Los filtros son la herramienta de la pantalla, no su contenido: ocupan una franja
+// compacta arriba y se aplican solos al tocarlos, sin un botón de buscar que obligue a
+// confirmar cada decisión.
+.fs-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-filters__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+// Los tres modos de periodo traen controles de altos distintos —el segmentado mide 2.5625rem
+// y el campo de fecha 2.625rem—, así que la fila cambiaba de alto al saltar de uno a otro y
+// la tarjeta entera daba un tirón. Con el hueco reservado al más alto, cambiar de modo ya no
+// mueve nada de lo que hay debajo.
+.fs-filters__period {
+  min-height: 2.625rem;
+}
+
+.fs-filters__select {
+  flex: 0 1 14rem;
+  min-width: 10rem;
+  // El desplegable propio es un componente: el ancho lo lleva su etiqueta.
+  display: block;
+}
+
+.fs-filters__clear {
+  margin-left: auto;
+  text-decoration: none;
+}
+
+.fs-filters__note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-faint);
+}
+
+.fs-month {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  // Igual que el rango: puede encogerse hasta el mínimo que tenga puesto el selector, en vez
+  // de conservar el ancho de su contenido y comerse el relleno de la tarjeta.
+  min-width: 0;
+}
+
+// El mes es un calendario en vista de meses: moverse uno a uno con las flechas es lo
+// habitual, pero saltar a marzo no debería costar nueve toques. Se ve como el rótulo que
+// era antes, sin caja de formulario.
+.fs-month__picker {
+  min-width: 7.5rem;
+  font-weight: 600;
+}
+
+.fs-month__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 50%;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
+
+  &:disabled {
+    opacity: 0.4;
+  }
+}
+
+.fs-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  // Sin esto, el par de fechas conserva su ancho natural pase lo que pase y se sale de la
+  // tarjeta en cuanto la pantalla se estrecha.
+  min-width: 0;
+}
+
+.fs-range__sep {
+  color: var(--fs-ink-faint);
+}
+
+// Los totales son los del mismo filtro que la lista: lo que se ve y lo que suma lo que se
+// ve son la misma pregunta, así que van juntos y no en otra pantalla.
+.fs-totals {
+  display: grid;
+  // Como el desglose del balance: los tres importes se reparten las columnas que quepan y
+  // el que sobra baja de línea, en vez de estirar la tarjeta más allá de la pantalla.
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-totals__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 600;
+}
+
+.fs-totals__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--fs-ink-muted);
+}
+
+.fs-list {
+  margin-bottom: 1rem;
+}
+
+.fs-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.fs-list__sort {
+  min-width: 10rem;
+}
+
+.fs-list__body {
+  padding: 0 1.25rem;
+  transition: opacity 0.15s ease;
+
+  // Al recargar se atenúa lo que ya había en vez de vaciarlo: la lista no salta y se sigue
+  // sabiendo dónde estaba uno mirando.
+  &.is-busy {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+.fs-list__skeletons {
+  padding: 0.5rem 1.25rem 1.25rem;
+}
+
+.fs-list__skeletons .fs-skeleton {
+  height: 3rem;
+  margin-bottom: 0.6rem;
+}
+
+.fs-day {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-ink-faint);
+}
+
+.fs-day:first-child {
+  margin-top: 0.25rem;
+}
+
+.fs-movs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// Cada movimiento es una fila entera pulsable. La encabeza el icono de su categoría, que
+// es lo que hace la fila reconocible de un vistazo; el signo y el color del monto dicen si
+// el dinero entra o sale, y los tags quedan por encima de la zona pulsable para poder
+// filtrar por ellos sin abrir el editor.
+.fs-mov {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 -0.5rem;
+  padding: 0.7rem 0.5rem;
+  border-radius: t.$fs-radius-sm;
+  border-bottom: 1px solid var(--fs-line);
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background-color: var(--fs-hover);
+  }
+}
+
+.fs-mov:last-child {
+  border-bottom: none;
+}
+
+// Destello del movimiento recién guardado: se enciende con el tinte de marca y se apaga
+// solo. Es la respuesta a «¿dónde ha quedado lo que acabo de apuntar?».
+.fs-mov.is-fresh {
+  animation: fs-fresh 1.8s ease-out;
+}
+
+@keyframes fs-fresh {
+  0%,
+  20% {
+    background-color: var(--fs-brand-tint);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+// El icono de categoría no se encoge aunque la descripción sea larga.
+.fs-mov fs-category-chip {
+  flex: none;
+  line-height: 0;
+}
+
+.fs-mov__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fs-mov__open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  min-width: 0;
+
+  // Extiende el área pulsable a la fila entera sin anidar botones dentro de un botón.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: t.$fs-radius-sm;
+  }
+}
+
+// La categoría es la línea principal: es la respuesta a en qué se fue el dinero.
+.fs-mov__title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--fs-ink);
+}
+
+.fs-mov__meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--fs-ink-faint);
+}
+
+// La descripción matiza la categoría, así que la acompaña en la misma línea y con menos
+// peso: dice qué fue exactamente, no en qué grupo entra.
+.fs-mov__note {
+  color: var(--fs-ink-muted);
+}
+
+.fs-mov__tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.fs-mov__tag {
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  line-height: 0;
+  outline-offset: 2px;
+}
+
+.fs-mov__right {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.fs-mov__pencil {
+  color: var(--fs-ink-faint);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.fs-mov:hover .fs-mov__pencil,
+.fs-mov:focus-within .fs-mov__pencil {
+  opacity: 1;
+}
+
+// Sin ratón no hay forma de descubrir que la fila se edita: ahí el lápiz se queda puesto.
+@media (hover: none) {
+  .fs-mov__pencil {
+    opacity: 0.55;
+  }
+}
+
+.fs-list__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-list__range {
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-list__size {
+  min-width: 9.5rem;
+}
+
+.fs-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.fs-pager__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 50%;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
+
+  &:disabled {
+    opacity: 0.4;
+  }
+}
+
+.fs-pager__label {
+  min-width: 3.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-foot-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--fs-ink-faint);
+}
+
+@media (max-width: 575.98px) {
+  .fs-filters,
+  .fs-totals,
+  .fs-list__head,
+  .fs-list__body,
+  .fs-list__foot,
+  .fs-list__skeletons {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .fs-filters__select,
+  .fs-list__sort {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  // «26 ago 2026» con su icono y su aspa pide unos 10rem, y dos de esos más la flecha no
+  // caben en la anchura de un teléfono por mucho que se encojan: se apilan, cada uno a lo
+  // ancho de la tarjeta. La flecha gira y pasa a apuntar hacia abajo, que es hacia donde se
+  // lee ahora el «desde… hasta».
+  .fs-range {
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fs-range__sep {
+    align-self: center;
+    transform: rotate(90deg);
+  }
+
+  .fs-mov__right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+  }
+}

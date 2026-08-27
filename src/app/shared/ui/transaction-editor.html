@@ -1,0 +1,187 @@
+<section class="fs-sheet" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+  <span class="fs-sheet__grip" aria-hidden="true"></span>
+
+  <header class="fs-sheet__head">
+    <h2 class="fs-sheet__title" id="editorTitle">
+      {{ isEdit() ? 'Editar movimiento' : 'Nuevo movimiento' }}
+    </h2>
+    <button
+      type="button"
+      class="fs-sheet__close"
+      [disabled]="saving()"
+      (click)="requestClose()"
+      aria-label="Cerrar"
+    >
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  </header>
+
+  <form class="fs-sheet__form" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="fs-sheet__body">
+      <div>
+        <label class="fs-label" for="editorAmount">Monto</label>
+        <div
+          class="fs-amount-field"
+          [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
+        >
+          <span class="fs-amount-field__currency" aria-hidden="true">{{ currency }}</span>
+          <input
+            #amountField
+            id="editorAmount"
+            type="number"
+            inputmode="decimal"
+            step="0.01"
+            min="0.01"
+            placeholder="0.00"
+            class="fs-amount-field__input fs-num"
+            formControlName="amount"
+            autocomplete="off"
+          />
+        </div>
+        @if (form.controls.amount.touched && form.controls.amount.invalid) {
+          <p class="fs-error">Escribe un monto mayor que cero.</p>
+        }
+      </div>
+
+      <div class="fs-kinds" role="group" aria-label="Tipo de movimiento">
+        <button
+          type="button"
+          class="fs-kind fs-kind--expense"
+          [class.is-active]="kind() === 'EXPENSE'"
+          [attr.aria-pressed]="kind() === 'EXPENSE'"
+          [disabled]="saving()"
+          (click)="setKind('EXPENSE')"
+        >
+          <i class="bi bi-arrow-down-left" aria-hidden="true"></i>Egreso
+        </button>
+        <button
+          type="button"
+          class="fs-kind fs-kind--income"
+          [class.is-active]="kind() === 'INCOME'"
+          [attr.aria-pressed]="kind() === 'INCOME'"
+          [disabled]="saving()"
+          (click)="setKind('INCOME')"
+        >
+          <i class="bi bi-arrow-up-right" aria-hidden="true"></i>Ingreso
+        </button>
+      </div>
+
+      <div>
+        <span class="fs-label" id="editorCategoryLabel">Categoría</span>
+        <fs-category-picker
+          [categories]="categories()"
+          [kind]="kind()"
+          [selected]="categoryId()"
+          (selectedChange)="onCategoryChange($event)"
+          (created)="catalogueChanged.emit()"
+          [disabled]="saving()"
+          aria-labelledby="editorCategoryLabel"
+        />
+        @if (categoryMissing()) {
+          <p class="fs-error">Elige una categoría para saber en qué se fue.</p>
+        }
+      </div>
+
+      <div>
+        <label class="fs-label" for="editorDescription">
+          Descripción <span class="fs-label__optional">opcional</span>
+        </label>
+        <input
+          id="editorDescription"
+          type="text"
+          class="fs-field"
+          maxlength="255"
+          placeholder="Almuerzo con el equipo"
+          autocomplete="off"
+          formControlName="description"
+        />
+      </div>
+
+      <div>
+        <label class="fs-label" for="editorDate">Fecha y hora</label>
+        <fs-date-field
+          inputId="editorDate"
+          mode="datetime"
+          placeholder="Elegir fecha y hora"
+          [value]="form.controls.date.value"
+          (valueChange)="form.controls.date.setValue($event)"
+          [disabled]="saving()"
+        />
+        @if (form.controls.date.touched && form.controls.date.invalid) {
+          <p class="fs-error">Indica cuándo ocurrió.</p>
+        }
+      </div>
+
+      <div>
+        <label class="fs-label" for="editorTags">
+          Tags <span class="fs-label__optional">opcional</span>
+        </label>
+        <fs-tags-field
+          inputId="editorTags"
+          [(tags)]="tags"
+          [catalogue]="catalogue()"
+          [disabled]="saving()"
+        />
+        <p class="fs-hint">
+          Intro o coma para añadir. Al guardar, estos serán exactamente los tags del movimiento.
+        </p>
+      </div>
+    </div>
+
+    <footer class="fs-sheet__foot">
+      @if (confirmingDelete()) {
+        <p class="fs-sheet__warn" animate.enter="fs-anim-expand">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          Se borrará para siempre y dejará de contar en tus totales.
+        </p>
+        <div class="fs-sheet__buttons">
+          <button
+            type="button"
+            class="fs-btn fs-btn--ghost"
+            [disabled]="saving()"
+            (click)="cancelDelete()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="fs-btn fs-btn--danger"
+            [disabled]="saving()"
+            (click)="remove()"
+          >
+            Sí, eliminar
+          </button>
+        </div>
+      } @else {
+        @if (isEdit()) {
+          <button
+            type="button"
+            class="fs-btn fs-btn--quiet-danger fs-sheet__delete"
+            [disabled]="saving()"
+            (click)="askDelete()"
+          >
+            <i class="bi bi-trash" aria-hidden="true"></i>Eliminar
+          </button>
+        }
+        <div class="fs-sheet__buttons">
+          <button
+            type="button"
+            class="fs-btn fs-btn--ghost"
+            [disabled]="saving()"
+            (click)="requestClose()"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="fs-btn fs-btn--solid fs-sheet__save" [disabled]="saving()">
+            @if (saving()) {
+              <span class="fs-spinner" aria-hidden="true"></span>
+              Guardando…
+            } @else {
+              {{ isEdit() ? 'Guardar cambios' : 'Registrar' }}
+            }
+          </button>
+        </div>
+      }
+    </footer>
+  </form>
+</section>

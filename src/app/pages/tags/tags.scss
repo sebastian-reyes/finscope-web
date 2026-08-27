@@ -1,0 +1,109 @@
+@use '../../../styles/tokens' as t;
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-create {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.fs-create__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--fs-line);
+}
+
+.fs-row:last-child {
+  border-bottom: none;
+}
+
+// La fila entera lleva a los movimientos de ese tag, que es lo que se quiere hacer al
+// mirarla; las acciones de mantenimiento quedan aparte, a la derecha.
+.fs-row__main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0;
+  border-radius: t.$fs-radius-sm;
+  text-decoration: none;
+}
+
+.fs-row__count {
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-row__count--idle {
+  color: var(--fs-ink-faint);
+}
+
+// La papelera no se enciende hasta que el puntero llega: una lista con el icono ya en rojo
+// en cada fila se lee como un campo de minas, y el borrado todavía pide confirmación después.
+.fs-row__actions .fs-btn--quiet-danger {
+  color: var(--fs-ink-faint);
+}
+
+.fs-row__actions .fs-btn--quiet-danger:hover {
+  color: var(--fs-expense);
+}
+
+.fs-row__actions {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.fs-row__edit,
+.fs-row__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.fs-row__confirm {
+  justify-content: space-between;
+}
+
+.fs-row__edit .form-control {
+  flex: 1;
+  min-width: 8rem;
+}
+
+// La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;
+// aquí solo se ajusta lo que esta pantalla necesita distinto.
+.fs-section {
+  margin-bottom: 0.5rem;
+}
+
+.fs-skeleton {
+  height: 1.75rem;
+  margin-bottom: 0.75rem;
+}

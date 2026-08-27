@@ -1,0 +1,194 @@
+@use '../../../styles/tokens' as t;
+
+// Cabecera de periodo. El mes se cambia con dos flechas y no con un desplegable: moverse al
+// mes anterior es lo que se hace el 95 % de las veces.
+.fs-period {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+// El mes se cambia con las flechas o tocándolo, que abre el calendario en vista de meses.
+// Sigue siendo el título de la pantalla y se lee como tal: sin caja y en el sitio de antes.
+.fs-period__title {
+  margin: 0;
+  min-width: 9rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.fs-period__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 50%;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
+
+  &:disabled {
+    opacity: 0.4;
+  }
+}
+
+// Rejilla de la pantalla. El formulario de registro es alto y el balance es corto: puestos
+// uno al lado del otro en una fila, la tarjeta del balance se estiraba para igualarlo y se
+// quedaba medio vacía. Aquí el formulario ocupa dos filas de la columna derecha y el hueco
+// que dejaba el balance lo llena el reparto del gasto, que es la pregunta que sigue a
+// «cuánto me queda»: «en qué se fue».
+//
+// La evolución baja a lo ancho a propósito: es una serie de días y se lee mucho mejor
+// estirada que encajonada en media pantalla.
+.fs-dash {
+  display: grid;
+  gap: 1rem;
+  // `minmax(0, 1fr)` y no `1fr`: un hueco de `1fr` nunca baja de lo que mide el contenido
+  // más ancho que le toque, así que un lienzo o un importe que no parte hacen crecer la
+  // columna entera y con ella la página. Con el mínimo en cero manda la pantalla.
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 992px) {
+  .fs-dash {
+    gap: 1.5rem;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    // Cada tarjeta mide lo que mide su contenido; ninguna se estira para igualar a la de
+    // al lado, que era justo el origen del hueco.
+    align-items: start;
+  }
+
+  .fs-dash__quick {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .fs-dash__balance,
+  .fs-dash__spending {
+    grid-column: 1;
+  }
+
+  .fs-dash__trend,
+  .fs-dash__recent {
+    grid-column: 1 / -1;
+  }
+}
+
+.fs-card {
+  padding: 1.25rem;
+}
+
+.fs-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--fs-ink);
+
+  i {
+    color: var(--fs-ink-muted);
+  }
+}
+
+// El balance es el número por el que se abre la aplicación: ocupa el sitio y el tamaño que
+// le corresponde, y los desgloses quedan debajo en tipografía normal.
+.fs-balance {
+  padding: 1.5rem;
+}
+
+.fs-balance__label {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-balance__value {
+  margin: 0.35rem 0 0;
+  font-size: clamp(2.25rem, 8vw, 3rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.fs-balance__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--fs-ink-muted);
+}
+
+.fs-split {
+  display: grid;
+  // Los tres importes en fila piden unos 19rem, y un teléfono estrecho no los tiene: en
+  // cuanto no caben los tres, la rejilla pasa sola a dos columnas y el tercero baja de
+  // línea, en vez de desbordar la tarjeta.
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-split__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 600;
+}
+
+.fs-split__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--fs-ink-muted);
+}
+
+.fs-split__count {
+  color: var(--fs-ink);
+}
+
+.fs-note {
+  margin: 0.85rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+// Esqueletos de carga: ocupan el mismo hueco que el contenido para que nada salte al llegar
+// los datos.
+.fs-skeleton {
+  border-radius: t.$fs-radius-sm;
+  background: linear-gradient(90deg, var(--fs-hover) 25%, var(--fs-shade) 37%, var(--fs-hover) 63%);
+  background-size: 400% 100%;
+  animation: fs-shimmer 1.4s ease infinite;
+}
+
+.fs-skeleton--hero {
+  height: 3rem;
+  margin-top: 0.5rem;
+}
+
+.fs-skeleton--line {
+  height: 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.fs-skeleton--chart {
+  height: 15rem;
+}
+
+@keyframes fs-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

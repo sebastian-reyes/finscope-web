@@ -1,0 +1,119 @@
+@if (isLoggedIn()) {
+  <header class="fs-topbar">
+    <div class="fs-page fs-topbar__inner">
+      <a class="fs-brand" routerLink="/dashboard">
+        <i class="bi bi-pie-chart-fill" aria-hidden="true"></i>
+        <span>FinScope</span>
+      </a>
+
+      <nav class="fs-topnav" aria-label="Secciones">
+        @for (item of allNav; track item.path) {
+          <a class="fs-topnav__link" [routerLink]="item.path" routerLinkActive="is-active">
+            <i class="bi {{ item.icon }}" aria-hidden="true"></i>{{ item.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="fs-topbar__actions">
+        <button
+          class="fs-btn fs-btn--icon"
+          type="button"
+          (click)="toggleTheme()"
+          [attr.aria-label]="
+            resolvedTheme() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+          "
+        >
+          <i
+            class="bi"
+            [class.bi-sun]="resolvedTheme() === 'dark'"
+            [class.bi-moon-stars]="resolvedTheme() !== 'dark'"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+        <span class="fs-user text-truncate">
+          {{ user()?.displayName || user()?.email }}
+        </span>
+
+        <button
+          class="fs-btn fs-btn--icon"
+          type="button"
+          (click)="logout()"
+          [disabled]="loggingOut()"
+          aria-label="Cerrar sesión"
+        >
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+}
+
+<main class="fs-page fs-main" [class.fs-safe-bottom]="isLoggedIn()">
+  <router-outlet />
+</main>
+
+@if (isLoggedIn()) {
+  <nav class="fs-tabbar" aria-label="Navegación principal">
+    @for (item of leftNav; track item.path) {
+      <a class="fs-tab" [routerLink]="item.path" routerLinkActive="is-active">
+        <i class="bi {{ item.icon }}" aria-hidden="true"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+
+    <button class="fs-tab fs-tab--action" type="button" (click)="openEditor()">
+      <span class="fs-tab__fab"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
+      <span class="visually-hidden">Registrar movimiento</span>
+    </button>
+
+    @for (item of rightNav; track item.path) {
+      <a class="fs-tab" [routerLink]="item.path" routerLinkActive="is-active">
+        <i class="bi {{ item.icon }}" aria-hidden="true"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+}
+
+@if (editor.isOpen()) {
+  <fs-transaction-editor
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    [transaction]="editor.target()"
+    [types]="editor.types()"
+    [categories]="editor.categories()"
+    [catalogue]="editor.catalogue()"
+    (saved)="editor.notifySaved($event)"
+    (deleted)="editor.notifyDeleted()"
+    (closed)="editor.close()"
+    (catalogueChanged)="editor.refreshCatalogues()"
+  />
+}
+
+<div class="fs-toasts" role="status" aria-live="polite">
+  @for (toast of toasts(); track toast.id) {
+    <div
+      class="fs-toast"
+      [class.fs-toast--error]="toast.tone === 'error'"
+      animate.enter="is-in"
+      animate.leave="is-out"
+    >
+      <i
+        class="bi"
+        [class.bi-check-circle-fill]="toast.tone === 'success'"
+        [class.bi-exclamation-circle-fill]="toast.tone === 'error'"
+        aria-hidden="true"
+      ></i>
+      <span>{{ toast.text }}</span>
+      <button
+        type="button"
+        class="fs-toast__close"
+        (click)="dismissToast(toast.id)"
+        aria-label="Cerrar aviso"
+      >
+        <i class="bi bi-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  }
+</div>

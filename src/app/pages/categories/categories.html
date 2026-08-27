@@ -1,0 +1,245 @@
+<header class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Categorías</h1>
+    <p class="fs-head__hint">
+      En qué se va el dinero. Cada movimiento lleva una sola categoría, y por eso son ellas las que
+      reparten el gasto del periodo en el gráfico de inicio.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button class="fs-btn fs-btn--outline" type="button" (click)="reload()" aria-label="Recargar">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+    <button class="fs-btn fs-btn--solid" type="button" (click)="toggleCreate()">
+      <i class="bi" [class.bi-plus-lg]="!showCreate()" [class.bi-x-lg]="showCreate()"></i>
+      {{ showCreate() ? 'Cerrar' : 'Nueva categoría' }}
+    </button>
+  </div>
+</header>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudo cargar tu catálogo</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (showCreate()) {
+  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
+    <form class="fs-create" (ngSubmit)="create()">
+      <div class="fs-create__field">
+        <label class="fs-label" for="newCategory">Nombre</label>
+        <input
+          id="newCategory"
+          class="fs-field"
+          maxlength="70"
+          autocomplete="off"
+          placeholder="Mascotas"
+          [formControl]="newName"
+        />
+      </div>
+
+      <div class="fs-create__scope">
+        <span class="fs-label" id="newScopeLabel">Se ofrece en</span>
+        <div class="fs-scopes" role="group" aria-labelledby="newScopeLabel">
+          @for (option of scopes; track option.scope) {
+            <button
+              type="button"
+              class="fs-scope fs-scope--{{ option.scope }}"
+              [class.is-active]="newScope() === option.scope"
+              [attr.aria-pressed]="newScope() === option.scope"
+              (click)="newScope.set(option.scope)"
+            >
+              <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <button class="fs-btn fs-btn--solid" type="submit" [disabled]="saving() || newName.invalid">
+        Crear
+      </button>
+    </form>
+    <p class="fs-note">
+      El ámbito solo decide qué categorías te propone el formulario al registrar: no cambia nada de
+      lo que ya tienes guardado.
+    </p>
+  </section>
+}
+
+@if (loading()) {
+  <section class="fs-panel fs-block">
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+  </section>
+} @else {
+  @for (group of groups(); track group.scope) {
+    <section class="fs-panel fs-block fs-group" [attr.aria-label]="'Categorías de ' + group.label">
+      <header class="fs-group__head fs-group__head--{{ group.scope }}">
+        <span class="fs-group__icon" aria-hidden="true">
+          <i class="bi {{ group.icon }}"></i>
+        </span>
+        <h2 class="fs-group__title">{{ group.label }}</h2>
+        <span class="fs-group__count fs-num">{{ group.categories.length }}</span>
+        <button
+          class="fs-group__add"
+          type="button"
+          (click)="openCreate(group.scope)"
+          [attr.aria-label]="'Nueva categoría de ' + group.label"
+        >
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      @if (group.categories.length) {
+        <ul class="fs-rows">
+          @for (category of group.categories; track category.id) {
+            <li class="fs-row">
+              @if (editingId() === category.id) {
+                <form class="fs-edit" (ngSubmit)="saveEdit(category.id)">
+                  <input
+                    class="fs-field fs-edit__name"
+                    maxlength="70"
+                    autocomplete="off"
+                    aria-label="Nombre de la categoría"
+                    [formControl]="editName"
+                    (keyup.escape)="cancelEdit()"
+                  />
+
+                  <div class="fs-scopes" role="group" aria-label="Se ofrece en">
+                    @for (option of scopes; track option.scope) {
+                      <button
+                        type="button"
+                        class="fs-scope fs-scope--{{ option.scope }}"
+                        [class.is-active]="editScope() === option.scope"
+                        [attr.aria-pressed]="editScope() === option.scope"
+                        (click)="editScope.set(option.scope)"
+                      >
+                        <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+                      </button>
+                    }
+                  </div>
+
+                  <div class="fs-edit__actions">
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--solid"
+                      type="submit"
+                      [disabled]="saving() || editName.invalid"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--ghost"
+                      type="button"
+                      (click)="cancelEdit()"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+
+                  @if (category.transactionCount) {
+                    <p class="fs-note fs-edit__note">
+                      El cambio se verá en {{ category.transactionCount }}
+                      {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
+                    </p>
+                  }
+                </form>
+              } @else if (confirmingId() === category.id) {
+                <div class="fs-row__confirm" animate.enter="fs-anim-expand">
+                  <span>
+                    ¿Borrar <strong>{{ category.name }}</strong
+                    >?
+                    @if (category.transactionCount) {
+                      Sus {{ category.transactionCount }}
+                      {{
+                        category.transactionCount === 1
+                          ? 'movimiento pasará'
+                          : 'movimientos pasarán'
+                      }}
+                      a «{{ fallbackName() }}». No se pierde ninguno.
+                    } @else {
+                      No la usa ningún movimiento.
+                    }
+                  </span>
+                  <span class="text-nowrap">
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--danger"
+                      type="button"
+                      [disabled]="saving()"
+                      (click)="remove(category)"
+                    >
+                      Sí, borrar
+                    </button>
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--ghost"
+                      type="button"
+                      (click)="cancelRemove()"
+                    >
+                      Cancelar
+                    </button>
+                  </span>
+                </div>
+              } @else {
+                <a
+                  class="fs-row__main"
+                  [routerLink]="['/transactions']"
+                  [queryParams]="{ categoria: category.id }"
+                >
+                  <fs-category-chip [name]="category.name" />
+                  @if (category.isSystem) {
+                    <span class="fs-row__badge">
+                      <i class="bi bi-shield-check" aria-hidden="true"></i>Reserva
+                    </span>
+                  }
+                  <span class="fs-row__count fs-num" [class.is-idle]="!category.transactionCount">
+                    @if (category.transactionCount) {
+                      {{ category.transactionCount }}
+                      {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+                    } @else {
+                      Sin usar
+                    }
+                  </span>
+                </a>
+                <span class="fs-row__actions">
+                  <button
+                    class="fs-btn fs-btn--sm fs-btn--ghost"
+                    type="button"
+                    (click)="startEdit(category)"
+                    [attr.aria-label]="'Editar ' + category.name"
+                  >
+                    <i class="bi bi-pencil" aria-hidden="true"></i>
+                  </button>
+                  @if (!category.isSystem) {
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+                      type="button"
+                      (click)="askRemove(category)"
+                      [attr.aria-label]="'Borrar ' + category.name"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="fs-group__empty">{{ group.empty }}</p>
+      }
+    </section>
+  }
+
+  <p class="fs-note fs-foot">
+    «{{ fallbackName() }}» es la categoría de reserva: recibe los movimientos de las categorías que
+    borras, y por eso no se puede borrar ella misma.
+    @if (unused().length) {
+      Hay {{ unused().length }}
+      {{ unused().length === 1 ? 'categoría sin usar' : 'categorías sin usar' }}.
+    }
+  </p>
+}

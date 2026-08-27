@@ -1,0 +1,180 @@
+<button
+  type="button"
+  class="fs-auth__theme"
+  (click)="toggleTheme()"
+  [attr.aria-label]="resolvedTheme() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'"
+>
+  <i
+    class="bi"
+    [class.bi-sun]="resolvedTheme() === 'dark'"
+    [class.bi-moon-stars]="resolvedTheme() !== 'dark'"
+    aria-hidden="true"
+  ></i>
+</button>
+
+<div class="fs-auth">
+  <section class="fs-auth__brand" aria-hidden="true">
+    <p class="fs-auth__logo"><i class="bi bi-pie-chart-fill"></i>FinScope</p>
+    <p class="fs-auth__claim">
+      Saber en qué se te va el dinero no debería costar una hoja de cálculo.
+    </p>
+
+    <ul class="fs-auth__points">
+      <li>
+        <i class="bi bi-lightning-charge"></i>
+        <span>Apunta un gasto en dos toques, desde el móvil</span>
+      </li>
+      <li>
+        <i class="bi bi-pie-chart"></i>
+        <span>Mira en qué se va, repartido por categoría</span>
+      </li>
+      <li>
+        <i class="bi bi-tags"></i>
+        <span>Y con quién o para qué, gracias a los tags</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="fs-auth__form">
+    <header class="fs-auth__head">
+      <p class="fs-auth__logo fs-auth__logo--compact">
+        <i class="bi bi-pie-chart-fill"></i>FinScope
+      </p>
+      <h1 class="fs-auth__title">
+        {{ isRegister() ? 'Crea tu cuenta' : 'Entra en tu cuenta' }}
+      </h1>
+      <p class="fs-auth__subtitle">
+        {{
+          isRegister()
+            ? 'Empiezas con un catálogo de categorías listo para usar.'
+            : 'Tus movimientos te están esperando.'
+        }}
+      </p>
+    </header>
+
+    <div class="fs-seg fs-auth__modes" role="group" aria-label="Entrar o crear cuenta">
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="!isRegister()"
+        [attr.aria-pressed]="!isRegister()"
+        (click)="switchTo('login')"
+      >
+        Entrar
+      </button>
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="isRegister()"
+        [attr.aria-pressed]="isRegister()"
+        (click)="switchTo('register')"
+      >
+        Crear cuenta
+      </button>
+    </div>
+
+    @if (expired()) {
+      <div class="fs-alert fs-alert--warn" role="alert">
+        <i class="bi bi-clock-history" aria-hidden="true"></i>
+        <span>Tu sesión ha caducado. Vuelve a entrar.</span>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="fs-alert" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="fs-auth__fields">
+      <div>
+        <label class="fs-label fs-auth__label" for="email">Correo</label>
+        <div class="fs-auth__field" [class.is-invalid]="invalid('email')">
+          <i class="bi bi-envelope" aria-hidden="true"></i>
+          <input
+            id="email"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            placeholder="tu@correo.com"
+            formControlName="email"
+          />
+        </div>
+        @if (invalid('email')) {
+          <p class="fs-auth__error">Escribe un correo con esta forma: nombre&#64;dominio.com</p>
+        }
+      </div>
+
+      <div>
+        <label class="fs-label fs-auth__label" for="password">Contraseña</label>
+        <div class="fs-auth__field" [class.is-invalid]="invalid('password')">
+          <i class="bi bi-lock" aria-hidden="true"></i>
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            [attr.autocomplete]="isRegister() ? 'new-password' : 'current-password'"
+            placeholder="••••••••"
+            formControlName="password"
+          />
+          <button
+            type="button"
+            class="fs-auth__reveal"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Ocultar la contraseña' : 'Ver la contraseña'"
+          >
+            <i
+              class="bi"
+              [class.bi-eye]="!showPassword()"
+              [class.bi-eye-slash]="showPassword()"
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+        @if (invalid('password')) {
+          <p class="fs-auth__error">La contraseña tiene al menos {{ minPassword }} caracteres.</p>
+        } @else if (isRegister()) {
+          <p class="fs-auth__hint">Al menos {{ minPassword }} caracteres.</p>
+        }
+      </div>
+
+      @if (isRegister()) {
+        <div>
+          <label class="fs-label fs-auth__label" for="displayName">
+            Nombre <span class="fs-auth__optional">opcional</span>
+          </label>
+          <div class="fs-auth__field" [class.is-invalid]="invalid('displayName')">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            <input
+              id="displayName"
+              type="text"
+              autocomplete="name"
+              maxlength="70"
+              placeholder="Cómo quieres que te llamemos"
+              formControlName="displayName"
+            />
+          </div>
+        </div>
+      }
+
+      <button type="submit" class="fs-btn fs-btn--solid fs-auth__submit" [disabled]="loading()">
+        @if (loading()) {
+          <span class="fs-spinner" aria-hidden="true"></span>
+          {{ isRegister() ? 'Creando la cuenta…' : 'Entrando…' }}
+        } @else {
+          {{ isRegister() ? 'Crear cuenta' : 'Entrar' }}
+        }
+      </button>
+    </form>
+
+    <p class="fs-auth__foot">
+      @if (isRegister()) {
+        ¿Ya tienes cuenta?
+        <button type="button" class="fs-auth__link" (click)="switchTo('login')">Entra</button>
+      } @else {
+        ¿Todavía no tienes cuenta?
+        <button type="button" class="fs-auth__link" (click)="switchTo('register')">Créala</button>
+      }
+    </p>
+  </section>
+</div>

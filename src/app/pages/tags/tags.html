@@ -1,0 +1,186 @@
+<header class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Tags</h1>
+    <p class="fs-head__hint">
+      El contexto de un movimiento: con quién, para qué o en qué ocasión. Un movimiento puede llevar
+      varios, así que los tags matizan pero no reparten el gasto. Cada tag es uno solo y lo
+      comparten tus movimientos: renombrarlo o borrarlo aquí alcanza a todos.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button class="fs-btn fs-btn--outline" type="button" (click)="reload()" aria-label="Recargar">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+    <button class="fs-btn fs-btn--solid" type="button" (click)="toggleCreate()">
+      <i class="bi" [class.bi-plus-lg]="!showCreate()" [class.bi-x-lg]="showCreate()"></i>
+      {{ showCreate() ? 'Cerrar' : 'Nuevo tag' }}
+    </button>
+  </div>
+</header>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudo cargar tu catálogo</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (showCreate()) {
+  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
+    <form class="fs-create" (ngSubmit)="create()">
+      <div class="fs-create__field">
+        <label class="fs-label" for="newTag">Nombre del tag</label>
+        <input
+          id="newTag"
+          class="fs-field"
+          maxlength="70"
+          autocomplete="off"
+          placeholder="alimentación"
+          [formControl]="newName"
+        />
+      </div>
+      <button class="fs-btn fs-btn--solid" type="submit" [disabled]="saving() || newName.invalid">
+        Crear
+      </button>
+    </form>
+    <p class="fs-note">
+      No hace falta darlos de alta aquí: al registrar un movimiento, el tag que escribas se crea
+      solo.
+    </p>
+  </section>
+}
+
+@if (loading()) {
+  <section class="fs-panel fs-block">
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+  </section>
+} @else if (tags().length) {
+  <section class="fs-panel fs-block">
+    <p class="fs-section">
+      Tu catálogo
+      <span class="fs-count">{{ tags().length }}</span>
+    </p>
+
+    <ul class="fs-rows">
+      @for (tag of tags(); track tag.id) {
+        <li class="fs-row">
+          @if (editingId() === tag.id) {
+            <form class="fs-row__edit" (ngSubmit)="saveEdit(tag.id)">
+              <input
+                class="fs-field fs-field--sm"
+                maxlength="70"
+                autocomplete="off"
+                [formControl]="editName"
+                (keyup.escape)="cancelEdit()"
+              />
+              <button
+                class="fs-btn fs-btn--sm fs-btn--solid"
+                type="submit"
+                [disabled]="saving() || editName.invalid"
+              >
+                Guardar
+              </button>
+              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
+                Cancelar
+              </button>
+              <p class="fs-note w-100">
+                El nombre cambiará en {{ tag.transactionCount }}
+                {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
+              </p>
+            </form>
+          } @else if (confirmingId() === tag.id) {
+            <div class="fs-row__confirm">
+              <span>
+                ¿Borrar <strong>{{ tag.name }}</strong
+                >?
+                @if (tag.transactionCount) {
+                  Dejará de clasificar {{ tag.transactionCount }}
+                  {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}, que por lo demás
+                  quedan intactos.
+                } @else {
+                  No lo usa ningún movimiento.
+                }
+              </span>
+              <span class="text-nowrap">
+                <button
+                  class="fs-btn fs-btn--sm fs-btn--danger"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="remove(tag)"
+                >
+                  Sí, borrar
+                </button>
+                <button
+                  class="fs-btn fs-btn--sm fs-btn--ghost"
+                  type="button"
+                  (click)="cancelRemove()"
+                >
+                  Cancelar
+                </button>
+              </span>
+            </div>
+          } @else {
+            <a
+              class="fs-row__main"
+              [routerLink]="['/transactions']"
+              [queryParams]="{ tag: tag.name }"
+            >
+              <fs-tag-chip [name]="tag.name" />
+              @if (tag.transactionCount) {
+                <span class="fs-row__count fs-num">
+                  {{ tag.transactionCount }}
+                  {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+                </span>
+              } @else {
+                <span class="fs-row__count fs-row__count--idle">Sin usar</span>
+              }
+            </a>
+            <span class="fs-row__actions">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="startEdit(tag)"
+                [attr.aria-label]="'Renombrar ' + tag.name"
+              >
+                <i class="bi bi-pencil" aria-hidden="true"></i>
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+                type="button"
+                (click)="askRemove(tag)"
+                [attr.aria-label]="'Borrar ' + tag.name"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
+              </button>
+            </span>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (unused().length) {
+      <p class="fs-note">
+        {{ unused().length }}
+        {{ unused().length === 1 ? 'tag no lo usa' : 'tags no los usa' }} ningún movimiento. Siguen
+        ocupando su nombre, así que conviene borrarlos si ya no te sirven.
+      </p>
+    }
+  </section>
+} @else {
+  <section class="fs-panel fs-blank">
+    <i class="bi bi-tags" aria-hidden="true"></i>
+    <p class="fs-blank__title">Tu catálogo está vacío</p>
+    <p class="fs-blank__hint">
+      Los tags nacen al escribirlos en un movimiento. Registra uno con un tag y aparecerá aquí, con
+      el número de movimientos que lo llevan.
+    </p>
+    <a class="fs-btn fs-btn--solid" [routerLink]="['/dashboard']" [queryParams]="{ registrar: 1 }">
+      Registrar un movimiento
+    </a>
+  </section>
+}

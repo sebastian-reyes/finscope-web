@@ -1,0 +1,75 @@
+// Tokens de FinScope.
+//
+// Aquí vive el idioma visual entero: color, tipografía, ritmo, forma y relieve. Antes esto
+// era una capa de ajustes sobre Bootstrap; ahora es la única fuente, así que lo que no esté
+// aquí no debería aparecer suelto en ninguna hoja.
+//
+// Las tres familias de color no se mezclan: la marca es lo interactivo, ingreso y egreso son
+// semánticos y no se usan nunca para decorar, y los neutros son el papel sobre el que se
+// apoya todo.
+
+// --- Color -----------------------------------------------------------------------------
+
+// Marca. Un azul frío, deliberadamente ajeno al verde y al rojo del dinero, para que un
+// botón primario no se confunda nunca con un signo.
+$fs-brand: #2a5cb8;
+$fs-brand-strong: #1f4794;
+$fs-brand-deep: #10233a;
+$fs-brand-tint: #eaf0fb;
+
+// Semántica financiera.
+$fs-income: #0f7b54;
+$fs-income-tint: #e6f2ec;
+$fs-expense: #c0392e;
+$fs-expense-tint: #fbeae8;
+
+// Neutros con una pizca de azul, para que convivan con la marca sin verse sucios.
+$fs-ink: #131a24;
+$fs-ink-muted: #5b6675;
+$fs-ink-faint: #8b94a1;
+$fs-paper: #f4f6f9;
+$fs-surface: #ffffff;
+$fs-line: #e4e8ee;
+
+// Los mismos papeles en oscuro, elegidos y no invertidos. El verde y el rojo del modo
+// oscuro no son los de siempre aclarados: sobre fondo oscuro esa pareja se vuelve
+// indistinguible en deuteranopía, así que se re-escalonaron hasta pasar la comprobación.
+$fs-ink-dark: #e9edf2;
+$fs-ink-muted-dark: #a3acb9;
+$fs-ink-faint-dark: #78818e;
+$fs-paper-dark: #0f1319;
+$fs-surface-dark: #171d25;
+$fs-line-dark: #262e39;
+$fs-brand-dark: #7ba4ec;
+$fs-income-dark: #2f9e73;
+$fs-expense-dark: #e06055;
+
+// --- Forma -----------------------------------------------------------------------------
+// Radios generosos y sombras casi imperceptibles: el relieve lo da el color del papel y no
+// el drama de la sombra. Es la diferencia entre una aplicación de dinero y una plantilla.
+$fs-radius-sm: 0.5rem;
+$fs-radius: 0.75rem;
+$fs-radius-lg: 1.25rem;
+$fs-radius-pill: 999px;
+
+$fs-shadow:
+  0 1px 2px rgba(19, 26, 36, 0.04),
+  0 4px 16px rgba(19, 26, 36, 0.05);
+$fs-shadow-raised:
+  0 2px 6px rgba(19, 26, 36, 0.08),
+  0 12px 32px rgba(19, 26, 36, 0.1);
+
+// Altura de la barra inferior. La usan el propio shell y el relleno del contenido, así que
+// vive en un único sitio para que no se descuadren.
+$fs-tabbar-height: 4rem;
+
+// Ancho al que se detiene el contenido. Más allá, una línea de texto deja de poder leerse
+// de un vistazo y una tabla de importes se desparrama.
+$fs-page-width: 75rem;
+
+// --- Puntos de quiebre -------------------------------------------------------------------
+// Los tres que la aplicación usa de verdad: el teléfono estrecho, el punto en el que las
+// hojas dejan de subir desde abajo y el escritorio con navegación arriba.
+$fs-bp-sm: 576px;
+$fs-bp-md: 768px;
+$fs-bp-lg: 992px;

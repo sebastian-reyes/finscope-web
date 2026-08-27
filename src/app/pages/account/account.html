@@ -1,0 +1,81 @@
+<header class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Mi cuenta</h1>
+    <p class="fs-head__hint">
+      Tu nombre y el aspecto con el que ves la aplicación. Nada de esto cambia tus movimientos.
+    </p>
+  </div>
+</header>
+
+<section class="fs-panel fs-block" aria-labelledby="datosTitle">
+  <p class="fs-section" id="datosTitle">Tus datos</p>
+
+  <form class="fs-form" (submit)="onSubmit($event)">
+    <div>
+      <label class="fs-label" for="accountName">Nombre</label>
+      <input
+        id="accountName"
+        type="text"
+        class="fs-field"
+        maxlength="70"
+        autocomplete="name"
+        placeholder="Cómo quieres que te llamemos"
+        [value]="name()"
+        [disabled]="saving()"
+        (input)="name.set($any($event.target).value)"
+      />
+      <p class="fs-hint">
+        Es lo que aparece arriba a la derecha. Puedes dejarlo en blanco y se usará tu correo.
+      </p>
+    </div>
+
+    <div>
+      <span class="fs-label" id="accountEmailLabel">Correo</span>
+      <p class="fs-static" aria-labelledby="accountEmailLabel">{{ user()?.email }}</p>
+      <p class="fs-hint">Es la credencial con la que entras, así que no se cambia desde aquí.</p>
+    </div>
+
+    @if (changed()) {
+      <div class="fs-form__actions" animate.enter="fs-anim-expand">
+        <button
+          type="button"
+          class="fs-btn fs-btn--ghost"
+          [disabled]="saving()"
+          (click)="discard()"
+        >
+          Descartar
+        </button>
+        <button type="submit" class="fs-btn fs-btn--solid" [disabled]="saving()">
+          @if (saving()) {
+            <span class="fs-spinner" aria-hidden="true"></span>
+            Guardando…
+          } @else {
+            Guardar nombre
+          }
+        </button>
+      </div>
+    }
+  </form>
+</section>
+
+<section class="fs-panel fs-block" aria-labelledby="aspectoTitle">
+  <p class="fs-section" id="aspectoTitle">Aspecto</p>
+
+  <div class="fs-seg" role="group" aria-label="Aspecto de la aplicación">
+    @for (option of themes; track option.value) {
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="preference() === option.value"
+        [attr.aria-pressed]="preference() === option.value"
+        (click)="setTheme(option.value)"
+      >
+        <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+      </button>
+    }
+  </div>
+
+  <p class="fs-hint">
+    Se recuerda en este navegador. Siguiendo al sistema, cambia solo cuando lo hace tu dispositivo.
+  </p>
+</section>

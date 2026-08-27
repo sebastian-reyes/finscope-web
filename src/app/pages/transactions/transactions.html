@@ -1,0 +1,393 @@
+<header class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Movimientos</h1>
+    <p class="fs-head__hint">
+      Todo lo que has registrado. Toca cualquiera para cambiarle el monto, la descripción, la fecha,
+      el tipo o los tags.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button
+      class="fs-btn fs-btn--outline"
+      type="button"
+      [disabled]="loading()"
+      (click)="reload()"
+      aria-label="Recargar"
+    >
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+    <button class="fs-btn fs-btn--solid" type="button" (click)="openCreate()">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo movimiento
+    </button>
+  </div>
+</header>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudieron cargar tus movimientos</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+<section class="fs-panel fs-filters" aria-label="Filtros">
+  <div class="fs-filters__group fs-filters__period">
+    <div class="fs-seg" role="group" aria-label="Periodo">
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="periodMode() === 'month'"
+        [attr.aria-pressed]="periodMode() === 'month'"
+        (click)="setPeriodMode('month')"
+      >
+        Por mes
+      </button>
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="periodMode() === 'range'"
+        [attr.aria-pressed]="periodMode() === 'range'"
+        (click)="setPeriodMode('range')"
+      >
+        Entre fechas
+      </button>
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="periodMode() === 'all'"
+        [attr.aria-pressed]="periodMode() === 'all'"
+        (click)="setPeriodMode('all')"
+      >
+        Todo
+      </button>
+    </div>
+
+    @switch (periodMode()) {
+      @case ('month') {
+        <div class="fs-month">
+          <button
+            type="button"
+            class="fs-month__step"
+            (click)="shiftMonth(-1)"
+            aria-label="Mes anterior"
+          >
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </button>
+          <fs-date-field
+            class="fs-month__picker"
+            variant="plain"
+            ariaLabel="Mes que se está mirando"
+            mode="month"
+            [value]="monthValue()"
+            (valueChange)="setMonthValue($event)"
+            [max]="today"
+          />
+          <button
+            type="button"
+            class="fs-month__step"
+            [disabled]="isCurrentMonth()"
+            (click)="shiftMonth(1)"
+            aria-label="Mes siguiente"
+          >
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+      @case ('range') {
+        <div class="fs-range">
+          <label class="visually-hidden" for="rangeFrom">Desde</label>
+          <fs-date-field
+            inputId="rangeFrom"
+            placeholder="Desde"
+            [clearable]="true"
+            [value]="from()"
+            (valueChange)="setFrom($event)"
+            [max]="today"
+          />
+          <span class="fs-range__sep" aria-hidden="true">→</span>
+          <label class="visually-hidden" for="rangeTo">Hasta</label>
+          <fs-date-field
+            inputId="rangeTo"
+            placeholder="Hasta"
+            [clearable]="true"
+            [value]="to()"
+            (valueChange)="setTo($event)"
+            [max]="today"
+          />
+        </div>
+      }
+      @default {
+        <p class="fs-filters__note">Estás viendo tu historial completo.</p>
+      }
+    }
+  </div>
+
+  <div class="fs-filters__group">
+    <div class="fs-seg" role="group" aria-label="Tipo de movimiento">
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="filteredKind() === null"
+        [attr.aria-pressed]="filteredKind() === null"
+        (click)="setKind(null)"
+      >
+        Todos
+      </button>
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="filteredKind() === 'INCOME'"
+        [attr.aria-pressed]="filteredKind() === 'INCOME'"
+        (click)="setKind('INCOME')"
+      >
+        Ingresos
+      </button>
+      <button
+        type="button"
+        class="fs-seg__btn"
+        [class.is-active]="filteredKind() === 'EXPENSE'"
+        [attr.aria-pressed]="filteredKind() === 'EXPENSE'"
+        (click)="setKind('EXPENSE')"
+      >
+        Egresos
+      </button>
+    </div>
+
+    <fs-select-field
+      class="fs-filters__select"
+      inputId="filterCategory"
+      ariaLabel="Categoría"
+      [options]="categoryOptions()"
+      [value]="categoryId() ? categoryId() + '' : ''"
+      (valueChange)="setCategory($event)"
+    />
+
+    <fs-select-field
+      class="fs-filters__select"
+      inputId="filterTag"
+      ariaLabel="Tag"
+      [options]="tagOptions()"
+      [value]="tag() ?? ''"
+      (valueChange)="setTag($event)"
+    />
+
+    @if (isFiltered()) {
+      <button
+        class="fs-btn fs-btn--sm fs-btn--ghost fs-filters__clear"
+        type="button"
+        (click)="clearFilters()"
+      >
+        <i class="bi bi-x-circle" aria-hidden="true"></i>Limpiar
+      </button>
+    }
+  </div>
+</section>
+
+@if (summary(); as totals) {
+  <section class="fs-panel fs-totals" aria-label="Totales del periodo">
+    @if (filteredKind(); as kind) {
+      <!--
+        Con un tipo filtrado, el otro vale cero por definición y el balance repite el mismo
+        número con otro rótulo: enseñar las tres casillas es ocupar la tarjeta con dos
+        respuestas que ya se saben. Queda el total, que es lo que se ha venido a ver, y la
+        media por movimiento, que la lista no cuenta por ningún lado.
+      -->
+      <div class="fs-totals__item">
+        <span class="fs-totals__label">
+          @if (kind === 'INCOME') {
+            <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+          } @else {
+            <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+          }
+        </span>
+        <fs-amount [amount]="kind === 'INCOME' ? totals.income : totals.expense" [code]="kind" />
+      </div>
+      @if (average(); as media) {
+        <div class="fs-totals__item">
+          <span class="fs-totals__label">
+            <i class="bi bi-calculator" aria-hidden="true"></i>Media por movimiento
+          </span>
+          <fs-amount [amount]="media" />
+        </div>
+      }
+    } @else {
+      <div class="fs-totals__item">
+        <span class="fs-totals__label">
+          <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+        </span>
+        <fs-amount [amount]="totals.income" code="INCOME" />
+      </div>
+      <div class="fs-totals__item">
+        <span class="fs-totals__label">
+          <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+        </span>
+        <fs-amount [amount]="totals.expense" code="EXPENSE" />
+      </div>
+      <div class="fs-totals__item fs-totals__item--net">
+        <span class="fs-totals__label">
+          <i class="bi bi-wallet2" aria-hidden="true"></i>Balance
+        </span>
+        <fs-amount [amount]="totals.net" [signed]="true" />
+      </div>
+    }
+  </section>
+}
+
+<section class="fs-panel fs-list">
+  <div class="fs-list__head">
+    <p class="fs-section">
+      @if (summary(); as totals) {
+        {{ totals.transactionCount }}
+        {{ totals.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+      } @else {
+        Movimientos
+      }
+    </p>
+
+    <fs-select-field
+      class="fs-list__sort"
+      inputId="sortBy"
+      ariaLabel="Ordenar por"
+      [options]="sortOptions"
+      [value]="sort()"
+      (valueChange)="setSort($event)"
+    />
+  </div>
+
+  @if (loading() && !result()) {
+    <div class="fs-list__skeletons">
+      <div class="fs-skeleton"></div>
+      <div class="fs-skeleton"></div>
+      <div class="fs-skeleton"></div>
+      <div class="fs-skeleton"></div>
+    </div>
+  } @else {
+    <div class="fs-list__body" [class.is-busy]="loading()">
+      @for (group of groups(); track group.label) {
+        @if (group.label) {
+          <p class="fs-day">{{ group.label }}</p>
+        }
+        <ul class="fs-movs">
+          @for (transaction of group.transactions; track transaction.id) {
+            <li class="fs-mov" [class.is-fresh]="highlightId() === transaction.id">
+              <fs-category-chip [name]="transaction.category.name" [iconOnly]="true" />
+
+              <div class="fs-mov__body">
+                <button
+                  type="button"
+                  class="fs-mov__open"
+                  [attr.aria-label]="
+                    'Editar ' +
+                    transaction.category.name +
+                    (transaction.description ? ', ' + transaction.description : '')
+                  "
+                  (click)="openEdit(transaction)"
+                >
+                  <span class="fs-mov__title">{{ transaction.category.name }}</span>
+                  <span class="fs-mov__meta">
+                    {{ transaction.date | date: 'dd/MM/yy · HH:mm' }}
+                    @if (transaction.description) {
+                      <span class="fs-mov__note">· {{ transaction.description }}</span>
+                    }
+                  </span>
+                </button>
+
+                @if (transaction.tags.length) {
+                  <div class="fs-mov__tags">
+                    @for (name of transaction.tags; track name) {
+                      <button
+                        type="button"
+                        class="fs-mov__tag"
+                        [attr.aria-label]="'Ver solo los movimientos con el tag ' + name"
+                        (click)="setTag(name)"
+                      >
+                        <fs-tag-chip [name]="name" />
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+
+              <span class="fs-mov__right">
+                <fs-amount
+                  [amount]="transaction.amount"
+                  [code]="transaction.transactionType.code"
+                />
+                <i class="bi bi-pencil fs-mov__pencil" aria-hidden="true"></i>
+              </span>
+            </li>
+          }
+        </ul>
+      } @empty {
+        <div class="fs-blank">
+          <i class="bi bi-receipt" aria-hidden="true"></i>
+          @if (isFiltered()) {
+            <p class="fs-blank__title">Nada que enseñar con estos filtros</p>
+            <p class="fs-blank__hint">
+              Prueba con otro periodo o quita el tipo y el tag para ver el historial completo.
+            </p>
+            <button class="fs-btn fs-btn--outline" type="button" (click)="clearFilters()">
+              Limpiar filtros
+            </button>
+          } @else {
+            <p class="fs-blank__title">Todavía no hay movimientos</p>
+            <p class="fs-blank__hint">
+              Registra el primero y aparecerá aquí, agrupado por día y con sus tags.
+            </p>
+            <button class="fs-btn fs-btn--solid" type="button" (click)="openCreate()">
+              Registrar un movimiento
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (result(); as current) {
+    @if (current.totalElements) {
+      <div class="fs-list__foot">
+        <span class="fs-list__range fs-num">{{ rangeLabel() }}</span>
+
+        <fs-select-field
+          class="fs-list__size"
+          inputId="pageSize"
+          ariaLabel="Movimientos por página"
+          [options]="sizeOptions"
+          [value]="size() + ''"
+          (valueChange)="setSize($event)"
+        />
+
+        <div class="fs-pager">
+          <button
+            class="fs-pager__btn"
+            type="button"
+            [disabled]="!hasPrevious() || loading()"
+            (click)="goToPage(current.page - 1)"
+            aria-label="Página anterior"
+          >
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </button>
+          <span class="fs-pager__label fs-num">
+            {{ current.page + 1 }} / {{ current.totalPages || 1 }}
+          </span>
+          <button
+            class="fs-pager__btn"
+            type="button"
+            [disabled]="!hasNext() || loading()"
+            (click)="goToPage(current.page + 1)"
+            aria-label="Página siguiente"
+          >
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    }
+  }
+</section>
+
+<p class="fs-foot-note">
+  ¿Buscas un tag concreto o quieres renombrarlo?
+  <a routerLink="/tags">Ve a tu catálogo de tags</a>.
+</p>
