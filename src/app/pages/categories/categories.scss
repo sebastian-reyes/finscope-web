@@ -30,6 +30,44 @@
 // categoría de ingresos y una de egresos nunca se ofrecen en el mismo formulario, así que
 // tampoco tienen por qué convivir aquí: separarlas es lo que hace que se distingan sin
 // tener que leer nada.
+//
+// Las tres van en rejilla y no apiladas: un catálogo recién estrenado tiene dos o tres
+// categorías por grupo, y a lo ancho de la página eso dejaba tres tarjetas casi vacías con
+// medio metro de papel a la derecha de cada una. En columnas, las tres se igualan de alto y
+// llenan el ancho pase lo que pase con el contenido.
+.fs-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: t.$fs-bp-md) {
+  .fs-groups {
+    grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+// El aire entre tarjetas lo pone la rejilla; el margen propio del bloque sobra aquí y
+// dejaría un hueco doble en la última fila.
+.fs-groups .fs-block {
+  margin-bottom: 0;
+}
+
+// En columna, para que el estado vacío pueda crecer hasta el alto que la rejilla le da.
+//
+// Y declarada como contenedor: lo que tiene que caber o no en una fila depende de lo ancho
+// que sea esta tarjeta, no de lo ancha que sea la ventana. Son la misma cosa mientras las
+// tarjetas van apiladas, pero dejan de serlo en cuanto la rejilla las pone en columnas: con
+// una consulta de ventana, a 1200 px la fila se creía en una tarjeta de 1200 px y se salía
+// de la suya, que mide la tercera parte.
+.fs-group {
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+}
+
 .fs-group__head {
   display: flex;
   align-items: center;
@@ -101,8 +139,19 @@
   }
 }
 
+// Un grupo sin categorías no deja un hueco: lo ocupa con su propia explicación, encerrada en
+// un marco de puntos que dice que ahí falta algo y no que la tarjeta se haya roto.
 .fs-group__empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 5rem;
   margin: 0.85rem 0 0;
+  padding: 1rem;
+  border: 1px dashed var(--fs-line);
+  border-radius: var(--fs-radius);
+  text-align: center;
   font-size: 0.8125rem;
   color: var(--fs-ink-faint);
 }
@@ -110,21 +159,25 @@
 // --- Filas ----------------------------------------------------------------------------
 .fs-rows {
   list-style: none;
-  margin: 0;
+  margin: 0.35rem 0 0;
   padding: 0;
 }
 
+// Sin líneas entre filas: el hueco ya las separa, y el realce al pasar por encima dice
+// dónde está el puntero mejor de lo que lo decía una raya fija en cada fila.
 .fs-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--fs-line);
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  margin-inline: -0.5rem;
+  border-radius: var(--fs-radius);
+  transition: background-color 0.15s ease;
 }
 
-.fs-row:last-child {
-  border-bottom: none;
+.fs-row:hover {
+  background-color: var(--fs-hover);
 }
 
 // La fila entera lleva a los movimientos de esa categoría, que es lo que se quiere hacer al
@@ -146,9 +199,27 @@
   font-size: 0.8125rem;
   color: var(--fs-ink-muted);
   text-align: right;
+  white-space: nowrap;
 
   &.is-idle {
     color: var(--fs-ink-faint);
+  }
+}
+
+// En una tarjeta estrecha —tres columnas en un portátil, o el móvil— el nombre y su cuenta
+// no caben en el mismo renglón sin estrujar uno de los dos: la cuenta baja debajo, que es la
+// de los dos que puede esperar.
+@container (max-width: 20rem) {
+  .fs-row__main {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .fs-row__count {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    text-align: left;
   }
 }
 
@@ -179,50 +250,39 @@
   color: var(--fs-expense);
 }
 
+// La pregunta ocupa su renglón y los dos botones el siguiente: puestos al lado del texto,
+// en una tarjeta de un tercio de pantalla quedaban dos palabras y un botón por línea.
 .fs-row__confirm {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 0.5rem;
   width: 100%;
+  font-size: var(--fs-text-sm);
+  line-height: 1.45;
 }
 
 // --- Edición en la propia fila --------------------------------------------------------
-// En rejilla y no en una fila que se dobla: al editar hay cuatro cosas en juego y, puestas
-// una detrás de otra, la fila se descuadraba en cuanto la pantalla se estrechaba.
+// Todo apilado, sin excepciones por ancho de ventana: al editar hay cuatro cosas en juego
+// —nombre, ámbito, botones y aviso— y ninguna combinación de ellas cabe en un renglón de una
+// tarjeta que puede medir un tercio de la página.
 .fs-edit {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.6rem;
   width: 100%;
-}
-
-.fs-edit__name {
-  grid-column: 1 / -1;
 }
 
 .fs-edit__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.35rem;
-  justify-self: end;
 }
 
 .fs-edit__note {
-  grid-column: 1 / -1;
   margin: 0;
-}
-
-@media (max-width: 575.98px) {
-  .fs-edit {
-    grid-template-columns: 1fr;
-  }
-
-  .fs-edit__actions {
-    justify-self: stretch;
-  }
 }
 
 // --- Elección del ámbito --------------------------------------------------------------

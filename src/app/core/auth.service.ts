@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import {
   AuthResponse,
   LoginRequest,
@@ -26,6 +26,9 @@ export class AuthService {
     localStorage.getItem(ACCESS_TOKEN_KEY),
   );
   private readonly userSignal = signal<UserResponse | null>(readStoredUser());
+
+  /** Renovación en curso, mientras la haya, para no consumir el refresco dos veces. */
+  private renewal: Observable<AuthResponse> | null = null;
 
   readonly user = this.userSignal.asReadonly();
   readonly isLoggedIn = computed(() => this.accessTokenSignal() !== null);
@@ -55,6 +58,28 @@ export class AuthService {
     return this.http
       .post<AuthResponse>('/auth/refresh', { refreshToken: this.refreshToken })
       .pipe(tap((auth) => this.storeSession(auth)));
+  }
+
+  /**
+   * Renueva la sesión compartiendo una sola llamada entre todo el que la pida a la vez.
+   *
+   * El token de refresco es de un solo uso: si dos peticiones caducadas piden renovar cada
+   * una por su cuenta, la segunda llega con un token ya consumido, falla, y se lleva por
+   * delante el par bueno que acababa de traer la primera. Una pantalla lanza media docena de
+   * peticiones a la vez, así que esto no es un caso raro sino el normal.
+   *
+   * @return la sesión renovada, la misma para todos los que la esperen
+   */
+  refreshOnce(): Observable<AuthResponse> {
+    if (!this.renewal) {
+      this.renewal = this.refresh().pipe(
+        finalize(() => {
+          this.renewal = null;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+    return this.renewal;
   }
 
   me(): Observable<UserResponse> {

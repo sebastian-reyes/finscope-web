@@ -18,6 +18,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/transactions/transactions').then((m) => m.TransactionsPage),
   },
+  // La redirección de la raíz va antes que el marco de catálogos: aquel no tiene segmento
+  // propio, así que la URL vacía también le encaja y dejaba la pantalla sin ninguna de las
+  // dos listas dentro.
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
     // Ruta sin segmento propio: las dos pantallas conservan sus direcciones y solo comparten
     // el marco, que es lo que mantiene vivo el conmutador al saltar de una a otra.
@@ -40,6 +44,5 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/account/account').then((m) => m.AccountPage),
   },
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   { path: '**', redirectTo: 'dashboard' },
 ];

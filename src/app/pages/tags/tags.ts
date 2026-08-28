@@ -40,15 +40,25 @@ export class TagsPage {
   /** Tag cuyo borrado espera confirmación en su propia fila. */
   protected readonly confirmingId = signal<number | null>(null);
 
-  protected readonly newName = this.formBuilder.nonNullable.control('', [
-    Validators.required,
-    Validators.maxLength(70),
-  ]);
+  /**
+   * Los dos formularios de la pantalla, cada uno con su único campo.
+   *
+   * Van en grupo y no como controles sueltos porque `ngSubmit` no es un suceso del navegador
+   * sino una salida de `FormGroupDirective`: sin `[formGroup]` en la etiqueta, el `<form>` se
+   * enviaba de verdad —recargando la página— y el método de alta no llegaba a ejecutarse
+   * nunca. `ReactiveFormsModule` tampoco trae `NgForm`, que es quien lo aportaría en un
+   * formulario dirigido por plantilla.
+   */
+  protected readonly newForm = this.formBuilder.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(70)]],
+  });
 
-  protected readonly editName = this.formBuilder.nonNullable.control('', [
-    Validators.required,
-    Validators.maxLength(70),
-  ]);
+  protected readonly editForm = this.formBuilder.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(70)]],
+  });
+
+  protected readonly newName = this.newForm.controls.name;
+  protected readonly editName = this.editForm.controls.name;
 
   protected readonly used = computed(() => this.tags().filter((tag) => tag.transactionCount > 0));
   protected readonly unused = computed(() =>

@@ -31,6 +31,16 @@ html {
   // El desplazamiento por anclas y el foco no dan saltos secos, pero se respeta a quien
   // pide menos movimiento.
   -webkit-text-size-adjust: 100%;
+  // La pantalla que entra lo hace desplazándose desde un lado, y ese medio segundo de
+  // desbordamiento no debe asomar una barra horizontal. Va en la raíz, que es donde recorta
+  // sin convertir a nadie más en una caja con desplazamiento propio.
+  overflow-x: clip;
+  // El sitio de la barra de desplazamiento está reservado siempre, la haya o no. Sin esto, la
+  // ventana cambia de ancho cada vez que una pantalla pasa a necesitarla o deja de hacerlo
+  // —incluidos los dos frames en que la nueva todavía no ha pintado su contenido—, y todo lo
+  // que va centrado da un tirón lateral. Se veía sobre todo en la barra superior, que es lo
+  // único que no cambia al cambiar de pantalla y por tanto lo único donde el salto se nota.
+  scrollbar-gutter: stable;
 }
 
 body {

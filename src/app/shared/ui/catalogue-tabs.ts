@@ -24,6 +24,13 @@ import { SegmentedDirective } from './segmented';
     </nav>
   `,
   styles: `
+    /* La etiqueta del componente es de línea por omisión, y entonces el conmutador comparte
+       renglón con lo que venga detrás y su margen inferior se mide contra la línea de texto
+       en lugar de contra la pantalla siguiente. */
+    :host {
+      display: block;
+    }
+
     /* La forma y la pastilla deslizante salen del control segmentado de la capa base; aquí
        solo se ajusta lo propio de unos enlaces: el icono y el subrayado. */
     .fs-tabs {

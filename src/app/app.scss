@@ -5,10 +5,25 @@
   position: sticky;
   top: 0;
   z-index: 1020;
-  padding: 0.75rem 0;
-  background-color: var(--fs-surface);
+  // Alto fijo, y no el que resulte de su contenido: el lienzo pinta esa misma franja detrás
+  // para que la barra no se corte donde empieza la barra de desplazamiento, y si los dos
+  // números no coinciden se ve el escalón.
+  height: var(--fs-topbar-height);
+  // Translúcida y con desenfoque: el contenido se ve pasar por debajo en lugar de morir
+  // contra una franja opaca, que es lo que hace que la barra se lea como una capa y no como
+  // el borde superior de la página.
+  background-color: color-mix(in srgb, var(--fs-surface) 78%, transparent);
   border-bottom: 1px solid var(--fs-line);
-  backdrop-filter: saturate(1.4) blur(8px);
+  backdrop-filter: saturate(1.6) blur(14px);
+}
+
+// Sin soporte de desenfoque no puede quedarse translúcida: se leería el texto de debajo a
+// través del título.
+@supports not (backdrop-filter: blur(1px)) {
+  .fs-topbar,
+  .fs-tabbar {
+    background-color: var(--fs-surface);
+  }
 }
 
 // La fila de la barra: marca, navegación y acciones. Antes eran cuatro utilidades sueltas
@@ -16,6 +31,7 @@
 .fs-topbar__inner {
   display: flex;
   align-items: center;
+  height: 100%;
   gap: 1rem;
 }
 
@@ -31,9 +47,28 @@
   padding-block: 1rem;
 }
 
+// Deja sitio a la barra inferior en móvil: su alto, la zona segura de los iPhone y lo que
+// asoma por encima el botón de registrar, que es un dedo más y era lo que tapaba lo último
+// de cada pantalla —el enlace a todos los movimientos, el pie del catálogo, la paginación—.
+//
+// Vive aquí, junto a `.fs-main`, y no como utilidad en la capa base: allí competía con el
+// `padding-block` de esta misma regla con la misma especificidad, y como los estilos de un
+// componente se inyectan después de la hoja global, ganaba el de aquí y el hueco no se
+// reservaba nunca. El selector compuesto lo deja resuelto pase lo que pase con el orden.
+.fs-main.fs-safe-bottom {
+  padding-bottom: calc(
+    var(--fs-tabbar-height) + var(--fs-fab-rise) + env(safe-area-inset-bottom, 0px) + 1rem
+  );
+}
+
 @media (min-width: t.$fs-bp-lg) {
   .fs-main {
     padding-block: 1.5rem;
+  }
+
+  // Arriba no hay barra inferior que esquivar: el contenido termina como cualquier otro.
+  .fs-main.fs-safe-bottom {
+    padding-bottom: 1.5rem;
   }
 }
 
@@ -55,40 +90,45 @@
 // La navegación de arriba y la de abajo son la misma decisión tomada dos veces: en escritorio
 // manda esta, y en cuanto la pantalla se estrecha la releva la barra inferior, al alcance del
 // pulgar. Nunca se ven las dos.
+// La navegación de escritorio es el mismo control segmentado que los filtros y el catálogo,
+// y por la misma razón: son pocas opciones excluyentes y la pastilla que se desliza de una a
+// otra dice de dónde vienes. Sin caja alrededor —ni borde ni fondo— porque aquí el marco lo
+// pone la propia barra; lo único que se ve es la pastilla.
 .fs-topnav {
   display: none;
-  gap: 0.25rem;
-  margin-left: 1.5rem;
+  margin-left: 1.25rem;
+  padding: 0;
+  border-color: transparent;
+  background: none;
 }
 
 @media (min-width: t.$fs-bp-lg) {
   .fs-topnav {
-    display: flex;
+    display: inline-flex;
   }
 }
 
+.fs-topnav::before {
+  background-color: var(--fs-brand-tint);
+  box-shadow: none;
+}
+
 .fs-topnav__link {
-  display: inline-flex;
-  align-items: center;
   gap: 0.45rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: t.$fs-radius-sm;
-  font-size: 0.9375rem;
-  color: var(--fs-ink-muted);
+  padding: 0.45rem 0.85rem;
   text-decoration: none;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
 
   &:hover {
-    background-color: var(--fs-hover);
     color: var(--fs-ink);
   }
 
   &.is-active {
-    background-color: var(--fs-brand-tint);
     color: var(--fs-brand);
-    font-weight: 500;
+    font-weight: 550;
+  }
+
+  i {
+    font-size: 0.95rem;
   }
 }
 
@@ -119,8 +159,35 @@
   align-items: center;
   height: calc(t.$fs-tabbar-height + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background-color: var(--fs-surface);
+  background-color: color-mix(in srgb, var(--fs-surface) 82%, transparent);
   border-top: 1px solid var(--fs-line);
+  backdrop-filter: saturate(1.6) blur(14px);
+}
+
+// La pastilla del destino activo, que se desliza de un hueco a otro en lugar de encenderse
+// y apagarse. Es la misma pieza del control segmentado —posición y medidas las publica
+// `SegmentedDirective` como variables—, solo que aquí rodea el icono y deja el rótulo fuera:
+// de ahí que la vertical venga medida y no centrada a ojo.
+.fs-tabbar::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: var(--fs-seg-w, 0);
+  height: var(--fs-seg-h, 0);
+  transform: translate(var(--fs-seg-x, 0), var(--fs-seg-y, 0));
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-brand-tint);
+  pointer-events: none;
+}
+
+// La transición se enciende tras la primera medida, para que al abrir la aplicación la
+// pastilla salga ya puesta bajo su icono en vez de deslizarse desde la esquina.
+.fs-tabbar.is-ready::before {
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 // Solo existe mientras no haya sitio arriba para la navegación. Va después de la regla que
@@ -132,11 +199,14 @@
 }
 
 .fs-tab {
+  // Por encima de la pastilla, que va detrás de todos.
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
   // Objetivo táctil cómodo aunque el icono y el texto ocupen menos.
   min-height: 3rem;
   padding: 0;
@@ -145,16 +215,36 @@
   font-size: 0.6875rem;
   color: var(--fs-ink-muted);
   text-decoration: none;
-
-  i {
-    font-size: 1.25rem;
-    line-height: 1;
-  }
+  transition: color 0.18s ease;
 
   &.is-active {
     color: var(--fs-brand);
-    font-weight: 500;
+    font-weight: 550;
   }
+}
+
+// El hueco que ocupa la pastilla bajo cada icono. Está siempre, activo o no: es lo que la
+// directiva mide para saber adónde deslizarla, y lo que hace que todos los destinos midan
+// igual y la pastilla no cambie de tamaño al moverse.
+.fs-tab__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 1.75rem;
+  border-radius: t.$fs-radius-pill;
+
+  i {
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+// El tinte lo pone la pastilla que se desliza por detrás; aquí solo queda el hueco que
+// ocupa, que es lo que la directiva mide para colocarla.
+.fs-tab:active .fs-tab__icon i {
+  transform: scale(0.9);
 }
 
 .fs-tab--action {
@@ -167,12 +257,15 @@
   justify-content: center;
   width: 3.25rem;
   height: 3.25rem;
-  margin-top: -1.5rem;
+  margin-top: calc(var(--fs-fab-rise) * -1);
   border-radius: 50%;
+  background-image: linear-gradient(160deg, var(--fs-brand), var(--fs-brand-strong));
   background-color: var(--fs-brand);
   color: #fff;
   font-size: 1.4rem;
-  box-shadow: var(--fs-shadow-raised);
+  box-shadow:
+    0 6px 18px rgba(var(--fs-brand-rgb), 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: transform 0.15s ease;
 }
 

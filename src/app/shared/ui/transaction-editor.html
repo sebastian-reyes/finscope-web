@@ -43,6 +43,21 @@
         }
       </div>
 
+      <div>
+        <label class="fs-label" for="editorDescription">
+          Descripción <span class="fs-label__optional">opcional</span>
+        </label>
+        <input
+          id="editorDescription"
+          type="text"
+          class="fs-field"
+          maxlength="255"
+          placeholder="Almuerzo con el equipo"
+          autocomplete="off"
+          formControlName="description"
+        />
+      </div>
+
       <div class="fs-kinds" role="group" aria-label="Tipo de movimiento">
         <button
           type="button"
@@ -80,21 +95,6 @@
         @if (categoryMissing()) {
           <p class="fs-error">Elige una categoría para saber en qué se fue.</p>
         }
-      </div>
-
-      <div>
-        <label class="fs-label" for="editorDescription">
-          Descripción <span class="fs-label__optional">opcional</span>
-        </label>
-        <input
-          id="editorDescription"
-          type="text"
-          class="fs-field"
-          maxlength="255"
-          placeholder="Almuerzo con el equipo"
-          autocomplete="off"
-          formControlName="description"
-        />
       </div>
 
       <div>

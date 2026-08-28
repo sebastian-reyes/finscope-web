@@ -85,17 +85,33 @@
   </section>
 
   <section class="fs-panel fs-card fs-dash__spending" aria-labelledby="spendingTitle">
-    <h2 class="fs-card__title" id="spendingTitle">
-      <i class="bi bi-pie-chart" aria-hidden="true"></i>En qué se va
-    </h2>
+    <div class="fs-card__head">
+      <h2 class="fs-card__title" id="spendingTitle">
+        <i class="bi bi-pie-chart" aria-hidden="true"></i>En qué se va
+      </h2>
+      <div class="fs-seg" role="group" aria-label="Repartir el gasto por">
+        @for (option of breakdowns; track option.mode) {
+          <button
+            type="button"
+            class="fs-seg__btn"
+            [class.is-active]="breakdown() === option.mode"
+            [attr.aria-pressed]="breakdown() === option.mode"
+            (click)="breakdown.set(option.mode)"
+          >
+            <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+          </button>
+        }
+      </div>
+    </div>
     @if (loading()) {
       <div class="fs-skeleton fs-skeleton--chart"></div>
     } @else if (summary(); as totals) {
-      <fs-spending-by-category-chart [byCategory]="totals.byCategory" />
-      <p class="fs-note">
-        Cada movimiento cuenta en una sola categoría, así que estas porciones reparten exactamente
-        lo gastado en el periodo.
-      </p>
+      <fs-spending-chart
+        [byCategory]="totals.byCategory"
+        [byTag]="totals.byTag"
+        [mode]="breakdown()"
+        [period]="chartPeriod()"
+      />
     }
   </section>
 

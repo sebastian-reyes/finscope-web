@@ -3,22 +3,35 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  Injector,
   OnDestroy,
+  afterNextRender,
   computed,
   effect,
+  inject,
   input,
   model,
+  signal,
   viewChild,
 } from '@angular/core';
 import AirDatepicker, { AirDatepickerOptions } from 'air-datepicker';
 import localeEs from 'air-datepicker/locale/es';
 import { monthLabel, toInputDateTime } from '../../core/format/period';
+import { GAP, anchorSpot } from './anchor';
 
 /** Qué se elige en el campo: un día, un día con su hora, o un mes entero. */
 export type DateFieldMode = 'date' | 'datetime' | 'month';
 
 /** Ancho por debajo del cual el calendario se abre centrado, como una hoja del sistema. */
 const MOBILE_WIDTH = 576;
+
+/** Las veinticuatro horas y los minutos de cinco en cinco, ya en el texto que se dibuja. */
+const HOURS: readonly string[] = Array.from({ length: 24 }, (_, hour) =>
+  String(hour).padStart(2, '0'),
+);
+const MINUTES: readonly string[] = Array.from({ length: 12 }, (_, step) =>
+  String(step * 5).padStart(2, '0'),
+);
 
 /** Momentos del día que se ponen de un toque, que son casi siempre los que se necesitan. */
 const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
@@ -36,12 +49,14 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
  * calendario del día sí es nuestro: el mismo en todas partes, en español y con el tema de
  * la aplicación.
  *
- * La hora, en cambio, es un `input type="time"` del navegador, y a propósito. Ahí la
- * plataforma gana: en un iPhone abre la rueda del sistema, en Android el reloj de Material
- * y en escritorio se teclea «1335» y ya está. Solo se le pone la caja alrededor para que
- * haga juego con el campo de al lado; lo de dentro lo dibuja quien mejor sabe hacerlo. Para
- * la mayoría de las veces ni siquiera hace falta abrirlo: hay atajos con los momentos del
- * día debajo.
+ * La hora tampoco la pone el navegador. El `input type="time"` traía consigo el desplegable
+ * del sistema —una caja cuadrada con su propia tipografía y su propio azul, que además se
+ * cortaba dentro de la hoja del editor y se descolocaba en cuanto la pantalla se estrechaba—.
+ * En su lugar hay dos columnas propias, horas y minutos, en un panel que va fijo a la ventana
+ * y se coloca desde las medidas del botón: así ni lo recorta un contenedor con scroll ni
+ * depende de dónde esté el campo. En un teléfono ese mismo panel sube desde abajo como una
+ * hoja. Y para la mayoría de las veces ni siquiera hace falta abrirlo: hay atajos con los
+ * momentos del día debajo.
  *
  * El valor que entra y sale sigue siendo el mismo texto que usaba el campo nativo
  * —`yyyy-MM-dd`, `yyyy-MM-ddTHH:mm` o `yyyy-MM`—, de modo que quien lo usa no se entera de
@@ -81,26 +96,76 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
       @if (withTime()) {
         <div class="fs-time" [class.is-disabled]="disabled()" [class.is-empty]="!time()">
           <button
+            #timeTrigger
             type="button"
             class="fs-time__open"
             [disabled]="disabled()"
+            [attr.aria-expanded]="timeOpen()"
+            aria-haspopup="dialog"
             aria-label="Elegir la hora"
-            (click)="openTimePicker()"
+            (click)="toggleTimePicker()"
           >
             <i class="bi bi-clock" aria-hidden="true"></i>
+            <span class="fs-time__value fs-num">{{ time() || '--:--' }}</span>
           </button>
-          <input
-            #timeField
-            type="time"
-            class="fs-time__input fs-num"
-            aria-label="Hora"
-            [value]="time()"
-            [disabled]="disabled()"
-            (change)="onTimeChange($any($event.target).value)"
-          />
         </div>
       }
     </div>
+
+    @if (timeOpen()) {
+      <div class="fs-clock__veil" [class.is-sheet]="narrow()" (click)="closeTimePicker()"></div>
+      <div
+        #timePanel
+        class="fs-clock"
+        [class.is-sheet]="narrow()"
+        [style.top.px]="narrow() ? null : spot().top"
+        [style.left.px]="narrow() ? null : spot().left"
+        role="dialog"
+        aria-label="Elegir la hora"
+        tabindex="-1"
+        animate.enter="is-in"
+        animate.leave="is-out"
+        (keydown.escape)="closeTimePicker()"
+      >
+        <div class="fs-clock__cols">
+          <div class="fs-clock__col">
+            <p class="fs-clock__label" id="clockHours">Hora</p>
+            <div class="fs-clock__scroll" role="listbox" aria-labelledby="clockHours">
+              @for (option of hours; track option) {
+                <button
+                  type="button"
+                  role="option"
+                  class="fs-clock__cell fs-num"
+                  [class.is-picked]="option === hour()"
+                  [attr.aria-selected]="option === hour()"
+                  (click)="pickHour(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="fs-clock__col">
+            <p class="fs-clock__label" id="clockMinutes">Minuto</p>
+            <div class="fs-clock__scroll" role="listbox" aria-labelledby="clockMinutes">
+              @for (option of minutes(); track option) {
+                <button
+                  type="button"
+                  role="option"
+                  class="fs-clock__cell fs-num"
+                  [class.is-picked]="option === minute()"
+                  [attr.aria-selected]="option === minute()"
+                  (click)="pickMinute(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
 
     @if (withTime()) {
       <div class="fs-times" role="group" aria-label="Momentos del día">
@@ -220,108 +285,181 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
       background-color: var(--fs-hover);
     }
 
-    /* La hora lleva la misma caja que la fecha, pero por dentro es el control del navegador:
-       en el móvil abre el selector del sistema y en escritorio se teclea. */
+    /* La hora lleva la misma caja que la fecha y abre el panel de la aplicación. */
     .fs-time {
       flex: none;
       display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.4rem 0.7rem;
-      border: 1px solid var(--fs-line);
-      border-radius: var(--fs-radius);
-      background-color: var(--fs-surface-sunken);
-      transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
     }
 
     .fs-date--field:hover,
-    .fs-time:hover {
+    .fs-time:hover .fs-time__open {
       border-color: var(--fs-ink-muted);
-    }
-
-    .fs-time:focus-within {
-      border-color: var(--fs-brand);
-      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
     }
 
     .fs-time__open {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      width: 1.5rem;
-      height: 1.5rem;
-      padding: 0;
-      border: none;
-      border-radius: 50%;
-      background: none;
+      gap: 0.45rem;
+      padding: 0.4rem 0.7rem;
+      border: 1px solid var(--fs-line);
+      border-radius: var(--fs-radius);
+      background-color: var(--fs-surface-sunken);
+      color: var(--fs-ink);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+
+    .fs-time__open:focus-visible,
+    .fs-time__open[aria-expanded='true'] {
+      outline: none;
+      border-color: var(--fs-brand);
+      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+    }
+
+    .fs-time__open i {
       color: var(--fs-ink-muted);
       font-size: 0.9rem;
+    }
+
+    /* Sin hora puesta el campo enseña «--:--», que es un hueco por rellenar y no un dato. */
+    .fs-time.is-empty .fs-time__value {
+      color: var(--fs-ink-faint);
+      font-weight: 400;
+    }
+
+    /* --- Panel de la hora ---------------------------------------------------------------
+       Va fijo a la ventana y no colgando del campo. El campo vive dentro de la hoja del
+       editor, que recorta lo que se sale y además tiene su propio scroll: un panel absoluto
+       ahí dentro se cortaba por abajo o se iba con el desplazamiento. Fijo, se coloca desde
+       las medidas del botón y no le afecta nada de lo que tenga encima. */
+    .fs-clock__veil {
+      position: fixed;
+      inset: 0;
+      z-index: 1060;
+    }
+
+    .fs-clock {
+      position: fixed;
+      z-index: 1061;
+      width: 13.5rem;
+      padding: 0.6rem;
+      border: 1px solid var(--fs-line);
+      border-radius: var(--fs-radius-lg);
+      background-color: var(--fs-surface);
+      box-shadow: var(--fs-shadow-raised);
+    }
+
+    .fs-clock:focus {
+      outline: none;
+    }
+
+    .fs-clock.is-in {
+      animation: fs-clock-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .fs-clock.is-out {
+      animation: fs-clock-in 0.14s ease reverse both;
+    }
+
+    @keyframes fs-clock-in {
+      from {
+        opacity: 0;
+        transform: translateY(-0.4rem) scale(0.97);
+      }
+    }
+
+    .fs-clock__cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+    }
+
+    .fs-clock__label {
+      margin: 0 0 0.35rem;
+      font-size: var(--fs-text-xs);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--fs-ink-faint);
+    }
+
+    .fs-clock__scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      max-height: 11rem;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+
+    .fs-clock__cell {
+      flex: none;
+      padding: 0.35rem 0.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: none;
+      color: var(--fs-ink-muted);
+      font-size: 0.875rem;
       transition:
         background-color 0.12s ease,
         color 0.12s ease;
     }
 
-    .fs-time__open:hover {
+    .fs-clock__cell:hover {
       background-color: var(--fs-hover);
-      color: var(--fs-brand);
-    }
-
-    .fs-time__input {
-      width: 4.25rem;
-      padding: 0.15rem 0;
-      border: none;
-      background: none;
       color: var(--fs-ink);
-      font-size: 0.9375rem;
-      font-weight: 500;
-      font-family: inherit;
     }
 
-    .fs-time__input:focus {
-      outline: none;
+    .fs-clock__cell.is-picked {
+      background-color: var(--fs-brand);
+      color: var(--fs-on-brand);
+      font-weight: 600;
     }
 
-    /* Sin hora puesta el campo enseña «--:--», que es un hueco por rellenar y no un dato. */
-    .fs-time.is-empty .fs-time__input {
-      color: var(--fs-ink-faint);
-      font-weight: 400;
+    /* En un teléfono no hay sitio para colgar nada de un campo: el panel sube desde abajo,
+       a lo ancho y con las celdas grandes, como cualquier otra hoja del sistema. */
+    .fs-clock.is-sheet {
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+      border-width: 1px 0 0;
+      border-radius: var(--fs-radius-lg) var(--fs-radius-lg) 0 0;
     }
 
-    /* El icono de reloj del navegador sobra: ya hay uno a la izquierda, y ese además abre
-       el selector en los navegadores que lo permiten. */
-    .fs-time__input::-webkit-calendar-picker-indicator {
-      display: none;
+    .fs-clock.is-sheet .fs-clock__scroll {
+      max-height: 45vh;
+      gap: 0.25rem;
     }
 
-    /* Lo de dentro del campo nativo también se puede vestir en los navegadores basados en
-       Chromium: sin esto, la hora y los minutos se seleccionan con el azul del sistema, que
-       es el único trozo de la aplicación que no sigue su propia paleta. En Firefox y Safari
-       estas reglas no existen y el campo se queda con la caja de fuera, que ya hace juego. */
-    .fs-time__input::-webkit-datetime-edit,
-    .fs-time__input::-webkit-datetime-edit-fields-wrapper {
-      padding: 0;
+    .fs-clock.is-sheet .fs-clock__cell {
+      padding: 0.6rem 0.5rem;
+      font-size: 1rem;
     }
 
-    .fs-time__input::-webkit-datetime-edit-hour-field,
-    .fs-time__input::-webkit-datetime-edit-minute-field {
-      padding: 0.05rem 0.25rem;
-      border-radius: 0.35rem;
+    .fs-clock__veil.is-sheet {
+      background-color: rgba(9, 13, 20, 0.45);
     }
 
-    /* Tinte de marca en vez del azul del sistema: el par tinte/tinta se invierte solo con
-       el tema, así que el segmento elegido se lee igual de bien en claro y en oscuro. */
-    .fs-time__input::-webkit-datetime-edit-hour-field:focus,
-    .fs-time__input::-webkit-datetime-edit-minute-field:focus {
-      background-color: var(--fs-brand-tint);
-      color: var(--fs-brand);
-      outline: none;
+    .fs-clock.is-sheet.is-in {
+      animation: fs-clock-rise 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
-    .fs-time__input::-webkit-datetime-edit-text {
-      padding: 0 0.05rem;
-      color: var(--fs-ink-faint);
+    .fs-clock.is-sheet.is-out {
+      animation: fs-clock-rise 0.18s ease reverse both;
+    }
+
+    @keyframes fs-clock-rise {
+      from {
+        transform: translateY(100%);
+      }
     }
 
     /* Los momentos del día resuelven la mayoría de las veces sin abrir nada. */
@@ -394,8 +532,37 @@ export class DateFieldComponent implements AfterViewInit, OnDestroy {
   /** La hora del valor actual, vacía mientras no haya ninguna fecha puesta. */
   protected readonly time = computed(() => this.value().slice(11, 16));
 
+  protected readonly hour = computed(() => this.time().slice(0, 2));
+  protected readonly minute = computed(() => this.time().slice(3, 5));
+
+  protected readonly hours = HOURS;
+
+  /**
+   * Los minutos van de cinco en cinco, que es el paso con el que se apunta un gasto. El
+   * minuto que ya tuviera el movimiento entra igualmente aunque no sea múltiplo de cinco:
+   * si no, abrir el panel de uno guardado a las 13:37 no enseñaría su propia hora.
+   */
+  protected readonly minutes = computed(() => {
+    const current = this.minute();
+    if (!current || MINUTES.includes(current)) {
+      return MINUTES;
+    }
+    return [...MINUTES, current].sort();
+  });
+
+  protected readonly timeOpen = signal(false);
+
+  /** Si el panel se abre como hoja desde abajo, que es lo que cabe en un teléfono. */
+  protected readonly narrow = signal(false);
+
+  /** Esquina en la que se dibuja el panel anclado, en coordenadas de la ventana. */
+  protected readonly spot = signal<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  private readonly injector = inject(Injector);
+
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
-  private readonly timeField = viewChild<ElementRef<HTMLInputElement>>('timeField');
+  private readonly timeTrigger = viewChild<ElementRef<HTMLButtonElement>>('timeTrigger');
+  private readonly timePanel = viewChild<ElementRef<HTMLElement>>('timePanel');
 
   private picker?: AirDatepicker<HTMLInputElement>;
 
@@ -425,6 +592,7 @@ export class DateFieldComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.picker?.destroy();
+    this.stopFollowing();
   }
 
   protected clear(): void {
@@ -432,18 +600,107 @@ export class DateFieldComponent implements AfterViewInit, OnDestroy {
     this.value.set('');
   }
 
-  /**
-   * Abre el selector de hora del navegador.
-   * No todos lo permiten desde código, y donde no se puede no pasa nada: el campo se
-   * escribe igual, y en el móvil basta con tocarlo para que salga el del sistema.
-   */
-  protected openTimePicker(): void {
-    const field = this.timeField()?.nativeElement;
-    try {
-      field?.showPicker();
-    } catch {
-      field?.focus();
+  protected toggleTimePicker(): void {
+    if (this.timeOpen()) {
+      this.closeTimePicker();
+      return;
     }
+    this.narrow.set(window.innerWidth < MOBILE_WIDTH);
+    this.timeOpen.set(true);
+    // El panel todavía no existe en el DOM: se coloca y se enfoca en cuanto Angular lo ha
+    // pintado, que es cuando ya se puede medir.
+    afterNextRender({ mixedReadWrite: () => this.revealPanel() }, { injector: this.injector });
+    // Va fijo a la ventana, así que lo que se desplace por debajo no lo arrastra: hay que
+    // volver a colocarlo para que siga pegado a su botón. En captura, porque lo que se mueve
+    // es el cuerpo de la hoja del editor y su scroll no llega a la ventana por sí solo.
+    window.addEventListener('scroll', this.follow, { capture: true, passive: true });
+    window.addEventListener('resize', this.follow);
+  }
+
+  protected closeTimePicker(): void {
+    if (!this.timeOpen()) {
+      return;
+    }
+    this.stopFollowing();
+    this.timeOpen.set(false);
+    this.timeTrigger()?.nativeElement.focus();
+  }
+
+  /** Deja la hora elegida y espera al minuto, que es el paso que falta. */
+  protected pickHour(hour: string): void {
+    this.onTimeChange(`${hour}:${this.minute() || '00'}`);
+  }
+
+  /** El minuto cierra el panel: con él ya está dicha la hora entera. */
+  protected pickMinute(minute: string): void {
+    this.onTimeChange(`${this.hour() || '00'}:${minute}`);
+    this.closeTimePicker();
+  }
+
+  /** Coloca el panel recién abierto, lo enfoca y le enseña de entrada la hora que ya tenía. */
+  private revealPanel(): void {
+    const panel = this.timePanel()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+
+    this.anchorPanel();
+    panel.focus({ preventScroll: true });
+    // Con veinticuatro horas en una columna, la que está puesta puede quedar fuera de la
+    // vista: se centra en su columna para que el panel se abra enseñando la hora actual.
+    for (const cell of panel.querySelectorAll<HTMLElement>('.fs-clock__cell.is-picked')) {
+      const column = cell.parentElement;
+      if (column) {
+        column.scrollTop = cell.offsetTop - (column.clientHeight - cell.clientHeight) / 2;
+      }
+    }
+  }
+
+  /**
+   * Deja el panel bajo el botón, o encima si abajo no cabe, y sin salirse por los lados.
+   * En hoja no hay nada que calcular: la pone el CSS pegada al borde inferior.
+   */
+  private anchorPanel(): void {
+    const panel = this.timePanel()?.nativeElement;
+    const trigger = this.timeTrigger()?.nativeElement;
+    if (!panel || !trigger || this.narrow()) {
+      return;
+    }
+
+    this.spot.set(
+      anchorSpot(
+        trigger.getBoundingClientRect(),
+        { width: panel.offsetWidth, height: panel.offsetHeight },
+        { width: window.innerWidth, height: window.innerHeight },
+        // Pegado al borde derecho del botón, que es donde está el número de la hora.
+        'end',
+      ),
+    );
+  }
+
+  /** Frame pedido para la próxima recolocación, o cero si no hay ninguno pendiente. */
+  private pending = 0;
+
+  /**
+   * Vuelve a colocar el panel mientras algo se mueve por debajo.
+   * Se mide una sola vez por frame: un scroll dispara decenas de eventos seguidos y medir en
+   * cada uno obliga al navegador a recalcular la página otras tantas veces.
+   */
+  private readonly follow = (): void => {
+    if (this.pending) {
+      return;
+    }
+    this.pending = requestAnimationFrame(() => {
+      this.pending = 0;
+      this.anchorPanel();
+    });
+  };
+
+  private stopFollowing(): void {
+    window.removeEventListener('scroll', this.follow, { capture: true });
+    window.removeEventListener('resize', this.follow);
+    cancelAnimationFrame(this.pending);
+    this.pending = 0;
   }
 
   /** Pone la hora actual, que es la respuesta correcta casi siempre. */

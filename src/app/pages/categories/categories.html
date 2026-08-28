@@ -29,7 +29,7 @@
 
 @if (showCreate()) {
   <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
-    <form class="fs-create" (ngSubmit)="create()">
+    <form class="fs-create" [formGroup]="newForm" (ngSubmit)="create()">
       <div class="fs-create__field">
         <label class="fs-label" for="newCategory">Nombre</label>
         <input
@@ -38,7 +38,7 @@
           maxlength="70"
           autocomplete="off"
           placeholder="Mascotas"
-          [formControl]="newName"
+          formControlName="name"
         />
       </div>
 
@@ -77,162 +77,167 @@
     <div class="fs-skeleton"></div>
   </section>
 } @else {
-  @for (group of groups(); track group.scope) {
-    <section class="fs-panel fs-block fs-group" [attr.aria-label]="'Categorías de ' + group.label">
-      <header class="fs-group__head fs-group__head--{{ group.scope }}">
-        <span class="fs-group__icon" aria-hidden="true">
-          <i class="bi {{ group.icon }}"></i>
-        </span>
-        <h2 class="fs-group__title">{{ group.label }}</h2>
-        <span class="fs-group__count fs-num">{{ group.categories.length }}</span>
-        <button
-          class="fs-group__add"
-          type="button"
-          (click)="openCreate(group.scope)"
-          [attr.aria-label]="'Nueva categoría de ' + group.label"
-        >
-          <i class="bi bi-plus-lg" aria-hidden="true"></i>
-        </button>
-      </header>
+  <div class="fs-groups">
+    @for (group of groups(); track group.scope) {
+      <section
+        class="fs-panel fs-block fs-group"
+        [attr.aria-label]="'Categorías de ' + group.label"
+      >
+        <header class="fs-group__head fs-group__head--{{ group.scope }}">
+          <span class="fs-group__icon" aria-hidden="true">
+            <i class="bi {{ group.icon }}"></i>
+          </span>
+          <h2 class="fs-group__title">{{ group.label }}</h2>
+          <span class="fs-group__count fs-num">{{ group.categories.length }}</span>
+          <button
+            class="fs-group__add"
+            type="button"
+            (click)="openCreate(group.scope)"
+            [attr.aria-label]="'Nueva categoría de ' + group.label"
+          >
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          </button>
+        </header>
 
-      @if (group.categories.length) {
-        <ul class="fs-rows">
-          @for (category of group.categories; track category.id) {
-            <li class="fs-row">
-              @if (editingId() === category.id) {
-                <form class="fs-edit" (ngSubmit)="saveEdit(category.id)">
-                  <input
-                    class="fs-field fs-edit__name"
-                    maxlength="70"
-                    autocomplete="off"
-                    aria-label="Nombre de la categoría"
-                    [formControl]="editName"
-                    (keyup.escape)="cancelEdit()"
-                  />
+        @if (group.categories.length) {
+          <ul class="fs-rows">
+            @for (category of group.categories; track category.id) {
+              <li class="fs-row">
+                @if (editingId() === category.id) {
+                  <form class="fs-edit" [formGroup]="editForm" (ngSubmit)="saveEdit(category.id)">
+                    <input
+                      class="fs-field"
+                      maxlength="70"
+                      autocomplete="off"
+                      aria-label="Nombre de la categoría"
+                      formControlName="name"
+                      (keyup.escape)="cancelEdit()"
+                    />
 
-                  <div class="fs-scopes" role="group" aria-label="Se ofrece en">
-                    @for (option of scopes; track option.scope) {
+                    <div class="fs-scopes" role="group" aria-label="Se ofrece en">
+                      @for (option of scopes; track option.scope) {
+                        <button
+                          type="button"
+                          class="fs-scope fs-scope--{{ option.scope }}"
+                          [class.is-active]="editScope() === option.scope"
+                          [attr.aria-pressed]="editScope() === option.scope"
+                          (click)="editScope.set(option.scope)"
+                        >
+                          <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+                        </button>
+                      }
+                    </div>
+
+                    <div class="fs-edit__actions">
                       <button
-                        type="button"
-                        class="fs-scope fs-scope--{{ option.scope }}"
-                        [class.is-active]="editScope() === option.scope"
-                        [attr.aria-pressed]="editScope() === option.scope"
-                        (click)="editScope.set(option.scope)"
+                        class="fs-btn fs-btn--sm fs-btn--solid"
+                        type="submit"
+                        [disabled]="saving() || editName.invalid"
                       >
-                        <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
+                        Guardar
+                      </button>
+                      <button
+                        class="fs-btn fs-btn--sm fs-btn--ghost"
+                        type="button"
+                        (click)="cancelEdit()"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+
+                    @if (category.transactionCount) {
+                      <p class="fs-note fs-edit__note">
+                        El cambio se verá en {{ category.transactionCount }}
+                        {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
+                      </p>
+                    }
+                  </form>
+                } @else if (confirmingId() === category.id) {
+                  <div class="fs-row__confirm" animate.enter="fs-anim-expand">
+                    <span>
+                      ¿Borrar <strong>{{ category.name }}</strong
+                      >?
+                      @if (category.transactionCount) {
+                        Sus {{ category.transactionCount }}
+                        {{
+                          category.transactionCount === 1
+                            ? 'movimiento pasará'
+                            : 'movimientos pasarán'
+                        }}
+                        a «{{ fallbackName() }}». No se pierde ninguno.
+                      } @else {
+                        No la usa ningún movimiento.
+                      }
+                    </span>
+                    <span class="text-nowrap">
+                      <button
+                        class="fs-btn fs-btn--sm fs-btn--danger"
+                        type="button"
+                        [disabled]="saving()"
+                        (click)="remove(category)"
+                      >
+                        Sí, borrar
+                      </button>
+                      <button
+                        class="fs-btn fs-btn--sm fs-btn--ghost"
+                        type="button"
+                        (click)="cancelRemove()"
+                      >
+                        Cancelar
+                      </button>
+                    </span>
+                  </div>
+                } @else {
+                  <a
+                    class="fs-row__main"
+                    [routerLink]="['/transactions']"
+                    [queryParams]="{ categoria: category.id }"
+                  >
+                    <fs-category-chip [name]="category.name" />
+                    @if (category.isSystem) {
+                      <span class="fs-row__badge">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>Reserva
+                      </span>
+                    }
+                    <span class="fs-row__count fs-num" [class.is-idle]="!category.transactionCount">
+                      @if (category.transactionCount) {
+                        {{ category.transactionCount }}
+                        {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+                      } @else {
+                        Sin usar
+                      }
+                    </span>
+                  </a>
+                  <span class="fs-row__actions">
+                    <button
+                      class="fs-btn fs-btn--sm fs-btn--ghost"
+                      type="button"
+                      (click)="startEdit(category)"
+                      [attr.aria-label]="'Editar ' + category.name"
+                    >
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </button>
+                    @if (!category.isSystem) {
+                      <button
+                        class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+                        type="button"
+                        (click)="askRemove(category)"
+                        [attr.aria-label]="'Borrar ' + category.name"
+                      >
+                        <i class="bi bi-trash" aria-hidden="true"></i>
                       </button>
                     }
-                  </div>
-
-                  <div class="fs-edit__actions">
-                    <button
-                      class="fs-btn fs-btn--sm fs-btn--solid"
-                      type="submit"
-                      [disabled]="saving() || editName.invalid"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      class="fs-btn fs-btn--sm fs-btn--ghost"
-                      type="button"
-                      (click)="cancelEdit()"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-
-                  @if (category.transactionCount) {
-                    <p class="fs-note fs-edit__note">
-                      El cambio se verá en {{ category.transactionCount }}
-                      {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
-                    </p>
-                  }
-                </form>
-              } @else if (confirmingId() === category.id) {
-                <div class="fs-row__confirm" animate.enter="fs-anim-expand">
-                  <span>
-                    ¿Borrar <strong>{{ category.name }}</strong
-                    >?
-                    @if (category.transactionCount) {
-                      Sus {{ category.transactionCount }}
-                      {{
-                        category.transactionCount === 1
-                          ? 'movimiento pasará'
-                          : 'movimientos pasarán'
-                      }}
-                      a «{{ fallbackName() }}». No se pierde ninguno.
-                    } @else {
-                      No la usa ningún movimiento.
-                    }
                   </span>
-                  <span class="text-nowrap">
-                    <button
-                      class="fs-btn fs-btn--sm fs-btn--danger"
-                      type="button"
-                      [disabled]="saving()"
-                      (click)="remove(category)"
-                    >
-                      Sí, borrar
-                    </button>
-                    <button
-                      class="fs-btn fs-btn--sm fs-btn--ghost"
-                      type="button"
-                      (click)="cancelRemove()"
-                    >
-                      Cancelar
-                    </button>
-                  </span>
-                </div>
-              } @else {
-                <a
-                  class="fs-row__main"
-                  [routerLink]="['/transactions']"
-                  [queryParams]="{ categoria: category.id }"
-                >
-                  <fs-category-chip [name]="category.name" />
-                  @if (category.isSystem) {
-                    <span class="fs-row__badge">
-                      <i class="bi bi-shield-check" aria-hidden="true"></i>Reserva
-                    </span>
-                  }
-                  <span class="fs-row__count fs-num" [class.is-idle]="!category.transactionCount">
-                    @if (category.transactionCount) {
-                      {{ category.transactionCount }}
-                      {{ category.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
-                    } @else {
-                      Sin usar
-                    }
-                  </span>
-                </a>
-                <span class="fs-row__actions">
-                  <button
-                    class="fs-btn fs-btn--sm fs-btn--ghost"
-                    type="button"
-                    (click)="startEdit(category)"
-                    [attr.aria-label]="'Editar ' + category.name"
-                  >
-                    <i class="bi bi-pencil" aria-hidden="true"></i>
-                  </button>
-                  @if (!category.isSystem) {
-                    <button
-                      class="fs-btn fs-btn--sm fs-btn--quiet-danger"
-                      type="button"
-                      (click)="askRemove(category)"
-                      [attr.aria-label]="'Borrar ' + category.name"
-                    >
-                      <i class="bi bi-trash" aria-hidden="true"></i>
-                    </button>
-                  }
-                </span>
-              }
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="fs-group__empty">{{ group.empty }}</p>
-      }
-    </section>
-  }
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="fs-group__empty">{{ group.empty }}</p>
+        }
+      </section>
+    }
+  </div>
 
   <p class="fs-note fs-foot">
     «{{ fallbackName() }}» es la categoría de reserva: recibe los movimientos de las categorías que

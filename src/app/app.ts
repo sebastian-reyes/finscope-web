@@ -1,9 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
+import { SegmentedDirective } from './shared/ui/segmented';
+import { SlideOutletDirective } from './shared/ui/slide-outlet';
 import { TransactionEditorComponent } from './shared/ui/transaction-editor';
 
 /** Destino de la navegación principal, con el icono que lo representa en la barra. */
@@ -11,6 +15,8 @@ interface NavItem {
   path: string;
   label: string;
   icon: string;
+  /** Otras direcciones que también lo dan por activo, si es que las tiene. */
+  covers?: readonly string[];
 }
 
 /**
@@ -23,7 +29,13 @@ interface NavItem {
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TransactionEditorComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    SegmentedDirective,
+    SlideOutletDirective,
+    TransactionEditorComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -52,11 +64,51 @@ export class App {
   // entra la principal —las categorías, que son las que reparten el gasto— y los tags se
   // alcanzan desde ella con el conmutador que llevan ambas arriba.
   protected readonly rightNav: NavItem[] = [
-    { path: '/categories', label: 'Categorías', icon: 'bi-grid-1x2' },
+    // Los tags no tienen hueco propio, así que se cuentan como parte de las categorías: sin
+    // esto, estando en ellos la barra no marcaba ninguna sección y la pastilla se encogía a
+    // nada, como si la pantalla no estuviera en ningún sitio.
+    { path: '/categories', label: 'Categorías', icon: 'bi-grid-1x2', covers: ['/tags'] },
     { path: '/account', label: 'Cuenta', icon: 'bi-person' },
   ];
 
   protected readonly allNav = [...this.leftNav, ...this.rightNav];
+
+  /**
+   * Los destinos en el orden en que se leen, para que la pantalla nueva entre por el lado
+   * del que viene. Es el orden de la barra, con los tags al lado de las categorías porque
+   * comparten sitio en ella y se salta de una a otra con el conmutador.
+   */
+  protected readonly destinations = [
+    '/dashboard',
+    '/transactions',
+    '/categories',
+    '/tags',
+    '/account',
+  ];
+
+  /** Dirección en curso, que es la que decide qué destino está marcado. */
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /**
+   * Si un destino es el que se está mirando.
+   *
+   * Se decide aquí y no con `routerLinkActive` porque un destino puede cubrir más de una
+   * dirección —las categorías cubren también los tags— y esa directiva solo sabe comparar
+   * con la suya.
+   *
+   * @param item destino de la barra
+   * @return si es el que está abierto
+   */
+  protected isActive(item: NavItem): boolean {
+    const url = this.url().split('?')[0];
+    return url === item.path || (item.covers?.includes(url) ?? false);
+  }
 
   protected dismissToast(id: number): void {
     this.toastService.dismiss(id);

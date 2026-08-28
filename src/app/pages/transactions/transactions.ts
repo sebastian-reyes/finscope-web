@@ -262,14 +262,28 @@ export class TransactionsPage {
     // La pantalla de tags enlaza aquí con ?tag= para ver qué movimientos lo llevan. Ese
     // enlace pregunta por el tag y no por el mes, así que se abre el historial entero: si
     // no, un tag que no se usa desde marzo aparecería como si no tuviera nada.
-    const tag = this.route.snapshot.queryParamMap.get('tag');
+    //
+    // El inicio enlaza igual pero añadiendo ?mes= y ?anio=, porque allí la pregunta ya venía
+    // acotada a un mes: quien toca «ocio» en el reparto de agosto quiere el ocio de agosto,
+    // y abrirle el historial entero le contestaría otra cosa.
+    const params = this.route.snapshot.queryParamMap;
+    const month = Number(params.get('mes'));
+    const year = Number(params.get('anio'));
+    const scoped = Boolean(month && year);
+    if (scoped) {
+      this.month.set(month);
+      this.year.set(year);
+    }
+
+    const tag = params.get('tag');
     if (tag) {
       this.tag.set(tag);
-      this.periodMode.set('all');
     }
-    const category = Number(this.route.snapshot.queryParamMap.get('categoria'));
+    const category = Number(params.get('categoria'));
     if (category) {
       this.categoryId.set(category);
+    }
+    if ((tag || category) && !scoped) {
       this.periodMode.set('all');
     }
 

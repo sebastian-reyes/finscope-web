@@ -90,15 +90,26 @@ export class CategoriesPage {
   protected readonly newScope = signal<CategoryScope>('EXPENSE');
   protected readonly editScope = signal<CategoryScope>('EXPENSE');
 
-  protected readonly newName = this.formBuilder.nonNullable.control('', [
-    Validators.required,
-    Validators.maxLength(70),
-  ]);
+  /**
+   * Los dos formularios de la pantalla. Solo el nombre va aquí: el ámbito se elige tocando
+   * una pastilla y vive en su propia señal.
+   *
+   * Van en grupo y no como controles sueltos porque `ngSubmit` no es un suceso del navegador
+   * sino una salida de `FormGroupDirective`: sin `[formGroup]` en la etiqueta, el `<form>` se
+   * enviaba de verdad —recargando la página— y el método de alta no llegaba a ejecutarse
+   * nunca. `ReactiveFormsModule` tampoco trae `NgForm`, que es quien lo aportaría en un
+   * formulario dirigido por plantilla.
+   */
+  protected readonly newForm = this.formBuilder.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(70)]],
+  });
 
-  protected readonly editName = this.formBuilder.nonNullable.control('', [
-    Validators.required,
-    Validators.maxLength(70),
-  ]);
+  protected readonly editForm = this.formBuilder.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(70)]],
+  });
+
+  protected readonly newName = this.newForm.controls.name;
+  protected readonly editName = this.editForm.controls.name;
 
   /** El catálogo repartido en sus tres grupos, siempre los tres. */
   protected readonly groups = computed<CategoryGroup[]>(() =>

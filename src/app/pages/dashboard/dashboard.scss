@@ -57,19 +57,53 @@
   .fs-dash {
     gap: 1.5rem;
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    // El balance mide lo que mide su cifra; el sobrante de la columna se lo queda el reparto,
+    // que es el que tiene contenido con el que llenarlo. Sin esto, abrir «Más detalles»
+    // estiraba el formulario de registro y dejaba la columna izquierda acabando a media
+    // altura, con un escalón de aire debajo.
+    grid-template-rows: auto 1fr;
     // Cada tarjeta mide lo que mide su contenido; ninguna se estira para igualar a la de
     // al lado, que era justo el origen del hueco.
     align-items: start;
   }
 
+  // Ocupa las dos filas de su columna y se estira hasta el alto de la otra: el formulario
+  // es alto y el balance corto, así que emparejarlo con balance + reparto es lo que evita
+  // que ninguna de las dos columnas acabe a media altura.
   .fs-dash__quick {
     grid-column: 2;
     grid-row: 1 / span 2;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // El formulario ocupa lo que quede bajo el rótulo, que es lo que deja a su pie irse abajo.
+  .fs-dash__quick fs-quick-transaction {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
   }
 
   .fs-dash__balance,
   .fs-dash__spending {
     grid-column: 1;
+  }
+
+  // La única que sí se estira, para que las dos columnas terminen a la misma altura.
+  .fs-dash__spending {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Y el hueco que gana no se queda al final: el anillo con su leyenda se centra en lo que
+  // haya, que es lo que hace que la tarjeta se lea llena y no estirada.
+  .fs-dash__spending fs-spending-chart {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .fs-dash__trend,
@@ -82,24 +116,53 @@
   padding: 1.25rem;
 }
 
+// Cabecera de tarjeta con mando: el rótulo a la izquierda y el conmutador a la derecha. En
+// cuanto la tarjeta se estrecha, el conmutador baja de línea entero en lugar de estrujar el
+// título.
+.fs-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.fs-card__head .fs-card__title {
+  margin-bottom: 0;
+}
+
+// El rótulo de una tarjeta lleva su icono en la pastilla teñida de la capa base: es lo que
+// distingue de un vistazo una tarjeta de otra cuando hay cuatro apiladas.
 .fs-card__title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  font-size: var(--fs-text-base);
+  font-weight: 620;
+  letter-spacing: -0.01em;
   color: var(--fs-ink);
 
   i {
-    color: var(--fs-ink-muted);
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-size: 0.95rem;
+    line-height: 1;
   }
 }
 
 // El balance es el número por el que se abre la aplicación: ocupa el sitio y el tamaño que
 // le corresponde, y los desgloses quedan debajo en tipografía normal.
 .fs-balance {
-  padding: 1.5rem;
+  padding: 1.75rem 1.5rem;
 }
 
 .fs-balance__label {
@@ -110,10 +173,10 @@
 
 .fs-balance__value {
   margin: 0.35rem 0 0;
-  font-size: clamp(2.25rem, 8vw, 3rem);
-  font-weight: 700;
+  font-size: clamp(2.5rem, 8vw, 3.25rem);
+  font-weight: 720;
   line-height: 1.05;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
 }
 
 .fs-balance__hint {
@@ -128,16 +191,20 @@
   // cuanto no caben los tres, la rejilla pasa sola a dos columnas y el tercero baja de
   // línea, en vez de desbordar la tarjeta.
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--fs-line);
 }
 
+// Cada desglose en su propia baldosa hundida y no separados por una línea: así el bloque de
+// abajo se lee como tres datos y no como el pie de la cifra grande.
 .fs-split__item {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius);
+  background-color: var(--fs-surface-sunken);
   font-weight: 600;
 }
 
@@ -191,4 +258,11 @@
   100% {
     background-position: 0 50%;
   }
+}
+
+// El conmutador de la cabecera acompaña al rótulo y no compite con él: va un punto más
+// pequeño que el de los filtros, que sí son la acción principal de su pantalla.
+.fs-card__head .fs-seg__btn {
+  padding: 0.25rem 0.7rem;
+  font-size: var(--fs-text-sm);
 }

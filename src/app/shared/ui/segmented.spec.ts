@@ -31,6 +31,62 @@ function stubGeometry(element: HTMLElement, left: number, width: number): void {
   Object.defineProperty(element, 'offsetHeight', { value: 32, configurable: true });
 }
 
+@Component({
+  imports: [SegmentedDirective],
+  template: `
+    <div class="fs-bar" fsSegmented=".fs-bar__icon">
+      @for (option of options; track option) {
+        <a class="fs-bar__tab" [class.is-active]="active() === option">
+          <span class="fs-bar__icon">·</span>{{ option }}
+        </a>
+      }
+    </div>
+  `,
+})
+class InnerTargetHostComponent {
+  readonly options = ['Inicio', 'Movimientos'];
+  readonly active = signal('Inicio');
+}
+
+describe('SegmentedDirective con un objetivo dentro de la opción', () => {
+  it('mide lo que se le indica y no la opción entera', async () => {
+    await TestBed.configureTestingModule({
+      imports: [InnerTargetHostComponent],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(InnerTargetHostComponent);
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const track = host.querySelector<HTMLElement>('.fs-bar')!;
+
+    // La opción entera es alta —icono y rótulo— y el icono, solo un trozo de ella.
+    const tab = host.querySelector<HTMLElement>('.fs-bar__tab')!;
+    stubGeometry(tab, 120, 80);
+    Object.defineProperty(tab, 'offsetHeight', { value: 48, configurable: true });
+    Object.defineProperty(tab, 'offsetParent', { value: track, configurable: true });
+
+    const icon = host.querySelector<HTMLElement>('.fs-bar__icon')!;
+    stubGeometry(icon, 16, 44);
+    Object.defineProperty(icon, 'offsetHeight', { value: 28, configurable: true });
+    // La pestaña está posicionada para quedar por encima de la pastilla, así que es ella —y
+    // no el control— contra la que el navegador mide el icono.
+    Object.defineProperty(icon, 'offsetParent', { value: tab, configurable: true });
+
+    fixture.componentInstance.active.set('Movimientos');
+    fixture.detectChanges();
+    fixture.componentInstance.active.set('Inicio');
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(track.style.getPropertyValue('--fs-seg-w')).toBe('44px');
+    expect(track.style.getPropertyValue('--fs-seg-h')).toBe('28px');
+    // El camino entero: sin sumar el de la pestaña, la pastilla se quedaba clavada en la
+    // primera opción y a la altura equivocada.
+    expect(track.style.getPropertyValue('--fs-seg-x')).toBe('136px');
+    expect(track.style.getPropertyValue('--fs-seg-y')).toBe('8px');
+  });
+});
+
 describe('SegmentedDirective', () => {
   let fixture: ComponentFixture<HostComponent>;
 
@@ -81,8 +137,10 @@ describe('SegmentedDirective', () => {
     expect(track().style.getPropertyValue('--fs-seg-x')).toBe('4px');
   });
 
-  it('no calcula la vertical: la centra la hoja de estilos', () => {
-    expect(track().style.getPropertyValue('--fs-seg-y')).toBe('');
+  it('publica también la vertical, para quien no pueda centrar la pastilla desde el CSS', () => {
+    // La barra inferior del móvil la necesita: allí la pastilla rodea el icono y el rótulo
+    // queda fuera, así que no ocupa todo el alto del control.
+    expect(track().style.getPropertyValue('--fs-seg-y')).toBe('4px');
   });
 
   it('la mueve y la estira al cambiar de opción', async () => {

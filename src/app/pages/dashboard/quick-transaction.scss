@@ -1,7 +1,10 @@
 @use '../../../styles/tokens' as t;
 
+// En columna y creciendo con su tarjeta: en escritorio la tarjeta se estira para igualar a
+// la columna de al lado, y el formulario tiene que ocupar ese alto para poder repartirlo.
 .fs-quick {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 1rem;
 }
@@ -123,25 +126,59 @@
   color: var(--fs-income);
 }
 
-// Descripción y fecha, cuando se piden. En una columna mientras no quepan; en cuanto hay
-// sitio, la descripción se lleva la parte ancha, que es la que se escribe.
+// Detrás de «Más detalles» solo queda la fecha: la descripción es lo que se escribe casi
+// siempre y no tenía por qué costar un clic de más, así que sube al formulario con los
+// demás campos.
+//
+// Se abre creciendo de alto y no apareciendo de golpe. El truco es la fila de rejilla que va
+// de `0fr` a `1fr`: `height: auto` no se puede animar, y poner un alto fijo obligaría a
+// medirlo desde el código y a cambiarlo cada vez que cambie lo que hay dentro. Lo que
+// recorta mientras tanto es la envoltura interior, que es la que lleva el `overflow`.
 .fs-quick__extra {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
+  grid-template-rows: 1fr;
 }
 
-@media (min-width: t.$fs-bp-sm) {
-  .fs-quick__extra {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+.fs-quick__extra-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+// La animación cuelga del elemento al que Angular le pone la clase y es la más larga de las
+// que corren: `animate.enter` mira en el frame siguiente si ese elemento —no sus hijos—
+// tiene alguna animación viva, y si no la tiene se la quita.
+.fs-quick__extra.is-opening {
+  animation: fs-quick-open 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-quick__extra.is-closing {
+  animation: fs-quick-open 0.2s ease reverse both;
+}
+
+@keyframes fs-quick-open {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
   }
 }
 
+// El pie se va al fondo de la tarjeta en lugar de quedarse pegado al último campo.
+//
+// Las dos columnas de la pantalla nunca miden lo mismo —el reparto por tags es más alto que
+// el anillo, y basta cambiar de vista para que la diferencia aparezca—, así que a esta le
+// sobra papel por abajo tarde o temprano. Con los botones anclados al fondo, ese sobrante
+// queda entre el formulario y su pie y se lee como el aire de un diálogo; sueltos, quedaba
+// un rectángulo en blanco debajo de todo, que se lee como que algo falta.
+//
+// El margen automático no hace nada cuando no hay alto de sobra, así que en móvil, donde la
+// tarjeta mide lo que mide su contenido, el pie sigue justo detrás del último campo.
 .fs-quick__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
 }
 
 .fs-quick__more {

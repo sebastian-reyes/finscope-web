@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
+import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 
 /**
  * Marco común de los dos catálogos del usuario, categorías y tags.
@@ -15,10 +16,16 @@ import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
 @Component({
   selector: 'app-catalogues',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, CatalogueTabsComponent],
+  imports: [RouterOutlet, CatalogueTabsComponent, SlideOutletDirective],
   template: `
     <fs-catalogue-tabs />
-    <router-outlet />
+    <router-outlet [fsSlide]="destinations" />
   `,
 })
-export class CataloguesPage {}
+export class CataloguesPage {
+  /**
+   * El mismo orden que tienen las dos opciones en el conmutador, para que la pantalla entre
+   * por el lado hacia el que se deslizó la pastilla.
+   */
+  protected readonly destinations = ['/categories', '/tags'];
+}

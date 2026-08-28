@@ -16,8 +16,9 @@ import { AmountComponent } from '../../shared/ui/amount';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { QuickTransactionComponent } from './quick-transaction';
 import { RecentTransactionsComponent } from './recent-transactions';
-import { SpendingByCategoryChartComponent } from './spending-by-category-chart';
+import { SpendingBreakdown, SpendingChartComponent } from './spending-chart';
 import { TrendChartComponent } from './trend-chart';
+import { SegmentedDirective } from '../../shared/ui/segmented';
 
 /** Cuántos movimientos recientes se enseñan antes de mandar al historial completo. */
 const RECENT_SIZE = 6;
@@ -39,7 +40,8 @@ const HIGHLIGHT_MS = 1800;
     DateFieldComponent,
     QuickTransactionComponent,
     RecentTransactionsComponent,
-    SpendingByCategoryChartComponent,
+    SegmentedDirective,
+    SpendingChartComponent,
     TrendChartComponent,
   ],
   templateUrl: './dashboard.html',
@@ -67,6 +69,24 @@ export class DashboardPage {
   protected readonly period = signal(currentMonth());
 
   /**
+   * Por qué se reparte el gasto en la tarjeta del anillo.
+   *
+   * La categoría es el reparto de verdad y por eso abre; los tags contestan a la otra
+   * pregunta —en qué contexto se gastó— y no salen de la API en el mismo viaje, sino en el
+   * mismo resumen, así que cambiar de vista no pide nada al servidor.
+   */
+  protected readonly breakdown = signal<SpendingBreakdown>('category');
+
+  protected readonly breakdowns: ReadonlyArray<{
+    mode: SpendingBreakdown;
+    label: string;
+    icon: string;
+  }> = [
+    { mode: 'category', label: 'Categorías', icon: 'bi-grid-1x2' },
+    { mode: 'tag', label: 'Tags', icon: 'bi-tags' },
+  ];
+
+  /**
    * Tramos de la evolución. Dentro de un mes el día es lo que se entiende; el resto del
    * periodo es cosa del historial.
    */
@@ -85,6 +105,16 @@ export class DashboardPage {
   protected readonly title = computed(() => {
     const { month, year } = this.period();
     return monthLabel(month!, year!);
+  });
+
+  /**
+   * El mismo mes, para los enlaces que salen del reparto hacia el historial.
+   * Sin él, tocar «ocio» en el reparto de agosto abriría el ocio de todos los tiempos, que
+   * no es lo que se estaba preguntando.
+   */
+  protected readonly chartPeriod = computed(() => {
+    const { month, year } = this.period();
+    return { month: month!, year: year! };
   });
 
   /** Mes que se está mirando, en el formato que entiende el selector de mes. */

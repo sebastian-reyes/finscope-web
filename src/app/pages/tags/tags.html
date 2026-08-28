@@ -30,7 +30,7 @@
 
 @if (showCreate()) {
   <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
-    <form class="fs-create" (ngSubmit)="create()">
+    <form class="fs-create" [formGroup]="newForm" (ngSubmit)="create()">
       <div class="fs-create__field">
         <label class="fs-label" for="newTag">Nombre del tag</label>
         <input
@@ -39,7 +39,7 @@
           maxlength="70"
           autocomplete="off"
           placeholder="alimentación"
-          [formControl]="newName"
+          formControlName="name"
         />
       </div>
       <button class="fs-btn fs-btn--solid" type="submit" [disabled]="saving() || newName.invalid">
@@ -68,14 +68,14 @@
 
     <ul class="fs-rows">
       @for (tag of tags(); track tag.id) {
-        <li class="fs-row">
+        <li class="fs-row" [class.is-wide]="editingId() === tag.id || confirmingId() === tag.id">
           @if (editingId() === tag.id) {
-            <form class="fs-row__edit" (ngSubmit)="saveEdit(tag.id)">
+            <form class="fs-row__edit" [formGroup]="editForm" (ngSubmit)="saveEdit(tag.id)">
               <input
-                class="fs-field fs-field--sm"
+                class="fs-field fs-field--sm fs-row__field"
                 maxlength="70"
                 autocomplete="off"
-                [formControl]="editName"
+                formControlName="name"
                 (keyup.escape)="cancelEdit()"
               />
               <button
@@ -88,7 +88,7 @@
               <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
                 Cancelar
               </button>
-              <p class="fs-note w-100">
+              <p class="fs-note fs-row__note">
                 El nombre cambiará en {{ tag.transactionCount }}
                 {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
               </p>

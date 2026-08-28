@@ -23,40 +23,71 @@
   min-width: 0;
 }
 
+// El catálogo en baldosas y no en una lista de filas de ancho completo. Un tag es un nombre
+// corto y un contador: puesto en una fila que cruza la pantalla, deja casi todo el renglón
+// vacío, y con pocos tags la tarjeta entera se ve desierta. En rejilla, quepan tres o
+// treinta, el ancho se llena solo.
 .fs-rows {
   list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
   margin: 0;
   padding: 0;
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-rows {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  }
 }
 
 .fs-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--fs-line);
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius);
+  background-color: var(--fs-surface-sunken);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
-.fs-row:last-child {
-  border-bottom: none;
+.fs-row:hover {
+  border-color: var(--fs-line-strong);
+  background-color: var(--fs-hover);
 }
 
-// La fila entera lleva a los movimientos de ese tag, que es lo que se quiere hacer al
+// Renombrar o confirmar un borrado necesita más sitio del que da una baldosa: esa ocupa la
+// fila entera mientras dure, y vuelve a su hueco al terminar.
+.fs-row.is-wide {
+  grid-column: 1 / -1;
+}
+
+// La baldosa entera lleva a los movimientos de ese tag, que es lo que se quiere hacer al
 // mirarla; las acciones de mantenimiento quedan aparte, a la derecha.
+//
+// El nombre arriba y su cuenta debajo, en dos renglones. En uno solo, un tag de nombre largo
+// y un «12 movimientos» se disputan un ancho que en una baldosa no da para los dos, y el que
+// perdía era siempre el nombre.
 .fs-row__main {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
   flex: 1;
   min-width: 0;
-  padding: 0.25rem 0;
+  padding: 0.15rem 0;
   border-radius: t.$fs-radius-sm;
   text-decoration: none;
 }
 
 .fs-row__count {
-  font-size: 0.8125rem;
+  max-width: 100%;
+  font-size: var(--fs-text-xs);
   color: var(--fs-ink-muted);
 }
 
@@ -92,9 +123,15 @@
   justify-content: space-between;
 }
 
-.fs-row__edit .form-control {
+.fs-row__field {
   flex: 1;
   min-width: 8rem;
+  width: auto;
+}
+
+.fs-row__note {
+  width: 100%;
+  margin: 0;
 }
 
 // La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;

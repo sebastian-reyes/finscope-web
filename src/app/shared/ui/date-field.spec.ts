@@ -13,9 +13,22 @@ describe('DateFieldComponent', () => {
     return host().querySelector<HTMLInputElement>('.fs-date__input')!;
   }
 
-  /** El control de hora del navegador. */
-  function timeInput(): HTMLInputElement {
-    return host().querySelector<HTMLInputElement>('.fs-time__input')!;
+  /** La hora que enseña el botón que abre el panel. */
+  function timeValue(): string {
+    return host().querySelector('.fs-time__value')!.textContent!.trim();
+  }
+
+  /** Abre el panel de la hora y devuelve sus celdas, ya en el orden en que se dibujan. */
+  function openClock(): { hours: HTMLButtonElement[]; minutes: HTMLButtonElement[] } {
+    host().querySelector<HTMLButtonElement>('.fs-time__open')!.click();
+    fixture.detectChanges();
+    const [hourColumn, minuteColumn] = Array.from(
+      host().querySelectorAll<HTMLElement>('.fs-clock__scroll'),
+    );
+    return {
+      hours: Array.from(hourColumn.querySelectorAll<HTMLButtonElement>('.fs-clock__cell')),
+      minutes: Array.from(minuteColumn.querySelectorAll<HTMLButtonElement>('.fs-clock__cell')),
+    };
   }
 
   /** Los atajos de momento del día. */
@@ -54,25 +67,55 @@ describe('DateFieldComponent', () => {
     await mount('datetime', '2026-08-26T13:35');
 
     expect(field().value).toBe('26 Ago 2026');
-    expect(timeInput().type).toBe('time');
-    expect(timeInput().value).toBe('13:35');
+    expect(timeValue()).toBe('13:35');
   });
 
   it('deja la hora sin poner mientras no haya fecha, y se nota que es un hueco', async () => {
     await mount('datetime', '');
 
-    expect(timeInput().value).toBe('');
+    expect(timeValue()).toBe('--:--');
     expect(host().querySelector('.fs-time')!.classList.contains('is-empty')).toBe(true);
   });
 
-  it('cambia la hora sin tocar el día al escribirla', async () => {
+  it('elige la hora en el panel propio y no en el del navegador', async () => {
     await mount('datetime', '2026-08-26T13:35');
 
-    timeInput().value = '08:15';
-    timeInput().dispatchEvent(new Event('change'));
+    const { hours, minutes } = openClock();
+
+    // Veinticuatro horas y los minutos de cinco en cinco, más el 35 que ya traía puesto.
+    expect(hours).toHaveLength(24);
+    expect(minutes.map((cell) => cell.textContent!.trim())).toContain('35');
+    expect(hours[13].classList.contains('is-picked')).toBe(true);
+  });
+
+  it('cambia la hora sin tocar el día, y cierra al elegir el minuto', async () => {
+    await mount('datetime', '2026-08-26T13:35');
+
+    openClock().hours[8].click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.value()).toBe('2026-08-26T08:35');
+    // La hora sola no cierra: falta el minuto.
+    expect(host().querySelector('.fs-clock')).not.toBeNull();
+
+    const minuteColumn = host().querySelectorAll<HTMLElement>('.fs-clock__scroll')[1];
+    minuteColumn.querySelectorAll<HTMLButtonElement>('.fs-clock__cell')[3].click();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.value()).toBe('2026-08-26T08:15');
+    expect(host().querySelector('.fs-clock')).toBeNull();
+  });
+
+  it('mantiene el panel fuera de las cajas con scroll, anclado a la ventana', async () => {
+    await mount('datetime', '2026-08-26T13:35');
+
+    openClock();
+
+    // Fijo y no absoluto: el campo vive dentro de la hoja del editor, que recorta lo que se
+    // sale y tiene su propio desplazamiento.
+    const panel = host().querySelector('.fs-clock')!;
+    expect(getComputedStyle(panel).position).toBe('fixed');
+    expect(host().querySelector('.fs-clock__veil')).not.toBeNull();
   });
 
   it('pone el momento del día de un toque, conservando el día', async () => {
@@ -83,7 +126,7 @@ describe('DateFieldComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.value()).toBe('2026-08-26T13:00');
-    expect(timeInput().value).toBe('13:00');
+    expect(timeValue()).toBe('13:00');
   });
 
   it('marca el atajo que corresponde a la hora puesta', async () => {

@@ -55,6 +55,38 @@ describe('CategoriesPage', () => {
     http.verify();
   });
 
+  it('da de alta la categoría al enviar el formulario', () => {
+    // Abrir el alta desde el grupo de ingresos, que además preselecciona su ámbito.
+    groups()[1].querySelector<HTMLButtonElement>('.fs-group__add')!.click();
+    fixture.detectChanges();
+
+    const name = host().querySelector<HTMLInputElement>('#newCategory')!;
+    name.value = 'Alquiler';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    // El envío del formulario, no un clic directo al método: `ngSubmit` solo llega si la
+    // etiqueta lleva su `[formGroup]`, y sin él el navegador recargaba la página en vez de
+    // dar de alta nada.
+    host()
+      .querySelector<HTMLFormElement>('.fs-create')!
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const request = http.expectOne('/categories');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ name: 'Alquiler', appliesTo: 'INCOME' });
+    request.flush({
+      id: 9,
+      name: 'Alquiler',
+      appliesTo: 'INCOME',
+      isSystem: false,
+      transactionCount: 0,
+    });
+
+    // Tras el alta la pantalla se recarga para verla ya en su grupo.
+    http.expectOne('/categories').flush(CATALOGUE);
+  });
+
   it('separa el catálogo en egresos, ingresos y ambos, en ese orden', () => {
     const titles = groups().map(
       (group) => group.querySelector<HTMLElement>('.fs-group__title')!.textContent,

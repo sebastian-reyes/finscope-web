@@ -24,6 +24,19 @@
     }
   </div>
 
+  <div>
+    <label class="fs-label fs-quick__label" for="quickDescription">
+      Descripción <span class="fs-quick__optional">opcional</span>
+    </label>
+    <input
+      id="quickDescription"
+      type="text"
+      class="fs-field"
+      maxlength="255"
+      formControlName="description"
+    />
+  </div>
+
   <div class="fs-quick__kind" role="group" aria-label="Tipo de movimiento">
     <button
       type="button"
@@ -74,18 +87,10 @@
   </div>
 
   @if (showDetails()) {
-    <div class="fs-quick__extra" animate.enter="fs-anim-expand">
-      <div>
-        <label class="fs-label fs-quick__label" for="quickDescription">Descripción</label>
-        <input
-          id="quickDescription"
-          type="text"
-          class="fs-field"
-          maxlength="255"
-          formControlName="description"
-        />
-      </div>
-      <div>
+    <div class="fs-quick__extra" animate.enter="is-opening" animate.leave="is-closing">
+      <!-- La envoltura interior es lo que la animación de alto recorta mientras se abre; sin
+           ella, el contenido se comprimiría en lugar de asomar. -->
+      <div class="fs-quick__extra-inner">
         <label class="fs-label fs-quick__label" for="quickDate">Fecha</label>
         <fs-date-field
           inputId="quickDate"

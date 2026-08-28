@@ -62,8 +62,20 @@
   --fs-radius-control: 0.625rem;
   --fs-shadow: #{t.$fs-shadow};
   --fs-shadow-raised: #{t.$fs-shadow-raised};
+  // El papel de una tarjeta no es plano: recibe algo más de luz por arriba que por abajo.
+  // Es un solo escalón, casi invisible de cerca, pero es lo que separa una superficie de un
+  // rectángulo pintado.
+  --fs-surface-lift: #ffffff;
+  --fs-edge: #{rgba(#fff, 0.7)};
 
   --fs-tabbar-height: #{t.$fs-tabbar-height};
+  // Alto exacto de la barra superior. Es un valor y no lo que midan sus contenidos porque el
+  // lienzo tiene que pintar esa misma franja detrás de ella, y los dos números no se pueden
+  // separar sin que se note.
+  --fs-topbar-height: 3.75rem;
+  // Cuánto asoma el botón de registrar por encima de la barra inferior. Lo usan el propio
+  // botón y el hueco que el contenido le deja debajo, así que vive en un solo sitio.
+  --fs-fab-rise: 1.5rem;
 }
 
 [data-theme='dark'] {
@@ -100,11 +112,41 @@
 
   --fs-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
   --fs-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
+  // En oscuro la luz no se añade con blanco encima, que ensucia: la superficie sube un paso.
+  --fs-surface-lift: #1c232d;
+  --fs-edge: #{rgba(#fff, 0.05)};
 }
 
 body {
   // El teclado de un móvil no debe poder tapar el contenido al que se está escribiendo.
   overscroll-behavior-y: none;
+}
+
+// La franja de la barra de desplazamiento, pintada a la altura de la barra superior.
+//
+// Esa franja está reservada siempre para que la ventana no cambie de ancho al pasar de una
+// pantalla con desplazamiento a otra sin él, pero queda fuera de la caja del contenido: la
+// barra superior no puede llegar hasta ahí por mucho que se estire, y se veía cortada con un
+// trozo de papel a su derecha.
+//
+// Lo que sí llega es el fondo de `body`, que el navegador propaga al lienzo entero —franja
+// incluida—. Así que el lienzo lleva un degradado fijo a la ventana que es del color de la
+// superficie los primeros centímetros, con su línea inferior, y del color del papel a partir
+// de ahí. Debajo de la barra no se ve —la tapa ella—, y en la franja continúa la barra.
+//
+// El degradado solo existe cuando existe la barra: sin sesión no hay ninguna, y una franja
+// pintada arriba sin nada al lado se vería peor que el hueco.
+body:has(.fs-topbar) {
+  background-image: linear-gradient(
+    to bottom,
+    var(--fs-surface) 0,
+    var(--fs-surface) calc(var(--fs-topbar-height) - 1px),
+    var(--fs-line) calc(var(--fs-topbar-height) - 1px),
+    var(--fs-line) var(--fs-topbar-height),
+    transparent var(--fs-topbar-height)
+  );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 // Los importes se leen en columna y comparándolos entre sí: sin cifras de ancho fijo, el
@@ -124,24 +166,69 @@ body {
 }
 
 // --- Superficies -------------------------------------------------------------------------
-// La superficie estándar de la aplicación. Sin sombra: el relieve lo da el escalón entre el
-// papel del fondo y el de la tarjeta, y una sombra encima de eso solo añade suciedad. Lo que
-// flota de verdad —una hoja, un desplegable— sí la lleva, y así se distingue de un panel.
+// La superficie estándar de la aplicación. El relieve sale de tres cosas a la vez y ninguna
+// se nota por separado: el escalón de color contra el papel del fondo, un degradado mínimo
+// que da la luz por arriba y una sombra de contacto. Lo que flota de verdad —una hoja, un
+// desplegable— lleva la sombra elevada, y así se sigue distinguiendo de un panel.
 .fs-panel {
   background-color: var(--fs-surface);
+  background-image: linear-gradient(180deg, var(--fs-surface-lift), var(--fs-surface));
   border: 1px solid var(--fs-line);
   border-radius: var(--fs-radius-lg);
+  box-shadow:
+    var(--fs-shadow),
+    inset 0 1px 0 var(--fs-edge);
 }
 
-// Deja sitio a la barra inferior en móvil, incluida la zona segura de los iPhone.
-.fs-safe-bottom {
-  padding-bottom: calc(var(--fs-tabbar-height) + env(safe-area-inset-bottom, 0px) + 1rem);
+// Para las tarjetas en las que se entra: se levantan al pasar por encima, que es lo que
+// cuenta que lo son. Las que solo informan no se mueven, para que el gesto siga significando
+// algo.
+.fs-panel--lift {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
-@media (min-width: t.$fs-bp-lg) {
-  .fs-safe-bottom {
-    padding-bottom: 2rem;
-  }
+.fs-panel--lift:hover {
+  transform: translateY(-2px);
+  border-color: var(--fs-line-strong);
+  box-shadow:
+    var(--fs-shadow-raised),
+    inset 0 1px 0 var(--fs-edge);
+}
+
+// --- Distintivo de icono -----------------------------------------------------------------
+// El icono de un rótulo no va suelto sobre el papel: va en una pastilla teñida que le da
+// tamaño y lo ancla. Es la misma pieza en la cabecera de un grupo, en el título de una
+// tarjeta y en un estado vacío, así que el idioma se repite sin copiarse.
+.fs-ico {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.fs-ico--brand {
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+}
+
+.fs-ico--income {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income);
+}
+
+.fs-ico--expense {
+  background-color: var(--fs-expense-tint);
+  color: var(--fs-expense);
 }
 
 // --- Piezas repetidas de pantalla --------------------------------------------------------
@@ -159,10 +246,11 @@ body {
 }
 
 .fs-head__title {
-  margin: 0 0 0.25rem;
-  font-size: var(--fs-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.3rem;
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.75rem);
+  font-weight: 680;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 
 .fs-head__hint {
@@ -219,15 +307,21 @@ body {
 // Una lista vacía suele ser un estado normal y no un error: se explica qué falta y se ofrece
 // el camino para salir de ahí.
 .fs-blank {
-  padding: 3rem 1.5rem;
+  padding: 3.25rem 1.5rem;
   text-align: center;
 }
 
 .fs-blank i {
-  display: block;
-  margin-bottom: 0.75rem;
-  font-size: 2rem;
-  color: var(--fs-ink-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+  font-size: 1.5rem;
 }
 
 .fs-blank__title {
@@ -263,6 +357,16 @@ body {
 // La paleta vive aquí, y no dentro de un componente, porque la comparten el chip de tag y el
 // de categoría: el color se deduce del nombre y tiene que salir igual lo pinte quien lo
 // pinte.
+// La etiqueta del componente es el elemento que ve la caja de al lado, y por omisión es de
+// línea: sin esto, el corte con puntos suspensivos que lleva dentro nunca llega a ocurrir y
+// un nombre largo empuja la fila entera fuera de su tarjeta.
+fs-tag-chip,
+fs-category-chip {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .fs-chip {
   display: inline-flex;
   align-items: center;
@@ -425,6 +529,48 @@ body {
 
 .fs-anim-expand {
   animation: fs-anim-expand 0.22s ease both;
+}
+
+// --- Entrada de una pantalla -------------------------------------------------------------
+// Lo que se abre al cambiar de sección entra desplazándose desde el lado del que viene, en
+// lugar de aparecer ya puesto. El recorrido es corto a propósito: lo que se quiere contar es
+// la dirección del salto, no hacer esperar a nadie. La pone `SlideOutletDirective` sobre el
+// elemento del componente recién activado.
+.fs-view-in {
+  animation: fs-view-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-view-in--back {
+  animation: fs-view-in-back 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fs-view-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.25rem);
+  }
+}
+
+@keyframes fs-view-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-1.25rem);
+  }
+}
+
+// Quien ha pedido menos movimiento recibe el cambio sin desplazamiento. No se quita del todo:
+// un desvanecido corto sigue diciendo que la pantalla ha cambiado, y eso es información.
+@media (prefers-reduced-motion: reduce) {
+  .fs-view-in,
+  .fs-view-in--back {
+    animation: fs-view-fade 0.16s ease both;
+  }
+}
+
+@keyframes fs-view-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 @keyframes fs-anim-pop {
