@@ -8,6 +8,7 @@ import {
   UpdateUserRequest,
   UserResponse,
 } from './models';
+import { environment } from '../../environments/environment';
 
 const ACCESS_TOKEN_KEY = 'finscope.accessToken';
 const REFRESH_TOKEN_KEY = 'finscope.refreshToken';
@@ -21,6 +22,9 @@ const USER_KEY = 'finscope.user';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+
+  /** Origen de la API, vacío en desarrollo. Ver `src/environments`. */
+  private readonly api = environment.apiUrl;
 
   private readonly accessTokenSignal = signal<string | null>(
     localStorage.getItem(ACCESS_TOKEN_KEY),
@@ -43,20 +47,20 @@ export class AuthService {
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('/auth/register', request)
+      .post<AuthResponse>(`${this.api}/auth/register`, request)
       .pipe(tap((auth) => this.storeSession(auth)));
   }
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('/auth/login', request)
+      .post<AuthResponse>(`${this.api}/auth/login`, request)
       .pipe(tap((auth) => this.storeSession(auth)));
   }
 
   /** Consume el token de refresco actual y guarda el par nuevo que devuelve la API. */
   refresh(): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('/auth/refresh', { refreshToken: this.refreshToken })
+      .post<AuthResponse>(`${this.api}/auth/refresh`, { refreshToken: this.refreshToken })
       .pipe(tap((auth) => this.storeSession(auth)));
   }
 
@@ -83,7 +87,7 @@ export class AuthService {
   }
 
   me(): Observable<UserResponse> {
-    return this.http.get<UserResponse>('/auth/me');
+    return this.http.get<UserResponse>(`${this.api}/auth/me`);
   }
 
   /**
@@ -96,7 +100,7 @@ export class AuthService {
    */
   updateProfile(request: UpdateUserRequest): Observable<UserResponse> {
     return this.http
-      .patch<UserResponse>('/auth/me', request)
+      .patch<UserResponse>(`${this.api}/auth/me`, request)
       .pipe(tap((user) => this.storeUser(user)));
   }
 
@@ -113,7 +117,7 @@ export class AuthService {
         finish();
         return;
       }
-      this.http.post<void>('/auth/logout', { refreshToken }).subscribe({
+      this.http.post<void>(`${this.api}/auth/logout`, { refreshToken }).subscribe({
         next: finish,
         error: finish,
       });

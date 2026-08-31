@@ -18,15 +18,23 @@ import {
   TransactionTypeResponse,
   UpdateTransactionRequest,
 } from './models';
+import { environment } from '../../environments/environment';
 
 /**
  * Acceso a los recursos de negocio de la API.
- * Todo va contra rutas relativas: el proxy del servidor de desarrollo las reenvía al
- * backend, de modo que no hace falta configurar CORS ni una URL base por entorno.
+ *
+ * Las rutas de cada endpoint son las mismas de siempre; lo único que cambia por entorno es
+ * el origen que llevan delante. En desarrollo `apiUrl` va vacío, así que quedan relativas y
+ * el proxy del servidor de desarrollo las reenvía al backend sin CORS de por medio; en
+ * producción es la URL del servicio desplegado, porque el estático y la API ya no comparten
+ * dominio.
  */
 @Injectable({ providedIn: 'root' })
 export class FinscopeService {
   private readonly http = inject(HttpClient);
+
+  /** Origen de la API, vacío en desarrollo. Ver `src/environments`. */
+  private readonly api = environment.apiUrl;
 
   // Categorías: clasificación principal, una sola por transacción
 
@@ -35,11 +43,11 @@ export class FinscopeService {
    * Es lo que alimenta el selector del formulario y el gráfico de reparto del gasto.
    */
   listCategories(): Observable<CategoryResponse[]> {
-    return this.http.get<CategoryResponse[]>('/categories');
+    return this.http.get<CategoryResponse[]>(`${this.api}/categories`);
   }
 
   createCategory(name: string, appliesTo: CategoryScope): Observable<CategoryResponse> {
-    return this.http.post<CategoryResponse>('/categories', {
+    return this.http.post<CategoryResponse>(`${this.api}/categories`, {
       name,
       appliesTo,
     } satisfies SaveCategoryRequest);
@@ -47,7 +55,7 @@ export class FinscopeService {
 
   /** El cambio alcanza a todas las transacciones que clasifica, porque la categoría es una. */
   updateCategory(id: number, name: string, appliesTo: CategoryScope): Observable<CategoryResponse> {
-    return this.http.patch<CategoryResponse>(`/categories/${id}`, {
+    return this.http.patch<CategoryResponse>(`${this.api}/categories/${id}`, {
       name,
       appliesTo,
     } satisfies SaveCategoryRequest);
@@ -59,7 +67,7 @@ export class FinscopeService {
    * antes de borrarla.
    */
   deleteCategory(id: number): Observable<void> {
-    return this.http.delete<void>(`/categories/${id}`);
+    return this.http.delete<void>(`${this.api}/categories/${id}`);
   }
 
   // Tags: catálogo del usuario, compartido entre sus transacciones
@@ -69,28 +77,30 @@ export class FinscopeService {
    * Incluye los que no usa ninguna transacción: siguen ocupando su nombre.
    */
   listTags(): Observable<TagResponse[]> {
-    return this.http.get<TagResponse[]>('/tags');
+    return this.http.get<TagResponse[]>(`${this.api}/tags`);
   }
 
   /** Alta explícita, para preparar el catálogo sin registrar una transacción. */
   createTag(name: string): Observable<TagResponse> {
-    return this.http.post<TagResponse>('/tags', { name } satisfies SaveTagRequest);
+    return this.http.post<TagResponse>(`${this.api}/tags`, { name } satisfies SaveTagRequest);
   }
 
   /** Renombra el tag en todas las transacciones que lo llevan, porque el tag es uno solo. */
   renameTag(id: number, name: string): Observable<TagResponse> {
-    return this.http.patch<TagResponse>(`/tags/${id}`, { name } satisfies SaveTagRequest);
+    return this.http.patch<TagResponse>(`${this.api}/tags/${id}`, {
+      name,
+    } satisfies SaveTagRequest);
   }
 
   /** Lo retira de todas sus transacciones, que por lo demás quedan intactas. */
   deleteTag(id: number): Observable<void> {
-    return this.http.delete<void>(`/tags/${id}`);
+    return this.http.delete<void>(`${this.api}/tags/${id}`);
   }
 
   // Tipos de transacción (catálogo global, solo lectura)
 
   listTransactionTypes(): Observable<TransactionTypeResponse[]> {
-    return this.http.get<TransactionTypeResponse[]>('/transaction-types');
+    return this.http.get<TransactionTypeResponse[]>(`${this.api}/transaction-types`);
   }
 
   // Transacciones
@@ -100,29 +110,29 @@ export class FinscopeService {
       .set('page', query.page)
       .set('size', query.size)
       .set('sort', query.sort);
-    return this.http.get<TransactionPageResponse>('/transactions', { params });
+    return this.http.get<TransactionPageResponse>(`${this.api}/transactions`, { params });
   }
 
   createTransaction(request: CreateTransactionRequest): Observable<TransactionResponse> {
-    return this.http.post<TransactionResponse>('/transactions', request);
+    return this.http.post<TransactionResponse>(`${this.api}/transactions`, request);
   }
 
   updateTransaction(
     id: number,
     request: UpdateTransactionRequest,
   ): Observable<TransactionResponse> {
-    return this.http.patch<TransactionResponse>(`/transactions/${id}`, request);
+    return this.http.patch<TransactionResponse>(`${this.api}/transactions/${id}`, request);
   }
 
   deleteTransaction(id: number): Observable<void> {
-    return this.http.delete<void>(`/transactions/${id}`);
+    return this.http.delete<void>(`${this.api}/transactions/${id}`);
   }
 
   // Agregados
 
   /** Totales del periodo y desglose por tag, con los mismos filtros que el listado. */
   getSummary(filters: TransactionFilters): Observable<TransactionSummaryResponse> {
-    return this.http.get<TransactionSummaryResponse>('/transactions/summary', {
+    return this.http.get<TransactionSummaryResponse>(`${this.api}/transactions/summary`, {
       params: filterParams(filters),
     });
   }
@@ -132,7 +142,7 @@ export class FinscopeService {
     filters: TransactionFilters,
     granularity: SummaryGranularity,
   ): Observable<SummarySeriesResponse> {
-    return this.http.get<SummarySeriesResponse>('/transactions/summary/series', {
+    return this.http.get<SummarySeriesResponse>(`${this.api}/transactions/summary/series`, {
       params: filterParams(filters).set('granularity', granularity),
     });
   }

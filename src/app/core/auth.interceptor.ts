@@ -3,9 +3,18 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 /** Rutas de la API que no llevan token porque sirven justamente para obtenerlo. */
 const PUBLIC_PATHS = ['/auth/register', '/auth/login', '/auth/refresh', '/auth/logout'];
+
+/**
+ * Las mismas rutas tal y como salen de los servicios, con el origen de la API delante.
+ * En desarrollo ese origen va vacío y quedan igual que arriba; en producción son absolutas,
+ * y sin este prefijo la comparación fallaría: el acceso viajaría firmado y un 401 de
+ * credenciales incorrectas se tomaría por una sesión caducada.
+ */
+const PUBLIC_URLS = PUBLIC_PATHS.map((path) => `${environment.apiUrl}${path}`);
 
 /**
  * Añade el token de acceso a cada petición y renueva la sesión cuando caduca.
@@ -23,7 +32,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  const isPublic = PUBLIC_PATHS.some((path) => request.url.startsWith(path));
+  const isPublic = PUBLIC_URLS.some((url) => request.url.startsWith(url));
 
   // Cerrar la sesión es idempotente a propósito: varias peticiones caducadas a la vez no
   // deben encadenar varias navegaciones al acceso.

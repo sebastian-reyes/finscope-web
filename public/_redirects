@@ -1,0 +1,9 @@
+# Reserva de la SPA para el estático de Render.
+#
+# Las direcciones de la aplicación (/login, /dashboard, /transactions, /categories, /tags,
+# /account) no son ficheros: solo existen dentro del router. Al recargar con F5 o abrir un
+# enlace directo, el servidor busca ese documento y no lo encuentra. Esta regla le hace
+# devolver index.html con un 200 —una reescritura, no un redirect: la dirección se conserva
+# y el router la resuelve—, y solo después de haber agotado los ficheros reales, de modo que
+# los assets con hash siguen sirviéndose tal cual.
+/*  /index.html  200
