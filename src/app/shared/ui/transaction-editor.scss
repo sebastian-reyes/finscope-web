@@ -41,7 +41,10 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: 92vh;
+  // El tope descuenta la zona segura de arriba: instalada, la página llega por debajo de la
+  // isla dinámica, y una hoja alta se comía ahí su propia cabecera. Fuera de iOS el
+  // descuento es cero.
+  max-height: calc(92vh - var(--fs-safe-top));
   // Nada asoma por debajo del tope ni por fuera de las esquinas redondeadas.
   overflow: hidden;
   background-color: var(--fs-surface);

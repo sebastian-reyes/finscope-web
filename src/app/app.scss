@@ -8,7 +8,13 @@
   // Alto fijo, y no el que resulte de su contenido: el lienzo pinta esa misma franja detrás
   // para que la barra no se corte donde empieza la barra de desplazamiento, y si los dos
   // números no coinciden se ve el escalón.
-  height: var(--fs-topbar-height);
+  //
+  // Instalada en un iPhone, la barra de estado se pinta encima de la página: el relleno
+  // baja la fila bajo la isla dinámica y el alto crece lo mismo, de modo que el fondo
+  // translúcido llega hasta arriba en vez de dejar una banda de papel sobre la barra.
+  // En el navegador la zona segura vale cero y esto queda exactamente como estaba.
+  height: var(--fs-topbar-total);
+  padding-top: var(--fs-safe-top);
   // Translúcida y con desenfoque: el contenido se ve pasar por debajo en lugar de morir
   // contra una franja opaca, que es lo que hace que la barra se lea como una capa y no como
   // el borde superior de la página.

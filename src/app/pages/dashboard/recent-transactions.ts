@@ -132,18 +132,17 @@ interface DayGroup {
       color: var(--fs-ink-muted);
     }
 
+    /* Aquí solo se ajusta la caja: dentro del panel, el estado vacío va más apretado y con
+       menos cuerpo que uno a pantalla completa.
+       El icono se deja como lo deja la hoja base a propósito. Es un disco de medidas fijas,
+       centrado por ser de línea, y sobrescribirlo a medias —cambiar el display sin deshacer
+       el ancho y el alto— lo convierte en un bloque de 3,5 rem pegado al margen izquierdo
+       mientras el texto sigue centrado debajo. Que es justo lo que pasaba. */
     .fs-blank {
       padding: 2rem 1rem;
       text-align: center;
       color: var(--fs-ink-muted);
       font-size: 0.9375rem;
-    }
-
-    .fs-blank i {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 1.75rem;
-      color: var(--fs-ink-faint);
     }
 
     .fs-blank__hint {

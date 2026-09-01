@@ -1,13 +1,43 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <title>FinScope</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      `viewport-fit=cover` no es decorativo: sin él, `env(safe-area-inset-*)` vale cero en
+      iOS y las reservas de zona segura que ya hacen la barra inferior y los avisos no se
+      aplican nunca. Instalada en la pantalla de inicio, la aplicación ocupa la pantalla
+      entera, así que sin esto el botón de registrar acabaría bajo la barra de gestos.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Control de gastos e ingresos personales." />
+    <!--
+      El color de la interfaz del navegador. Va por duplicado y no como valor único porque
+      la aplicación tiene tema claro y oscuro, y el manifiesto solo admite uno: estos dos
+      sí siguen al sistema, y son los que mandan mientras la aplicación está abierta.
+      Coinciden con `--fs-surface` de cada tema, que es el color de la barra superior.
+    -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171d25" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!--
+      iOS toma de aquí el icono de la pantalla de inicio. Desde iOS 16.4 también sabe leer
+      los del manifiesto, pero esta sigue siendo la vía fiable, y es la única en versiones
+      anteriores. Sin transparencia y sin esquinas redondeadas: el sistema pone las suyas.
+    -->
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <!--
+      Seguro para iOS antiguos: desde 16.4 basta con `display: standalone` del manifiesto
+      para que se abra sin barra de direcciones, pero en versiones previas esta era la
+      única forma de pedirlo.
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="FinScope" />
+    <link rel="manifest" href="manifest.webmanifest" />
   </head>
   <body>
     <app-root></app-root>
+    <noscript>FinScope necesita JavaScript para funcionar.</noscript>
   </body>
 </html>

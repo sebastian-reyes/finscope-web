@@ -13,7 +13,7 @@ npm install
 npm start          # http://localhost:4200
 ```
 
-`proxy.conf.json` reenvía `/auth`, `/categories`, `/tags`, `/shops`, `/transactions` y
+`proxy.conf.mjs` reenvía `/auth`, `/categories`, `/tags`, `/shops`, `/transactions` y
 `/transaction-types` al backend, de modo que no hace falta configurar CORS.
 
 ## Qué cubre cada pantalla
@@ -42,3 +42,31 @@ src/app/
   refresco es de un solo uso, y varias peticiones renovando a la vez invalidarían el par bueno.
   La renovación es manual desde *Mi cuenta*.
 - Los mensajes de error salen del cuerpo `ErrorResponse` de la API, con su código de negocio.
+
+## Instalable en el móvil
+
+Es una PWA: se instala desde el navegador, sin pasar por ninguna tienda. En el iPhone,
+*Compartir → Añadir a pantalla de inicio*; en Android, Chrome lo propone solo.
+
+Son dos piezas. `public/manifest.webmanifest` declara el nombre, los iconos y que se abra
+sin barra de direcciones. El trabajador de servicio, configurado en `ngsw-config.json`,
+cachea el armazón —index, estilos y todos los bundles—, de modo que la aplicación abre al
+instante y sin conexión. Lo que no se cachea son las respuestas de la API: sin red se ve la
+interfaz con sus avisos de error, y no un saldo de ayer haciéndose pasar por el de hoy.
+
+Tres cosas que no son evidentes:
+
+- **El trabajador de servicio solo existe en compilaciones de producción**
+  (`enabled: !isDevMode()`). Para probarlo hay que compilar y servir el `dist`; con
+  `ng serve` no se registra, y es a propósito: una caché que devuelve los bundles de antes
+  mientras recompilas es la peor forma posible de perder una tarde.
+- **`viewport-fit=cover` en `index.html` sostiene todas las zonas seguras.** Sin él,
+  `env(safe-area-inset-*)` vale cero en iOS y la barra inferior acaba bajo la barra de
+  gestos. No se toca.
+- **Tras desplegar, quien ya la tenga abierta sigue viendo la versión anterior.** El
+  trabajador sirve lo cacheado y descarga la nueva por detrás; entra al reabrir la
+  aplicación. No es un fallo del despliegue.
+
+Los iconos se generan con `tools/make-icons.py` a partir de los colores de marca. Los PNG
+están versionados, así que el script solo hace falta si la marca cambia o aparece un tamaño
+nuevo.

@@ -73,6 +73,15 @@
   // lienzo tiene que pintar esa misma franja detrás de ella, y los dos números no se pueden
   // separar sin que se note.
   --fs-topbar-height: 3.75rem;
+  // Lo que el sistema se reserva arriba: la barra de estado y la isla dinámica de un iPhone
+  // cuando la aplicación corre instalada, a pantalla completa. En el navegador vale cero y
+  // no cambia nada. Depende de `viewport-fit=cover` en el index: sin eso siempre es cero,
+  // que es justo el error que deja el título debajo de la hora.
+  --fs-safe-top: env(safe-area-inset-top, 0px);
+  // Alto que la barra superior ocupa de verdad, zona segura incluida. Existe por lo mismo
+  // que `--fs-topbar-height`: el lienzo pinta esa franja detrás, y si los dos números se
+  // separan se ve el escalón.
+  --fs-topbar-total: calc(var(--fs-safe-top) + var(--fs-topbar-height));
   // Cuánto asoma el botón de registrar por encima de la barra inferior. Lo usan el propio
   // botón y el hueco que el contenido le deja debajo, así que vive en un solo sitio.
   --fs-fab-rise: 1.5rem;
@@ -140,10 +149,10 @@ body:has(.fs-topbar) {
   background-image: linear-gradient(
     to bottom,
     var(--fs-surface) 0,
-    var(--fs-surface) calc(var(--fs-topbar-height) - 1px),
-    var(--fs-line) calc(var(--fs-topbar-height) - 1px),
-    var(--fs-line) var(--fs-topbar-height),
-    transparent var(--fs-topbar-height)
+    var(--fs-surface) calc(var(--fs-topbar-total) - 1px),
+    var(--fs-line) calc(var(--fs-topbar-total) - 1px),
+    var(--fs-line) var(--fs-topbar-total),
+    transparent var(--fs-topbar-total)
   );
   background-attachment: fixed;
   background-repeat: no-repeat;
