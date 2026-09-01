@@ -17,6 +17,7 @@
     "@angular/forms": "^22.1.0",
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
+    "@angular/service-worker": "^22.1.0",
     "air-datepicker": "^3.6.0",
     "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
