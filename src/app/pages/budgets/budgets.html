@@ -1,0 +1,234 @@
+<header class="fs-period">
+  <button class="fs-period__step" type="button" (click)="shiftMonth(-1)" aria-label="Mes anterior">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+  </button>
+  <h1 class="fs-period__title">
+    <span class="visually-hidden">Presupuestos de {{ title() }}</span>
+    <fs-date-field
+      variant="plain"
+      ariaLabel="Mes que se está presupuestando"
+      mode="month"
+      [value]="monthValue()"
+      (valueChange)="setMonthValue($event)"
+    />
+  </h1>
+  <button class="fs-period__step" type="button" (click)="shiftMonth(1)" aria-label="Mes siguiente">
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </button>
+</header>
+
+<div class="fs-head">
+  <div>
+    <h2 class="fs-head__title">Presupuestos</h2>
+    <p class="fs-head__hint">
+      Cuánto piensas gastar en cada categoría este mes, al lado de lo que ya se ha ido. Es lo único
+      de la aplicación que mira hacia delante: el resto cuenta lo que ya pasó.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button
+      class="fs-btn fs-btn--outline"
+      type="button"
+      (click)="copyPrevious()"
+      [disabled]="copying() || loading()"
+      [attr.aria-label]="'Copiar los presupuestos de ' + previousLabel()"
+    >
+      <i class="bi bi-arrow-down-up" aria-hidden="true"></i>
+      Copiar {{ previousLabel().toLowerCase() }}
+    </button>
+    <button
+      class="fs-btn fs-btn--solid"
+      type="button"
+      (click)="toggleCreate()"
+      [disabled]="!available().length && !showCreate()"
+    >
+      <i class="bi" [class.bi-plus-lg]="!showCreate()" [class.bi-x-lg]="showCreate()"></i>
+      {{ showCreate() ? 'Cerrar' : 'Presupuestar' }}
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudieron cargar tus presupuestos</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (showCreate()) {
+  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
+    <form class="fs-new" [formGroup]="newForm" (ngSubmit)="create()">
+      <div class="fs-new__field">
+        <span class="fs-label" id="newBudgetCategory">Categoría</span>
+        <fs-select-field
+          inputId="newBudgetCategoryField"
+          ariaLabel="Categoría a presupuestar"
+          [options]="categoryOptions()"
+          [value]="newCategoryId()"
+          (valueChange)="newCategoryId.set($event)"
+        />
+      </div>
+
+      <div class="fs-new__field">
+        <label class="fs-label" for="newBudgetAmount">Presupuesto del mes</label>
+        <input
+          id="newBudgetAmount"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          placeholder="400.00"
+          formControlName="amount"
+        />
+      </div>
+
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        [disabled]="saving() || newForm.invalid || !newCategoryId()"
+      >
+        Fijar
+      </button>
+    </form>
+    <p class="fs-note">
+      Solo se ofrecen las categorías que admiten egresos y que todavía no tienen presupuesto este
+      mes. El avance se mide contra lo gastado, así que una categoría de solo ingresos no tendría
+      nada contra lo que compararse.
+    </p>
+  </section>
+}
+
+@if (loading()) {
+  <section class="fs-panel fs-block">
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+  </section>
+} @else if (budgets().length) {
+  <section class="fs-panel fs-block fs-total" aria-labelledby="totalTitle">
+    <p class="fs-section" id="totalTitle">
+      <i class="bi bi-clipboard-check" aria-hidden="true"></i>El mes entero
+    </p>
+    <p class="fs-total__figure">
+      <span class="fs-num fs-total__spent">{{ money(totals().spent) }}</span>
+      <span class="fs-total__of">de {{ money(totals().amount) }} presupuestados</span>
+    </p>
+    <p class="fs-total__reading" [class.is-over]="totals().remaining < 0">
+      @if (totals().remaining < 0) {
+        Llevas {{ money(-totals().remaining) }} por encima del plan del mes.
+      } @else {
+        Te quedan {{ money(totals().remaining) }} del plan del mes.
+      }
+      @if (overspent().length) {
+        <span class="fs-total__over">
+          {{ overspent().length }}
+          {{ overspent().length === 1 ? 'categoría se pasó' : 'categorías se pasaron' }}
+          de su límite.
+        </span>
+      }
+    </p>
+  </section>
+
+  <ul class="fs-buds">
+    @for (budget of budgets(); track budget.id) {
+      <li class="fs-panel fs-block fs-buds__item">
+        @if (editingId() === budget.id) {
+          <form class="fs-edit" [formGroup]="editForm" (ngSubmit)="saveEdit(budget)">
+            <label class="fs-label" [attr.for]="'amount' + budget.id">
+              Presupuesto de {{ budget.category }}
+            </label>
+            <div class="fs-edit__row">
+              <input
+                [id]="'amount' + budget.id"
+                class="fs-field fs-num"
+                type="number"
+                inputmode="decimal"
+                min="0.01"
+                step="0.01"
+                formControlName="amount"
+                (keyup.escape)="cancelEdit()"
+              />
+              <button
+                class="fs-btn fs-btn--sm fs-btn--solid"
+                type="submit"
+                [disabled]="saving() || editForm.invalid"
+              >
+                Guardar
+              </button>
+              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
+                Cancelar
+              </button>
+            </div>
+            <p class="fs-note">
+              Llevas {{ money(budget.spent) }} gastados en esta categoría. Bajar el presupuesto por
+              debajo de esa cifra no borra nada: solo hace que la barra se lea como pasada.
+            </p>
+          </form>
+        } @else if (confirmingId() === budget.id) {
+          <div class="fs-buds__confirm" animate.enter="fs-anim-expand">
+            <span>
+              ¿Quitar el presupuesto de <strong>{{ budget.category }}</strong
+              >? Sus movimientos no se tocan: la categoría solo deja de tener un límite este mes.
+            </span>
+            <span class="text-nowrap">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--danger"
+                type="button"
+                [disabled]="saving()"
+                (click)="remove(budget)"
+              >
+                Sí, quitar
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="cancelRemove()"
+              >
+                Cancelar
+              </button>
+            </span>
+          </div>
+        } @else {
+          <fs-budget-bar [budget]="budget" />
+          <span class="fs-buds__actions">
+            <button
+              class="fs-btn fs-btn--sm fs-btn--ghost"
+              type="button"
+              (click)="startEdit(budget)"
+              [attr.aria-label]="'Cambiar el presupuesto de ' + budget.category"
+            >
+              <i class="bi bi-pencil" aria-hidden="true"></i>
+            </button>
+            <button
+              class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+              type="button"
+              (click)="askRemove(budget)"
+              [attr.aria-label]="'Quitar el presupuesto de ' + budget.category"
+            >
+              <i class="bi bi-trash" aria-hidden="true"></i>
+            </button>
+          </span>
+        }
+      </li>
+    }
+  </ul>
+
+  <p class="fs-note fs-foot">
+    Lo gastado son los egresos de cada categoría dentro del mes, la misma cifra que reparte el
+    gráfico de inicio. Las categorías sin presupuesto no salen aquí: no tener límite no es lo mismo
+    que tenerlo en cero.
+  </p>
+} @else {
+  <section class="fs-panel fs-block fs-blank">
+    <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+    <p class="fs-blank__title">{{ title() }} no tiene presupuesto todavía</p>
+    <p class="fs-blank__hint">
+      Empieza por lo que más se te va: pon un límite a dos o tres categorías y deja el resto sin
+      presupuestar. Si ya planificaste {{ previousLabel().toLowerCase() }}, cópialo y ajusta.
+    </p>
+  </section>
+}

@@ -34,6 +34,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/categories/categories').then((m) => m.CategoriesPage),
       },
       {
+        // Los presupuestos comparten marco con las categorías porque son de ellas: se fijan
+        // por categoría y se dejan de mirar en cuanto se cierra el mes.
+        path: 'budgets',
+        loadComponent: () => import('./pages/budgets/budgets').then((m) => m.BudgetsPage),
+      },
+      {
         path: 'tags',
         loadComponent: () => import('./pages/tags/tags').then((m) => m.TagsPage),
       },

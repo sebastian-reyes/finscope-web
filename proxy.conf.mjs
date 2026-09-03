@@ -21,8 +21,24 @@
 
 const target = 'http://localhost:9090';
 
-/** Prefijos que atiende la API. */
-const paths = ['/auth', '/categories', '/tags', '/shops', '/transactions', '/transaction-types'];
+/**
+ * Prefijos que atiende la API.
+ *
+ * Esta lista hay que ampliarla con cada recurso nuevo. Si falta uno, el servidor de
+ * desarrollo se queda la petición y contesta `index.html`, de modo que `HttpClient` recibe
+ * un documento donde esperaba JSON y falla con «Unexpected token '<'». Es un fallo que solo
+ * aparece con `ng serve` —en producción la API vive en otro origen y no hay proxy— y que no
+ * lo ve ninguna prueba, porque en ellas la API está simulada.
+ */
+const paths = [
+  '/auth',
+  '/budgets',
+  '/categories',
+  '/tags',
+  '/shops',
+  '/transactions',
+  '/transaction-types',
+];
 
 /**
  * Decide si una petición se queda en el servidor de desarrollo en lugar de ir a la API.

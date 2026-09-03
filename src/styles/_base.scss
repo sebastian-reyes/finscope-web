@@ -274,6 +274,43 @@ body:has(.fs-topbar) {
   gap: 0.5rem;
 }
 
+// Cabecera de periodo. El mes se cambia con dos flechas y no con un desplegable: moverse al
+// mes anterior es lo que se hace el 95 % de las veces. Vive aquí desde que la comparten el
+// inicio y los presupuestos, que son las dos pantallas que se leen mes a mes.
+.fs-period {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+// El mes se cambia con las flechas o tocándolo, que abre el calendario en vista de meses.
+// Sigue siendo el título de la pantalla y se lee como tal: sin caja y en el sitio de antes.
+.fs-period__title {
+  margin: 0;
+  min-width: 9rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.fs-period__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 50%;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
+}
+
+.fs-period__step:disabled {
+  opacity: 0.4;
+}
+
 // El rótulo de sección no es un título: es una etiqueta que ordena. Va en versalita, apagado
 // y pequeño, para que no compita con el dato que encabeza.
 .fs-section {
