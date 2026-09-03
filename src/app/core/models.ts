@@ -205,6 +205,56 @@ export interface SummarySeriesResponse {
   buckets: SummaryBucketResponse[];
 }
 
+/**
+ * Presupuesto de una categoría para un mes, junto a lo que se lleva gastado en ella.
+ *
+ * El plan y la realidad viajan juntos porque por separado no dicen nada: un límite de 400
+ * solo significa algo al lado de los 340 que ya se fueron. Es lo único del modelo que mira
+ * hacia delante; todo lo demás cuenta lo que ya pasó.
+ */
+export interface BudgetResponse {
+  id: number;
+  categoryId: number;
+  /** Nombre de la categoría presupuestada. */
+  category: string;
+  month: number;
+  year: number;
+  /** Importe presupuestado para el mes. */
+  amount: number;
+  /**
+   * Egresos de esa categoría dentro del mes. Es la misma cifra que el `expense` del
+   * desglose por categoría del resumen, así que la barra y el gráfico de reparto siempre
+   * cuentan lo mismo.
+   */
+  spent: number;
+  /** Lo que queda: `amount` menos `spent`. Negativo cuando el gasto se pasó del límite. */
+  remaining: number;
+}
+
+/** Cuerpo de alta de un presupuesto. La categoría debe admitir egresos. */
+export interface SaveBudgetRequest {
+  categoryId: number;
+  month: number;
+  year: number;
+  amount: number;
+}
+
+/**
+ * Cuerpo de cambio del importe.
+ * Ni la categoría ni el mes se tocan: son lo que identifica al presupuesto.
+ */
+export interface UpdateBudgetRequest {
+  amount: number;
+}
+
+/** Petición de copia de los presupuestos de un mes a otro. */
+export interface CopyBudgetsRequest {
+  sourceMonth: number;
+  sourceYear: number;
+  month: number;
+  year: number;
+}
+
 /** Cuerpo de error estructurado que devuelve la API en cualquier fallo. */
 export interface ErrorResponse {
   timestamp: string;

@@ -4,7 +4,8 @@ import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
 import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 
 /**
- * Marco común de los dos catálogos del usuario, categorías y tags.
+ * Marco común de las tres pantallas que se organizan por categoría: el catálogo de
+ * categorías, el presupuesto que se fija sobre ellas y el catálogo de tags.
  *
  * Existe por una razón concreta: el conmutador tiene que sobrevivir al salto de una
  * pantalla a la otra. Montado dentro de cada página, cambiar de catálogo lo destruía y lo
@@ -24,8 +25,8 @@ import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 })
 export class CataloguesPage {
   /**
-   * El mismo orden que tienen las dos opciones en el conmutador, para que la pantalla entre
+   * El mismo orden que tienen las tres opciones en el conmutador, para que la pantalla entre
    * por el lado hacia el que se deslizó la pastilla.
    */
-  protected readonly destinations = ['/categories', '/tags'];
+  protected readonly destinations = ['/categories', '/budgets', '/tags'];
 }

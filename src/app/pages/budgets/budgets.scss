@@ -1,0 +1,143 @@
+@use '../../../styles/tokens' as t;
+
+// La cabecera de periodo, el rótulo de sección, el estado vacío y el esqueleto salen de la
+// capa base; aquí vive solo lo propio de los presupuestos.
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-skeleton {
+  height: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.fs-foot {
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+// --- Alta -------------------------------------------------------------------------------
+// En una fila cuando cabe: elegir la categoría y poner la cifra son un solo gesto, y
+// partirlos en dos renglones hacía parecer que eran dos decisiones.
+.fs-new {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-new {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  }
+}
+
+.fs-new__field {
+  min-width: 0;
+}
+
+// --- Total del mes ----------------------------------------------------------------------
+// Abre la pantalla porque es la pregunta con la que se entra: «¿voy bien este mes?». El
+// detalle por categoría contesta a la siguiente, que es «¿y dónde voy mal?».
+.fs-total__figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.fs-total__spent {
+  font-size: var(--fs-text-lg);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.fs-total__of {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-total__reading {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// Pasarse del plan se dice con palabras y además se marca: el color solo acompaña.
+.fs-total__reading.is-over {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+.fs-total__over {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+// --- Lista de presupuestos --------------------------------------------------------------
+.fs-buds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// La barra ocupa el ancho y los dos botones se quedan a su derecha, alineados con el nombre
+// de la categoría: son acciones sobre la fila, no parte de la lectura.
+.fs-buds__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.fs-buds__item > fs-budget-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fs-buds__actions {
+  display: flex;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+}
+
+.fs-buds__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// --- Cambio del importe -----------------------------------------------------------------
+.fs-edit {
+  width: 100%;
+}
+
+.fs-edit__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// El campo no se estira hasta el borde: un importe de cuatro cifras no necesita media
+// pantalla, y ensanchándolo se pierde de vista contra qué se está comparando.
+.fs-edit__row .fs-field {
+  flex: 0 1 10rem;
+}

@@ -1,41 +1,5 @@
 @use '../../../styles/tokens' as t;
 
-// Cabecera de periodo. El mes se cambia con dos flechas y no con un desplegable: moverse al
-// mes anterior es lo que se hace el 95 % de las veces.
-.fs-period {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-// El mes se cambia con las flechas o tocándolo, que abre el calendario en vista de meses.
-// Sigue siendo el título de la pantalla y se lee como tal: sin caja y en el sitio de antes.
-.fs-period__title {
-  margin: 0;
-  min-width: 9rem;
-  text-align: center;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.fs-period__step {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 1px solid var(--fs-line);
-  border-radius: 50%;
-  background-color: var(--fs-surface);
-  color: var(--fs-ink-muted);
-
-  &:disabled {
-    opacity: 0.4;
-  }
-}
-
 // Rejilla de la pantalla. El formulario de registro es alto y el balance es corto: puestos
 // uno al lado del otro en una fila, la tarjeta del balance se estiraba para igualarlo y se
 // quedaba medio vacía. Aquí el formulario ocupa dos filas de la columna derecha y el hueco
@@ -106,6 +70,12 @@
     justify-content: center;
   }
 
+  // El plan del mes cruza las dos columnas y cae bajo el reparto: primero en qué se fue el
+  // dinero y después si eso cabía en lo previsto. Al revés no se entiende, porque la barra
+  // de un presupuesto no dice nada hasta saber de qué categoría se está hablando. A lo
+  // ancho, además, no deja el hueco que quedaría al lado del formulario, que ya ha
+  // terminado dos filas más arriba.
+  .fs-dash__budgets,
   .fs-dash__trend,
   .fs-dash__recent {
     grid-column: 1 / -1;

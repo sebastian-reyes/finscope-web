@@ -1,18 +1,20 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
-import { forkJoin, map } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { FinscopeService } from '../../core/finscope.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
 import {
+  BudgetResponse,
   SummaryGranularity,
   SummarySeriesResponse,
   TransactionResponse,
   TransactionSummaryResponse,
 } from '../../core/models';
 import { AmountComponent } from '../../shared/ui/amount';
+import { BudgetSummaryComponent } from './budget-summary';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { QuickTransactionComponent } from './quick-transaction';
 import { RecentTransactionsComponent } from './recent-transactions';
@@ -37,9 +39,11 @@ const HIGHLIGHT_MS = 1800;
   selector: 'app-dashboard',
   imports: [
     AmountComponent,
+    BudgetSummaryComponent,
     DateFieldComponent,
     QuickTransactionComponent,
     RecentTransactionsComponent,
+    RouterLink,
     SegmentedDirective,
     SpendingChartComponent,
     TrendChartComponent,
@@ -55,6 +59,18 @@ export class DashboardPage {
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
   protected readonly series = signal<SummarySeriesResponse | null>(null);
   protected readonly recent = signal<TransactionResponse[]>([]);
+  /** Plan del mes, para contestar a «voy bien» y no solo a «cuánto llevo gastado». */
+  protected readonly budgets = signal<BudgetResponse[]>([]);
+
+  /**
+   * Si el plan del mes no pudo cargarse.
+   *
+   * Se lleva aparte del error de la pantalla porque no es lo mismo: sin balance no hay nada
+   * que mirar, pero sin presupuestos el resto del inicio sigue contestando a todo lo que
+   * conteste siempre. Tampoco se puede callar y enseñar el hueco vacío, que diría «este mes
+   * no tiene presupuesto» cuando lo que pasa es que no se sabe.
+   */
+  protected readonly budgetsFailed = signal(false);
   /** Los mismos catálogos que usa la hoja de registro, para no pedirlos dos veces. */
   protected readonly types = this.editor.types;
   protected readonly categories = this.editor.categories;
@@ -178,11 +194,19 @@ export class DashboardPage {
         size: RECENT_SIZE,
         sort: 'date,desc',
       }),
+      // El plan del mes es lo único de esta pantalla que puede fallar solo. Si se dejara
+      // caer con los demás, un problema con los presupuestos borraría el balance, el reparto
+      // y el historial, que no tienen nada que ver.
+      budgets: this.api
+        .listBudgets(filters.month!, filters.year!)
+        .pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ summary, series, recent }) => {
+      next: ({ summary, series, recent, budgets }) => {
         this.summary.set(summary);
         this.series.set(series);
         this.recent.set(recent.content);
+        this.budgets.set(budgets ?? []);
+        this.budgetsFailed.set(budgets === null);
         this.loading.set(false);
       },
       error: (error) => {

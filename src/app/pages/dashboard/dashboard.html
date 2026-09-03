@@ -115,6 +115,29 @@
     }
   </section>
 
+  <section class="fs-panel fs-card fs-dash__budgets" aria-labelledby="budgetsTitle">
+    <div class="fs-card__head">
+      <h2 class="fs-card__title" id="budgetsTitle">
+        <i class="bi bi-clipboard-check" aria-hidden="true"></i>Presupuesto
+      </h2>
+      @if (budgets().length) {
+        <a class="fs-btn fs-btn--sm fs-btn--ghost" [routerLink]="['/budgets']">
+          Ver todo<i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </a>
+      }
+    </div>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--line"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else if (budgetsFailed()) {
+      <p class="fs-muted">
+        No se pudo cargar el plan del mes. Lo demás de esta pantalla no depende de él.
+      </p>
+    } @else {
+      <fs-budget-summary [budgets]="budgets()" />
+    }
+  </section>
+
   <section class="fs-panel fs-card fs-dash__trend" aria-labelledby="trendTitle">
     <h2 class="fs-card__title" id="trendTitle">
       <i class="bi bi-graph-up" aria-hidden="true"></i>Evolución

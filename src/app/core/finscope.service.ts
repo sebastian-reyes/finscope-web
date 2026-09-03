@@ -2,9 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
+  BudgetResponse,
   CategoryResponse,
   CategoryScope,
+  CopyBudgetsRequest,
   CreateTransactionRequest,
+  SaveBudgetRequest,
   SaveCategoryRequest,
   SaveTagRequest,
   SummaryGranularity,
@@ -16,6 +19,7 @@ import {
   TransactionResponse,
   TransactionSummaryResponse,
   TransactionTypeResponse,
+  UpdateBudgetRequest,
   UpdateTransactionRequest,
 } from './models';
 import { environment } from '../../environments/environment';
@@ -95,6 +99,53 @@ export class FinscopeService {
   /** Lo retira de todas sus transacciones, que por lo demás quedan intactas. */
   deleteTag(id: number): Observable<void> {
     return this.http.delete<void>(`${this.api}/tags/${id}`);
+  }
+
+  // Presupuestos: cuánto se piensa gastar en cada categoría durante un mes
+
+  /**
+   * Presupuestos de un mes con lo que ya se lleva gastado en cada categoría.
+   * Solo salen las categorías presupuestadas: no tener presupuesto no es tenerlo en cero.
+   */
+  listBudgets(month: number, year: number): Observable<BudgetResponse[]> {
+    return this.http.get<BudgetResponse[]>(`${this.api}/budgets`, {
+      params: new HttpParams().set('month', month).set('year', year),
+    });
+  }
+
+  createBudget(
+    categoryId: number,
+    month: number,
+    year: number,
+    amount: number,
+  ): Observable<BudgetResponse> {
+    return this.http.post<BudgetResponse>(`${this.api}/budgets`, {
+      categoryId,
+      month,
+      year,
+      amount,
+    } satisfies SaveBudgetRequest);
+  }
+
+  /** Solo cambia el importe: la categoría y el mes identifican al presupuesto. */
+  updateBudget(id: number, amount: number): Observable<BudgetResponse> {
+    return this.http.patch<BudgetResponse>(`${this.api}/budgets/${id}`, {
+      amount,
+    } satisfies UpdateBudgetRequest);
+  }
+
+  /** Retira el límite. Los movimientos de esa categoría se quedan como estaban. */
+  deleteBudget(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.api}/budgets/${id}`);
+  }
+
+  /**
+   * Trae al mes indicado los presupuestos de otro, sin pisar los que ya tuviera.
+   * Devuelve el mes destino entero, así que la pantalla se repinta con la respuesta y no
+   * necesita volver a pedir la lista.
+   */
+  copyBudgets(request: CopyBudgetsRequest): Observable<BudgetResponse[]> {
+    return this.http.post<BudgetResponse[]>(`${this.api}/budgets/copy`, request);
   }
 
   // Tipos de transacción (catálogo global, solo lectura)
