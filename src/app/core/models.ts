@@ -227,8 +227,19 @@ export interface BudgetResponse {
    * cuentan lo mismo.
    */
   spent: number;
+  /**
+   * Lo que los movimientos fijos de esa categoría van a llevarse este mes y todavía no se
+   * han llevado. Es dinero que aún no figura en `spent` pero que ya tiene dueño: sin él,
+   * 400 con 120 gastados aparentan 280 libres cuando el internet de 180 sigue sin pagarse.
+   */
+  committed: number;
   /** Lo que queda: `amount` menos `spent`. Negativo cuando el gasto se pasó del límite. */
   remaining: number;
+  /**
+   * Lo que de verdad queda libre: `remaining` menos `committed`. Es el número con el que
+   * se decide si se puede gastar algo más este mes, y también puede ser negativo.
+   */
+  available: number;
 }
 
 /** Cuerpo de alta de un presupuesto. La categoría debe admitir egresos. */
@@ -251,6 +262,110 @@ export interface UpdateBudgetRequest {
 export interface CopyBudgetsRequest {
   sourceMonth: number;
   sourceYear: number;
+  month: number;
+  year: number;
+}
+
+/**
+ * Estado de un movimiento fijo dentro de un mes.
+ *
+ * No lo guarda nadie: lo resuelve la API al leer, mirando si hay un movimiento enlazado en
+ * ese mes, si el mes está omitido y qué día es hoy. `NOT_DUE` cubre dos casos que para
+ * quien mira la lista son el mismo —la plantilla está pausada, o toca cada varios meses y
+ * ese no es uno de ellos—; `active` distingue cuál.
+ */
+export type RecurringStatus = 'PENDING' | 'OVERDUE' | 'PAID' | 'SKIPPED' | 'NOT_DUE';
+
+/**
+ * Plantilla de un movimiento que se repite: el alquiler, el internet, el sueldo.
+ *
+ * Dice que ese cargo vuelve cada cierto tiempo, no que haya ocurrido. No genera nada sola:
+ * cada mes produce un pendiente que se confirma, y esa confirmación es la que crea la
+ * transacción.
+ *
+ * Es lo que devuelven el alta y la modificación, sin estado de ningún mes: el estado
+ * depende del mes que se mire.
+ */
+export interface RecurringTransactionResponse {
+  id: number;
+  categoryId: number;
+  transactionTypeId: number;
+  /** Cómo lo llama el usuario. Se copia al movimiento al confirmar. */
+  description: string;
+  /** Lo que se suele pagar, no lo definitivo: al confirmar se puede corregir. */
+  amount: number;
+  /** Día previsto, entre 1 y 31. Se recorta al último día en los meses cortos. */
+  dayOfMonth: number;
+  /** Cada cuántos meses toca: 1 mensual, 2 bimestral, 3 trimestral, 12 anual. */
+  everyMonths: number;
+  startMonth: number;
+  startYear: number;
+  /** Un fijo pausado no vence ni compromete presupuesto, pero conserva su historial. */
+  active: boolean;
+}
+
+/**
+ * La misma plantilla resuelta contra un mes: si vence en él, en qué estado está y, cuando
+ * ya se confirmó, con qué movimiento y por cuánto.
+ *
+ * Plantilla y estado viajan juntos porque por separado no sirven de nada: una lista de
+ * fijos sin saber cuáles faltan no es un checklist, es un catálogo.
+ */
+export interface RecurringOccurrenceResponse extends RecurringTransactionResponse {
+  /** Nombre de la categoría, con la grafía que escribió el usuario. */
+  category: string;
+  /** Código del tipo, que decide el signo del importe. */
+  type: TransactionTypeCode;
+  month: number;
+  year: number;
+  /** Día concreto de vencimiento, ya recortado. Ausente cuando no vence ese mes. */
+  dueDate?: string;
+  status: RecurringStatus;
+  /** Movimiento con el que se confirmó el mes. Solo viene si está `PAID`. */
+  transactionId?: number;
+  /** Importe de ese movimiento, que puede no ser el estimado. */
+  paidAmount?: number;
+  paidDate?: string;
+}
+
+/** Cuerpo de alta de un movimiento fijo. La categoría debe admitir el tipo indicado. */
+export interface SaveRecurringTransactionRequest {
+  categoryId: number;
+  transactionTypeId: number;
+  description: string;
+  amount: number;
+  dayOfMonth: number;
+  everyMonths?: number;
+  startMonth: number;
+  startYear: number;
+}
+
+/**
+ * Cuerpo de modificación. Solo se aplican los campos presentes, y el cambio rige de aquí en
+ * adelante: los meses ya confirmados no se recalculan.
+ */
+export type UpdateRecurringTransactionRequest = Partial<
+  Omit<SaveRecurringTransactionRequest, 'everyMonths'>
+> & {
+  everyMonths?: number;
+  active?: boolean;
+};
+
+/**
+ * Confirmación del movimiento de un mes.
+ * El mes es lo que se confirma; el resto solo hace falta cuando lo real no coincide con lo
+ * previsto.
+ */
+export interface ConfirmRecurringTransactionRequest {
+  month: number;
+  year: number;
+  amount?: number;
+  date?: string;
+  description?: string;
+}
+
+/** Mes que se omite. */
+export interface SkipRecurringTransactionRequest {
   month: number;
   year: number;
 }

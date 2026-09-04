@@ -1,0 +1,289 @@
+@use '../../../styles/tokens' as t;
+
+// La cabecera de periodo, el rótulo de sección, el estado vacío y el esqueleto salen de la
+// capa base; aquí vive solo lo propio de los fijos.
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-skeleton {
+  height: 3.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.fs-foot {
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+// --- Alta y cambio ----------------------------------------------------------------------
+// Dos columnas en cuanto hay sitio: el importe, el día, el ritmo y el mes de arranque son
+// cuatro campos cortos, y en una sola columna la ficha se alargaba tanto que el botón de
+// guardar quedaba fuera de la pantalla.
+.fs-form {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// Lo que se lee de corrido —el nombre, el tipo, la categoría— cruza las dos columnas: son
+// una decisión cada uno y partirlos por la mitad los haría parecer campos sueltos.
+.fs-form__wide,
+.fs-form__actions {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.fs-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.fs-kinds {
+  display: flex;
+  gap: 0.5rem;
+}
+
+// --- Resumen del mes --------------------------------------------------------------------
+// Abre la pantalla porque es la pregunta con la que se entra: «¿me falta pagar algo?».
+.fs-sum__figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.fs-sum__amount {
+  font-size: var(--fs-text-lg);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.fs-sum__done {
+  font-size: var(--fs-text-lg);
+  color: var(--fs-income);
+  line-height: 1;
+}
+
+.fs-sum__of {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-sum__reading {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-sum__income {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+// --- Lista de fijos ---------------------------------------------------------------------
+.fs-fix {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-fix__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fs-fix__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fs-fix__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+}
+
+.fs-fix__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fs-fix__name {
+  margin: 0;
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+  color: var(--fs-ink);
+}
+
+.fs-fix__meta {
+  margin: 0.1rem 0 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+.fs-fix__figures {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.fs-fix__amount {
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+}
+
+// El estado va con palabras y no solo con color: quien no distingue el rojo del verde tiene
+// que poder leer si le falta pagar algo. El color solo acompaña.
+.fs-fix__state {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  white-space: nowrap;
+}
+
+.fs-fix__item[data-status='OVERDUE'] .fs-fix__state {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+.fs-fix__item[data-status='PAID'] .fs-fix__state {
+  color: var(--fs-income);
+}
+
+// Un fijo ya resuelto no compite por la atención con el que falta: sigue ahí, pero apagado.
+.fs-fix__item[data-status='PAID'],
+.fs-fix__item[data-status='SKIPPED'] {
+  --fs-fix-dim: 0.72;
+}
+
+.fs-fix__item[data-status='PAID'] .fs-fix__icon,
+.fs-fix__item[data-status='SKIPPED'] .fs-fix__icon {
+  opacity: var(--fs-fix-dim);
+}
+
+.fs-fix__item[data-status='SKIPPED'] .fs-fix__amount {
+  text-decoration: line-through;
+  color: var(--fs-ink-faint);
+}
+
+.fs-fix__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// Las herramientas de la plantilla —cambiar, pausar, borrar— se van al otro extremo: no son
+// lo que se viene a hacer aquí, que es marcar lo que ya se pagó.
+.fs-fix__tools {
+  margin-left: auto;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.fs-fix__hint {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+.fs-fix__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// --- Ajuste del importe real ------------------------------------------------------------
+.fs-adjust {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-adjust {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+}
+
+.fs-adjust__field {
+  min-width: 0;
+}
+
+.fs-adjust__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fs-adjust__note {
+  grid-column: 1 / -1;
+}
+
+// --- Los que este mes no tocan ----------------------------------------------------------
+.fs-rest__list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.fs-rest__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-rest__item:first-child {
+  border-top: 0;
+}
+
+.fs-rest__item > .text-truncate {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fs-rest__state {
+  flex: 0 0 auto;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  white-space: nowrap;
+}

@@ -25,7 +25,9 @@ const BUDGETS: BudgetResponse[] = [
     year: 2026,
     amount: 400,
     spent: 455.5,
+    committed: 0,
     remaining: -55.5,
+    available: -55.5,
   },
   {
     id: 12,
@@ -35,7 +37,9 @@ const BUDGETS: BudgetResponse[] = [
     year: 2026,
     amount: 150,
     spent: 20,
+    committed: 0,
     remaining: 130,
+    available: 130,
   },
 ];
 

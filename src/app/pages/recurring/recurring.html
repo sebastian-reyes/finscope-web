@@ -1,0 +1,417 @@
+<header class="fs-period">
+  <button class="fs-period__step" type="button" (click)="shiftMonth(-1)" aria-label="Mes anterior">
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+  </button>
+  <h1 class="fs-period__title">
+    <span class="visually-hidden">Fijos de {{ title() }}</span>
+    <fs-date-field
+      variant="plain"
+      ariaLabel="Mes que se está revisando"
+      mode="month"
+      [value]="monthValue()"
+      (valueChange)="setMonthValue($event)"
+    />
+  </h1>
+  <button class="fs-period__step" type="button" (click)="shiftMonth(1)" aria-label="Mes siguiente">
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </button>
+</header>
+
+<div class="fs-head">
+  <div>
+    <h2 class="fs-head__title">Fijos</h2>
+    <p class="fs-head__hint">
+      Lo que se repite cada mes: el alquiler, el internet, el sueldo. No se registran solos —el
+      recibo nunca viene igual—, pero aquí queda a un toque marcar el que ya pagaste.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button class="fs-btn fs-btn--solid" type="button" (click)="toggleForm()">
+      <i class="bi" [class.bi-plus-lg]="!showForm()" [class.bi-x-lg]="showForm()"></i>
+      {{ showForm() ? 'Cerrar' : 'Nuevo fijo' }}
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudieron cargar tus fijos</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (showForm()) {
+  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
+    <p class="fs-section">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+      {{ editingId() ? 'Cambiar el fijo' : 'Un movimiento que se repite' }}
+    </p>
+
+    <form class="fs-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="fs-form__wide">
+        <label class="fs-label" for="recurringDescription">Cómo lo llamas</label>
+        <input
+          id="recurringDescription"
+          class="fs-field"
+          type="text"
+          maxlength="70"
+          placeholder="Alquiler"
+          autocomplete="off"
+          formControlName="description"
+        />
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="recurringKindLabel">Tipo</span>
+        <div class="fs-kinds" role="group" aria-labelledby="recurringKindLabel">
+          <button
+            type="button"
+            class="fs-btn fs-btn--sm"
+            [class.fs-btn--solid]="kind() === 'EXPENSE'"
+            [class.fs-btn--outline]="kind() !== 'EXPENSE'"
+            [attr.aria-pressed]="kind() === 'EXPENSE'"
+            (click)="setKind('EXPENSE')"
+          >
+            <i class="bi bi-arrow-down-left" aria-hidden="true"></i>Egreso
+          </button>
+          <button
+            type="button"
+            class="fs-btn fs-btn--sm"
+            [class.fs-btn--solid]="kind() === 'INCOME'"
+            [class.fs-btn--outline]="kind() !== 'INCOME'"
+            [attr.aria-pressed]="kind() === 'INCOME'"
+            (click)="setKind('INCOME')"
+          >
+            <i class="bi bi-arrow-up-right" aria-hidden="true"></i>Ingreso
+          </button>
+        </div>
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="recurringCategoryLabel">Categoría</span>
+        <fs-category-picker
+          [categories]="categories()"
+          [kind]="kind()"
+          [selected]="categoryId()"
+          (selectedChange)="categoryId.set($event)"
+        />
+      </div>
+
+      <div>
+        <label class="fs-label" for="recurringAmount">Importe habitual</label>
+        <input
+          id="recurringAmount"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          placeholder="180.00"
+          formControlName="amount"
+        />
+      </div>
+
+      <div>
+        <label class="fs-label" for="recurringDay">Día del mes</label>
+        <input
+          id="recurringDay"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="31"
+          step="1"
+          formControlName="dayOfMonth"
+        />
+      </div>
+
+      <div>
+        <span class="fs-label" id="recurringRhythmLabel">Cada cuánto</span>
+        <fs-select-field
+          inputId="recurringRhythmField"
+          ariaLabel="Cada cuántos meses se repite"
+          [options]="rhythms"
+          [value]="everyMonths()"
+          (valueChange)="everyMonths.set($event)"
+        />
+      </div>
+
+      <div>
+        <span class="fs-label" id="recurringStartLabel">Desde</span>
+        <fs-date-field
+          inputId="recurringStartField"
+          ariaLabel="Mes desde el que aplica"
+          mode="month"
+          [value]="startValue()"
+          (valueChange)="startValue.set($event)"
+        />
+      </div>
+
+      <div class="fs-form__actions">
+        <button
+          class="fs-btn fs-btn--solid"
+          type="submit"
+          [disabled]="saving() || form.invalid || !categoryId()"
+        >
+          {{ editingId() ? 'Guardar' : 'Añadir' }}
+        </button>
+        <button class="fs-btn fs-btn--ghost" type="button" (click)="closeForm()">Cancelar</button>
+      </div>
+    </form>
+
+    <p class="fs-note">
+      El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede
+      corregir, y lo corregido va al movimiento. Un cargo del 31 vence el 28 en febrero.
+    </p>
+  </section>
+}
+
+@if (loading()) {
+  <section class="fs-panel fs-block">
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+  </section>
+} @else if (items().length) {
+  <section class="fs-panel fs-block fs-sum" aria-labelledby="recurringTotalTitle">
+    <p class="fs-section" id="recurringTotalTitle">
+      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>{{ title() }}
+    </p>
+    @if (totals().pendingCount) {
+      <p class="fs-sum__figure">
+        <span class="fs-num fs-sum__amount">{{ money(totals().pendingExpense) }}</span>
+        <span class="fs-sum__of">
+          en {{ totals().pendingCount }}
+          {{ totals().pendingCount === 1 ? 'fijo por pagar' : 'fijos por pagar' }}
+        </span>
+      </p>
+    } @else {
+      <p class="fs-sum__figure">
+        <span class="fs-sum__done"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+        <span class="fs-sum__of">No queda ningún fijo por resolver este mes</span>
+      </p>
+    }
+    <p class="fs-sum__reading">
+      @if (totals().paidCount) {
+        Ya llevas {{ money(totals().paidExpense) }} en
+        {{ totals().paidCount }}
+        {{ totals().paidCount === 1 ? 'fijo' : 'fijos' }}.
+      }
+      @if (totals().income) {
+        <span class="fs-sum__income">
+          Y {{ money(totals().income) }} de ingresos fijos este mes.
+        </span>
+      }
+    </p>
+  </section>
+
+  <ul class="fs-fix">
+    @for (item of due(); track item.id) {
+      <li class="fs-panel fs-block fs-fix__item" [attr.data-status]="item.status">
+        <div class="fs-fix__row">
+          <span class="fs-fix__icon" aria-hidden="true"><i class="bi {{ icon(item) }}"></i></span>
+
+          <div class="fs-fix__body">
+            <p class="fs-fix__name text-truncate">{{ item.description }}</p>
+            <p class="fs-fix__meta text-truncate">{{ item.category }} · {{ schedule(item) }}</p>
+          </div>
+
+          <div class="fs-fix__figures">
+            <span class="fs-num fs-fix__amount" [class.fs-income]="item.type === 'INCOME'">
+              {{ money(item.paidAmount ?? item.amount) }}
+            </span>
+            <span class="fs-fix__state">{{ stateLabel(item) }}</span>
+          </div>
+        </div>
+
+        @if (adjustingId() === item.id) {
+          <form class="fs-adjust" [formGroup]="adjustForm" (ngSubmit)="confirmAdjusted(item)">
+            <div class="fs-adjust__field">
+              <label class="fs-label" [attr.for]="'adjustAmount' + item.id">
+                Lo que de verdad {{ item.type === 'INCOME' ? 'entró' : 'se pagó' }}
+              </label>
+              <input
+                [id]="'adjustAmount' + item.id"
+                class="fs-field fs-num"
+                type="number"
+                inputmode="decimal"
+                min="0.01"
+                step="0.01"
+                formControlName="amount"
+                (keyup.escape)="cancelAdjust()"
+              />
+            </div>
+            <div class="fs-adjust__field">
+              <span class="fs-label">Fecha</span>
+              <fs-date-field
+                [inputId]="'adjustDate' + item.id"
+                ariaLabel="Fecha real del movimiento"
+                mode="date"
+                [value]="adjustDate()"
+                (valueChange)="adjustDate.set($event)"
+              />
+            </div>
+            <div class="fs-adjust__actions">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--solid"
+                type="submit"
+                [disabled]="saving() || adjustForm.invalid"
+              >
+                Registrar
+              </button>
+              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelAdjust()">
+                Cancelar
+              </button>
+            </div>
+            <p class="fs-note fs-adjust__note">
+              La fecha tiene que caer dentro de {{ title().toLowerCase() }}: es lo que ata el
+              movimiento al mes que estás confirmando.
+            </p>
+          </form>
+        } @else if (confirmingId() === item.id) {
+          <div class="fs-fix__confirm" animate.enter="fs-anim-expand">
+            <span>
+              ¿Eliminar <strong>{{ item.description }}</strong
+              >? Los movimientos que ya registraste con él se quedan. Si solo dejaste de pagarlo,
+              mejor ponlo en pausa.
+            </span>
+            <span class="text-nowrap">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--danger"
+                type="button"
+                [disabled]="saving()"
+                (click)="remove(item)"
+              >
+                Sí, eliminar
+              </button>
+              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelRemove()">
+                Cancelar
+              </button>
+            </span>
+          </div>
+        } @else {
+          <div class="fs-fix__actions">
+            @if (item.status === 'PENDING' || item.status === 'OVERDUE') {
+              <button
+                class="fs-btn fs-btn--sm fs-btn--soft"
+                type="button"
+                [disabled]="saving()"
+                (click)="confirm(item)"
+              >
+                <i class="bi bi-check2" aria-hidden="true"></i>
+                {{ item.type === 'INCOME' ? 'Cobrado' : 'Pagado' }}
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="startAdjust(item)"
+              >
+                Ajustar
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                [disabled]="saving()"
+                (click)="skip(item)"
+              >
+                Este mes no
+              </button>
+            } @else if (item.status === 'SKIPPED') {
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                [disabled]="saving()"
+                (click)="unskip(item)"
+              >
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>Deshacer
+              </button>
+            } @else if (item.status === 'PAID') {
+              <span class="fs-fix__hint">
+                Para deshacerlo, borra su movimiento en el historial.
+              </span>
+            }
+
+            <span class="fs-fix__tools">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="startEdit(item)"
+                [attr.aria-label]="'Cambiar ' + item.description"
+              >
+                <i class="bi bi-pencil" aria-hidden="true"></i>
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                [disabled]="saving()"
+                (click)="togglePause(item)"
+                [attr.aria-label]="(item.active ? 'Pausar ' : 'Reanudar ') + item.description"
+              >
+                <i class="bi" [class.bi-pause]="item.active" [class.bi-play]="!item.active"></i>
+              </button>
+              <button
+                class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+                type="button"
+                (click)="askRemove(item)"
+                [attr.aria-label]="'Eliminar ' + item.description"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
+              </button>
+            </span>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+
+  @if (resting().length) {
+    <section class="fs-panel fs-block fs-rest" aria-labelledby="restingTitle">
+      <p class="fs-section" id="restingTitle">
+        <i class="bi bi-pause-circle" aria-hidden="true"></i>Este mes no tocan
+      </p>
+      <ul class="fs-rest__list">
+        @for (item of resting(); track item.id) {
+          <li class="fs-rest__item">
+            <span class="text-truncate">{{ item.description }}</span>
+            <span class="fs-rest__state">{{ stateLabel(item) }}</span>
+            <button
+              class="fs-btn fs-btn--sm fs-btn--ghost"
+              type="button"
+              [disabled]="saving()"
+              (click)="togglePause(item)"
+              [attr.aria-label]="(item.active ? 'Pausar ' : 'Reanudar ') + item.description"
+            >
+              <i class="bi" [class.bi-pause]="item.active" [class.bi-play]="!item.active"></i>
+            </button>
+            <button
+              class="fs-btn fs-btn--sm fs-btn--ghost"
+              type="button"
+              (click)="startEdit(item)"
+              [attr.aria-label]="'Cambiar ' + item.description"
+            >
+              <i class="bi bi-pencil" aria-hidden="true"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <p class="fs-note fs-foot">
+    Marcar un fijo como pagado crea el movimiento y lo deja enlazado a él, así que cuenta en el
+    resumen del mes como cualquier otro. Lo que aún no has pagado no se inventa nada, pero sí
+    aparece reservado en el presupuesto de su categoría.
+  </p>
+} @else {
+  <section class="fs-panel fs-block fs-blank">
+    <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+    <p class="fs-blank__title">Todavía no tienes fijos</p>
+    <p class="fs-blank__hint">
+      Empieza por los tres que no fallan nunca: el alquiler, el internet y el sueldo. Con eso ya
+      sabrás cuánto del mes está comprometido antes de gastar nada.
+    </p>
+  </section>
+}

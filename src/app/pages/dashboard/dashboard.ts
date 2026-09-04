@@ -3,11 +3,13 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import { FinscopeService } from '../../core/finscope.service';
+import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
 import {
   BudgetResponse,
+  RecurringOccurrenceResponse,
   SummaryGranularity,
   SummarySeriesResponse,
   TransactionResponse,
@@ -18,6 +20,7 @@ import { BudgetSummaryComponent } from './budget-summary';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { QuickTransactionComponent } from './quick-transaction';
 import { RecentTransactionsComponent } from './recent-transactions';
+import { RecurringSummaryComponent } from './recurring-summary';
 import { SpendingBreakdown, SpendingChartComponent } from './spending-chart';
 import { TrendChartComponent } from './trend-chart';
 import { SegmentedDirective } from '../../shared/ui/segmented';
@@ -43,6 +46,7 @@ const HIGHLIGHT_MS = 1800;
     DateFieldComponent,
     QuickTransactionComponent,
     RecentTransactionsComponent,
+    RecurringSummaryComponent,
     RouterLink,
     SegmentedDirective,
     SpendingChartComponent,
@@ -55,6 +59,7 @@ export class DashboardPage {
   private readonly api = inject(FinscopeService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
+  private readonly toasts = inject(ToastService);
 
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
   protected readonly series = signal<SummarySeriesResponse | null>(null);
@@ -71,6 +76,19 @@ export class DashboardPage {
    * no tiene presupuesto» cuando lo que pasa es que no se sabe.
    */
   protected readonly budgetsFailed = signal(false);
+
+  /**
+   * Los fijos del mes, para poder marcar lo que ya se pagó sin cambiar de pantalla.
+   * Un recordatorio que vive donde nadie entra no recuerda nada, y a la pantalla de fijos
+   * se entra a darlos de alta, que es algo que se hace una vez.
+   */
+  protected readonly recurring = signal<RecurringOccurrenceResponse[]>([]);
+
+  /** Si los fijos no pudieron cargarse, por lo mismo que los presupuestos: caen solos. */
+  protected readonly recurringFailed = signal(false);
+
+  /** Mientras se registra uno, para que no se pueda dar dos veces por pagado. */
+  protected readonly confirming = signal(false);
   /** Los mismos catálogos que usa la hoja de registro, para no pedirlos dos veces. */
   protected readonly types = this.editor.types;
   protected readonly categories = this.editor.categories;
@@ -200,13 +218,20 @@ export class DashboardPage {
       budgets: this.api
         .listBudgets(filters.month!, filters.year!)
         .pipe(catchError(() => of(null))),
+      // Los fijos caen solos por el mismo motivo que los presupuestos: sin ellos el inicio
+      // sigue contestando a todo lo demás.
+      recurring: this.api
+        .listRecurring(filters.month!, filters.year!)
+        .pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ summary, series, recent, budgets }) => {
+      next: ({ summary, series, recent, budgets, recurring }) => {
         this.summary.set(summary);
         this.series.set(series);
         this.recent.set(recent.content);
         this.budgets.set(budgets ?? []);
         this.budgetsFailed.set(budgets === null);
+        this.recurring.set(recurring ?? []);
+        this.recurringFailed.set(recurring === null);
         this.loading.set(false);
       },
       error: (error) => {
@@ -225,6 +250,35 @@ export class DashboardPage {
     this.highlight(id);
     this.load();
     this.editor.refreshCatalogues();
+  }
+
+  /**
+   * Da por pagado un fijo con el importe de siempre.
+   *
+   * Se recarga la pantalla entera y no solo la tarjeta porque acaba de aparecer un
+   * movimiento: el balance, el reparto por categoría y el avance del presupuesto de esa
+   * categoría cambian todos a la vez, y dejarlos como estaban sería enseñar tres cifras
+   * que ya no cuadran con la cuarta.
+   *
+   * @param item fijo que el usuario acaba de marcar
+   */
+  protected onRecurringConfirmed(item: RecurringOccurrenceResponse): void {
+    if (this.confirming()) {
+      return;
+    }
+    const { month, year } = this.period();
+    this.confirming.set(true);
+    this.api.confirmRecurring(item.id, { month: month!, year: year! }).subscribe({
+      next: () => {
+        this.toasts.success(`«${item.description}» registrado`);
+        this.confirming.set(false);
+        this.load();
+      },
+      error: (error) => {
+        this.confirming.set(false);
+        this.toasts.error(describeError(error));
+      },
+    });
   }
 
   /** Alguien creó una categoría desde el formulario: el catálogo de aquí ya no vale. */
