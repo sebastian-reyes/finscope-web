@@ -76,6 +76,7 @@
   // ancho, además, no deja el hueco que quedaría al lado del formulario, que ya ha
   // terminado dos filas más arriba.
   .fs-dash__budgets,
+  .fs-dash__recurring,
   .fs-dash__trend,
   .fs-dash__recent {
     grid-column: 1 / -1;

@@ -40,6 +40,13 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/budgets/budgets').then((m) => m.BudgetsPage),
       },
       {
+        // Los fijos van entre el plan y los tags porque son la otra mitad del plan: el
+        // presupuesto dice cuánto se piensa gastar y el fijo dice qué parte de eso ya
+        // tiene dueño antes de empezar el mes.
+        path: 'recurring',
+        loadComponent: () => import('./pages/recurring/recurring').then((m) => m.RecurringPage),
+      },
+      {
         path: 'tags',
         loadComponent: () => import('./pages/tags/tags').then((m) => m.TagsPage),
       },

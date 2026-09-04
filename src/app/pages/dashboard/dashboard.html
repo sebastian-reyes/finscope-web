@@ -138,6 +138,33 @@
     }
   </section>
 
+  <section class="fs-panel fs-card fs-dash__recurring" aria-labelledby="recurringTitle">
+    <div class="fs-card__head">
+      <h2 class="fs-card__title" id="recurringTitle">
+        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Fijos
+      </h2>
+      @if (recurring().length) {
+        <a class="fs-btn fs-btn--sm fs-btn--ghost" [routerLink]="['/recurring']">
+          Ver todo<i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </a>
+      }
+    </div>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--line"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else if (recurringFailed()) {
+      <p class="fs-muted">
+        No se pudieron cargar tus fijos. Lo demás de esta pantalla no depende de ellos.
+      </p>
+    } @else {
+      <fs-recurring-summary
+        [items]="recurring()"
+        [busy]="confirming()"
+        (confirmed)="onRecurringConfirmed($event)"
+      />
+    }
+  </section>
+
   <section class="fs-panel fs-card fs-dash__trend" aria-labelledby="trendTitle">
     <h2 class="fs-card__title" id="trendTitle">
       <i class="bi bi-graph-up" aria-hidden="true"></i>Evolución

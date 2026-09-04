@@ -60,19 +60,21 @@ export class App {
     { path: '/transactions', label: 'Movimientos', icon: 'bi-arrow-left-right' },
   ];
 
-  // La barra inferior solo tiene cinco huecos y por ahí se llega a tres pantallas, así que
-  // entra la principal —las categorías, que son las que reparten el gasto— y desde ella se
-  // alcanzan los presupuestos y los tags con el conmutador que llevan las tres arriba. A
-  // los presupuestos se llega además desde el inicio, que es donde se piensa en ellos.
+  // La barra inferior solo tiene cinco huecos y por ahí se llega a cuatro pantallas, así
+  // que entra la principal —las categorías, que son las que reparten el gasto— y desde ella
+  // se alcanzan los presupuestos, los fijos y los tags con el conmutador que llevan las
+  // cuatro arriba. A los presupuestos y a los fijos se llega además desde el inicio, que es
+  // donde se piensa en ellos.
   protected readonly rightNav: NavItem[] = [
-    // Ni los presupuestos ni los tags tienen hueco propio, así que se cuentan como parte de
-    // las categorías: sin esto, estando en ellos la barra no marcaba ninguna sección y la
-    // pastilla se encogía a nada, como si la pantalla no estuviera en ningún sitio.
+    // Ni los presupuestos, ni los fijos, ni los tags tienen hueco propio, así que se cuentan
+    // como parte de las categorías: sin esto, estando en ellos la barra no marcaba ninguna
+    // sección y la pastilla se encogía a nada, como si la pantalla no estuviera en ningún
+    // sitio.
     {
       path: '/categories',
       label: 'Categorías',
       icon: 'bi-grid-1x2',
-      covers: ['/budgets', '/tags'],
+      covers: ['/budgets', '/recurring', '/tags'],
     },
     { path: '/account', label: 'Cuenta', icon: 'bi-person' },
   ];
@@ -89,6 +91,7 @@ export class App {
     '/transactions',
     '/categories',
     '/budgets',
+    '/recurring',
     '/tags',
     '/account',
   ];

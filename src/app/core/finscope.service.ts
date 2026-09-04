@@ -5,11 +5,16 @@ import {
   BudgetResponse,
   CategoryResponse,
   CategoryScope,
+  ConfirmRecurringTransactionRequest,
   CopyBudgetsRequest,
   CreateTransactionRequest,
+  RecurringOccurrenceResponse,
+  RecurringTransactionResponse,
   SaveBudgetRequest,
   SaveCategoryRequest,
+  SaveRecurringTransactionRequest,
   SaveTagRequest,
+  SkipRecurringTransactionRequest,
   SummaryGranularity,
   SummarySeriesResponse,
   TagResponse,
@@ -20,6 +25,7 @@ import {
   TransactionSummaryResponse,
   TransactionTypeResponse,
   UpdateBudgetRequest,
+  UpdateRecurringTransactionRequest,
   UpdateTransactionRequest,
 } from './models';
 import { environment } from '../../environments/environment';
@@ -146,6 +152,100 @@ export class FinscopeService {
    */
   copyBudgets(request: CopyBudgetsRequest): Observable<BudgetResponse[]> {
     return this.http.post<BudgetResponse[]>(`${this.api}/budgets/copy`, request);
+  }
+
+  // Movimientos fijos: lo que se repite y qué falta por confirmar este mes
+
+  /**
+   * Todos los fijos del usuario resueltos contra un mes.
+   *
+   * Llegan también los pausados y los que no vencen ese mes, con estado `NOT_DUE`, porque
+   * la pantalla de gestión necesita verlos siempre. Quien solo quiera el checklist filtra
+   * por estado en lugar de pedir otra lista.
+   */
+  listRecurring(month: number, year: number): Observable<RecurringOccurrenceResponse[]> {
+    return this.http.get<RecurringOccurrenceResponse[]>(`${this.api}/recurring-transactions`, {
+      params: new HttpParams().set('month', month).set('year', year),
+    });
+  }
+
+  /**
+   * Da de alta la plantilla. No registra ningún movimiento, ni siquiera el de este mes: el
+   * alta dice que ese cargo se repite, no que ya haya ocurrido.
+   */
+  createRecurring(
+    request: SaveRecurringTransactionRequest,
+  ): Observable<RecurringTransactionResponse> {
+    return this.http.post<RecurringTransactionResponse>(
+      `${this.api}/recurring-transactions`,
+      request satisfies SaveRecurringTransactionRequest,
+    );
+  }
+
+  /**
+   * Cambia la plantilla de aquí en adelante.
+   * Los movimientos ya confirmados con ella no se tocan: subir el alquiler en octubre no
+   * cambia lo que se pagó en septiembre.
+   */
+  updateRecurring(
+    id: number,
+    request: UpdateRecurringTransactionRequest,
+  ): Observable<RecurringTransactionResponse> {
+    return this.http.patch<RecurringTransactionResponse>(
+      `${this.api}/recurring-transactions/${id}`,
+      request satisfies UpdateRecurringTransactionRequest,
+    );
+  }
+
+  /**
+   * Borra la plantilla y sus omisiones. Los movimientos que se confirmaron con ella se
+   * quedan, porque ocurrieron; lo único que pierden es el enlace.
+   */
+  deleteRecurring(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.api}/recurring-transactions/${id}`);
+  }
+
+  /**
+   * Registra el movimiento del mes y lo deja enlazado a su plantilla.
+   * Sin más cuerpo que el mes usa el importe estimado y el día previsto, que es lo que
+   * permite confirmar de un toque cuando se pagó lo de siempre.
+   */
+  confirmRecurring(
+    id: number,
+    request: ConfirmRecurringTransactionRequest,
+  ): Observable<RecurringOccurrenceResponse> {
+    return this.http.post<RecurringOccurrenceResponse>(
+      `${this.api}/recurring-transactions/${id}/confirm`,
+      request satisfies ConfirmRecurringTransactionRequest,
+    );
+  }
+
+  /**
+   * Marca que ese mes no toca. Deja de contar como comprometido contra el presupuesto de
+   * su categoría, que es lo que hace útil la omisión: lo que no se va a pagar no debería
+   * estar reservando dinero.
+   */
+  skipRecurring(
+    id: number,
+    month: number,
+    year: number,
+  ): Observable<RecurringOccurrenceResponse> {
+    return this.http.post<RecurringOccurrenceResponse>(
+      `${this.api}/recurring-transactions/${id}/skip`,
+      { month, year } satisfies SkipRecurringTransactionRequest,
+    );
+  }
+
+  /** Devuelve el fijo a pendiente en ese mes. Si no estaba omitido no cambia nada. */
+  unskipRecurring(
+    id: number,
+    month: number,
+    year: number,
+  ): Observable<RecurringOccurrenceResponse> {
+    return this.http.delete<RecurringOccurrenceResponse>(
+      `${this.api}/recurring-transactions/${id}/skip`,
+      { params: new HttpParams().set('month', month).set('year', year) },
+    );
   }
 
   // Tipos de transacción (catálogo global, solo lectura)

@@ -4,10 +4,11 @@ import { BudgetBarComponent } from './budget-bar';
 import { BudgetResponse } from '../../core/models';
 
 /**
- * Un presupuesto con los importes indicados. `remaining` se calcula como lo hace la API,
- * para que la prueba no pueda pasar con una combinación que el servidor no devolvería.
+ * Un presupuesto con los importes indicados. `remaining` y `available` se calculan como lo
+ * hace la API, para que la prueba no pueda pasar con una combinación que el servidor no
+ * devolvería.
  */
-function budget(amount: number, spent: number): BudgetResponse {
+function budget(amount: number, spent: number, committed = 0): BudgetResponse {
   return {
     id: 1,
     categoryId: 4,
@@ -16,7 +17,9 @@ function budget(amount: number, spent: number): BudgetResponse {
     year: 2026,
     amount,
     spent,
+    committed,
     remaining: amount - spent,
+    available: amount - spent - committed,
   };
 }
 
@@ -81,6 +84,40 @@ describe('BudgetBarComponent', () => {
     expect(label).toContain('Comida');
     expect(label).toContain('te pasaste por');
     expect(host().querySelector('.fs-bud__track')!.getAttribute('aria-valuenow')).toBe('114');
+  });
+
+  it('descuenta los fijos que faltan al decir lo que queda libre', () => {
+    render(budget(400, 120, 180));
+
+    // Lo que queda mira solo al pasado; lo libre es con lo que se decide hoy.
+    const reading = host().querySelector('.fs-bud__reading')!.textContent!;
+    expect(reading).toContain('100.00');
+    expect(host().querySelector('.fs-bud__note')!.textContent).toContain('180.00');
+  });
+
+  it('dibuja lo comprometido justo detrás de lo gastado, sin salirse del carril', () => {
+    render(budget(400, 120, 180));
+
+    expect(fillWidth()).toBe('30%');
+    expect(host().querySelector<HTMLElement>('.fs-bud__commit')!.style.width).toBe('45%');
+  });
+
+  it('avisa cuando el mes se pasa solo con lo que ya está comprometido', () => {
+    render(budget(400, 300, 180));
+
+    // Todavía no se ha gastado de más, pero el resultado ya está decidido.
+    expect(tone()).toBe('close');
+    expect(host().querySelector('.fs-bud__reading')!.textContent).toContain('te pasas por');
+    expect(host().querySelector('.fs-bud__reading')!.textContent).toContain('80.00');
+    // El tramo se corta en lo que quedaba de carril: no hay barra más allá de la barra.
+    expect(host().querySelector<HTMLElement>('.fs-bud__commit')!.style.width).toBe('25%');
+  });
+
+  it('sin fijos por pagar la barra se lee exactamente como antes', () => {
+    render(budget(400, 340));
+
+    expect(host().querySelector('.fs-bud__commit')).toBeNull();
+    expect(host().querySelector('.fs-bud__note')).toBeNull();
   });
 
   it('no divide entre cero si el presupuesto llegara vacío', () => {

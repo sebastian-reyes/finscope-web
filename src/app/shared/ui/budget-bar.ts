@@ -21,6 +21,12 @@ const CLOSE_RATIO = 0.85;
  *
  * Pasarse no rompe la barra: se llena entera y la frase dice de cuánto fue el exceso. Una
  * barra al 137% no se puede dibujar, pero «te pasaste por S/ 55,50» se entiende igual.
+ *
+ * Detrás de lo gastado hay un segundo tramo, rayado, con lo que los movimientos fijos de
+ * esa categoría se van a llevar este mes y todavía no se han llevado. Sin él la barra
+ * miente por omisión: 120 de 400 parecen holgados hasta que aparece el internet de 180 que
+ * vence el día 12. El rayado y la frase de debajo van juntos a propósito, para que quien no
+ * distinga los dos tonos lo lea igual.
  */
 @Component({
   selector: 'fs-budget-bar',
@@ -44,18 +50,33 @@ const CLOSE_RATIO = 0.85;
         [attr.aria-label]="reading()"
       >
         <span class="fs-bud__fill" [style.width.%]="width()"></span>
+        @if (commitWidth() > 0) {
+          <span class="fs-bud__commit" [style.width.%]="commitWidth()"></span>
+        }
       </div>
 
       <p class="fs-bud__foot">
         <span class="fs-bud__reading">
           @if (tone() === 'over') {
             Te pasaste por {{ money(-budget().remaining) }}
+          } @else if (budget().committed > 0) {
+            @if (budget().available < 0) {
+              Con los fijos que faltan te pasas por {{ money(-budget().available) }}
+            } @else {
+              Quedan {{ money(budget().available) }} libres
+            }
           } @else {
             Queda {{ money(budget().remaining) }}
           }
         </span>
         <span class="fs-bud__percent fs-num">{{ percent() }}%</span>
       </p>
+
+      @if (budget().committed > 0) {
+        <p class="fs-bud__note">
+          {{ money(budget().committed) }} en fijos que aún no se han pagado
+        </p>
+      }
     </div>
   `,
   styles: `
@@ -114,24 +135,46 @@ const CLOSE_RATIO = 0.85;
       color: var(--fs-ink-faint);
     }
 
+    /* Los dos tramos van en fila con una rendija entre medias: pegados se leerían como una
+       sola barra de dos tonos, y son dos cosas distintas —lo que ya se fue y lo que está
+       reservado—. */
     .fs-bud__track {
-      position: relative;
+      display: flex;
+      gap: 2px;
       height: 0.5rem;
       border-radius: 999px;
       background-color: var(--fs-shade);
       overflow: hidden;
     }
 
-    .fs-bud__fill {
+    .fs-bud__fill,
+    .fs-bud__commit {
+      flex: 0 0 auto;
       display: block;
       height: 100%;
       border-radius: 999px;
-      background-color: var(--fs-bud-fill);
       transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
+    .fs-bud__fill {
+      background-color: var(--fs-bud-fill);
+    }
+
+    /* Rayado y no un tono más claro a secas: en una barra de medio milímetro de alto, dos
+       tonos del mismo color se distinguen mal en cuanto la pantalla baja el brillo, y la
+       trama se ve igual sea cual sea el color. */
+    .fs-bud__commit {
+      background-image: repeating-linear-gradient(
+        135deg,
+        var(--fs-bud-fill) 0 2px,
+        transparent 2px 5px
+      );
+      background-color: color-mix(in srgb, var(--fs-bud-fill) 22%, transparent);
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .fs-bud__fill {
+      .fs-bud__fill,
+      .fs-bud__commit {
         transition: none;
       }
     }
@@ -153,6 +196,12 @@ const CLOSE_RATIO = 0.85;
     .fs-bud__percent {
       color: var(--fs-ink-faint);
     }
+
+    .fs-bud__note {
+      margin: 0.2rem 0 0;
+      font-size: var(--fs-text-xs);
+      color: var(--fs-ink-faint);
+    }
   `,
 })
 export class BudgetBarComponent {
@@ -170,21 +219,58 @@ export class BudgetBarComponent {
   /** Lo que se dibuja, que sí se corta en cien: no hay carril más allá del carril. */
   protected readonly width = computed(() => Math.min(100, Math.max(0, this.percent())));
 
+  /**
+   * Lo que ocupa el tramo comprometido, que empieza donde acaba lo gastado.
+   * Se corta en lo que quede de carril: si los fijos pendientes ya no caben es porque el
+   * mes se va a pasar, y eso lo dice la frase, no un tramo dibujado fuera de la barra.
+   */
+  protected readonly commitWidth = computed(() => {
+    const { committed, amount } = this.budget();
+    if (amount <= 0 || committed <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100 - this.width(), (committed / amount) * 100));
+  });
+
+  /**
+   * Si el mes se pasa solo con lo que ya está comprometido.
+   * Todavía no se ha gastado de más, pero el resultado ya está decidido salvo que se omita
+   * alguno de esos fijos, así que la barra avisa igual que si estuviera al límite.
+   */
+  protected readonly overcommitted = computed(() => {
+    const { spent, committed, amount } = this.budget();
+    return spent <= amount && spent + committed > amount;
+  });
+
   protected readonly tone = computed<BudgetTone>(() => {
     const { spent, amount } = this.budget();
     if (spent > amount) {
       return 'over';
     }
+    if (this.overcommitted()) {
+      return 'close';
+    }
     return amount > 0 && spent / amount >= CLOSE_RATIO ? 'close' : 'ok';
   });
 
-  /** El avance entero en una frase, que es lo que oye quien no ve la barra. */
+  /**
+   * El avance entero en una frase, que es lo que oye quien no ve la barra.
+   * Lo comprometido entra en la frase y no solo en el rayado: es la mitad de la respuesta a
+   * «¿me queda margen?», y quien navega con lector de pantalla no ve la trama.
+   */
   protected readonly reading = computed(() => {
     const budget = this.budget();
     const base = `${budget.category}: ${formatMoney(budget.spent)} de ${formatMoney(budget.amount)}`;
-    return this.tone() === 'over'
-      ? `${base}, te pasaste por ${formatMoney(-budget.remaining)}`
-      : `${base}, queda ${formatMoney(budget.remaining)}`;
+    if (this.tone() === 'over') {
+      return `${base}, te pasaste por ${formatMoney(-budget.remaining)}`;
+    }
+    if (budget.committed > 0) {
+      const fixed = `${formatMoney(budget.committed)} en fijos por pagar`;
+      return budget.available < 0
+        ? `${base}, con ${fixed} te pasas por ${formatMoney(-budget.available)}`
+        : `${base}, ${fixed}, quedan ${formatMoney(budget.available)} libres`;
+    }
+    return `${base}, queda ${formatMoney(budget.remaining)}`;
   });
 
   protected money(amount: number): string {
