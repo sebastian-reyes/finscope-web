@@ -63,10 +63,29 @@ Tres cosas que no son evidentes:
 - **`viewport-fit=cover` en `index.html` sostiene todas las zonas seguras.** Sin él,
   `env(safe-area-inset-*)` vale cero en iOS y la barra inferior acaba bajo la barra de
   gestos. No se toca.
-- **Tras desplegar, quien ya la tenga abierta sigue viendo la versión anterior.** El
-  trabajador sirve lo cacheado y descarga la nueva por detrás; entra al reabrir la
-  aplicación. No es un fallo del despliegue.
+- **Tras desplegar, la versión nueva no entra sola: hay que activarla.** El trabajador
+  sirve lo cacheado y descarga lo nuevo por detrás, pero la pestaña abierta se queda en la
+  versión con la que arrancó —y en una aplicación instalada eso puede durar días—. De eso se
+  ocupa `core/app-update.service.ts`: pregunta por versiones nuevas al abrir, cada cuarto de
+  hora y cada vez que se vuelve a la aplicación, y cuando hay una lista enciende el aviso
+  «Hay una versión nueva» con su botón. La recarga no se hace sola a propósito: puede haber
+  una hoja de registro a medio rellenar.
 
-Los iconos se generan con `tools/make-icons.py` a partir de los colores de marca. Los PNG
-están versionados, así que el script solo hace falta si la marca cambia o aparece un tamaño
-nuevo.
+El original de la marca es `tools/brand/icon-master.png`: el arte tal y como vino, con su
+aire y su sombra alrededor. De ahí sale todo lo demás con `tools/make-icons.py`, que recorta
+la baldosa —el cuadrado redondeado, sin sombra ni margen— y con ella genera el favicon, los
+iconos normales, los enmascarables —con el fondo hasta el borde, que la forma la recorta el
+sistema—, el de iOS y la marca suelta. Los binarios están versionados, así que el script
+solo hace falta cuando cambie el icono.
+
+La marca suelta (`icons/logo-light.png` y `logo-dark.png`) es el dibujo sin su baldosa, y es
+lo que firma la aplicación por dentro: barra superior y acceso. Va en dos versiones porque el
+trazo del original es blanco —en claro se pinta con el navy del propio icono y las barras
+bajan de luz para leerse sobre papel—, y la elige la plantilla según el tema resuelto. La
+baldosa entera se queda para lo que es de verdad: el icono del sistema. Dentro de una barra
+blanca era el bloque más oscuro de la pantalla.
+
+El margen del original no se conserva a propósito: puesto, en la pestaña el dibujo se
+quedaba en nada. El master manda además en lo finos que salen los tamaños grandes; el que
+hay mide 256 px y su baldosa 194, de modo que 384 y 512 se amplían. Sustituyéndolo por el
+mismo dibujo a 1024 px y volviendo a ejecutar, salen nítidos sin tocar nada más.

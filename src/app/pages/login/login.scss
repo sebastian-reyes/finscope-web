@@ -40,10 +40,20 @@
 
 .fs-auth__logo--compact {
   color: var(--fs-ink);
+}
 
-  i {
-    color: var(--fs-brand);
-  }
+// Igual que en la barra: el icono de verdad. Aquí es lo primero que se ve de la aplicación,
+// así que con más razón tiene que ser el mismo que quedará en la pantalla de inicio si se
+// instala.
+.fs-auth__mark {
+  flex: none;
+  width: 1.875rem;
+  height: 1.875rem;
+}
+
+.fs-auth__logo--compact .fs-auth__mark {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .fs-auth__claim {

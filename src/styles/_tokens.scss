@@ -10,38 +10,60 @@
 
 // --- Color -----------------------------------------------------------------------------
 
-// Marca. Un azul frío, deliberadamente ajeno al verde y al rojo del dinero, para que un
-// botón primario no se confunda nunca con un signo.
-$fs-brand: #2a5cb8;
-$fs-brand-strong: #1f4794;
-$fs-brand-deep: #10233a;
+// Marca. Un azul frío, deliberadamente ajeno al rojo del dinero, para que un botón primario
+// no se confunda nunca con un signo.
+//
+// Los cuatro escalones son el azul del icono. Compartir el tono no bastaba: el icono es una
+// baldosa muy oscura —15 % de luz— y este azul andaba por el 44 %, de modo que puestos uno
+// al lado del otro no parecían la misma marca sino dos azules distintos, el de la interfaz
+// más claro y más ruidoso. Bajado al 35 %, el botón primario y la baldosa se leen como lo
+// mismo. `$fs-brand-deep` es literalmente el fondo del icono.
+$fs-brand: #1c4894;
+$fs-brand-strong: #153a78;
+$fs-brand-deep: #0c1d3f;
 $fs-brand-tint: #eaf0fb;
 
 // Semántica financiera.
-$fs-income: #0f7b54;
-$fs-income-tint: #e6f2ec;
+//
+// El ingreso es el verde azulado de las barras del icono —su mismo tono, 167°— y no el verde
+// bosque de antes, que tiraba a amarillo y era el color que más desentonaba al lado de la
+// marca. No es solo estética: en el icono lo que sube son las barras, así que el color con
+// el que crece el dinero es el mismo en los dos sitios.
+//
+// El cambio se comprobó, no se estimó: sobre blanco pasa de 5,27 a 5,49 de contraste, y
+// simulado en deuteranopía se separa del rojo un 1,22 frente al 1,18 de antes. Es decir,
+// queda algo mejor que el verde al que sustituye por los dos lados.
+$fs-income: #0d7760;
+$fs-income-tint: #e5f4f0;
 $fs-expense: #c0392e;
 $fs-expense-tint: #fbeae8;
 
-// Neutros con una pizca de azul, para que convivan con la marca sin verse sucios.
+// Neutros con una pizca de azul, para que convivan con la marca sin verse sucios. El
+// papel y las líneas llevan el mismo tono que el icono, como en oscuro: la tarjeta se
+// queda blanca —es la hoja sobre la que se lee— y el azul entra por el fondo y el borde.
 $fs-ink: #131a24;
 $fs-ink-muted: #5b6675;
 $fs-ink-faint: #8b94a1;
-$fs-paper: #f4f6f9;
+$fs-paper: #f4f6fb;
 $fs-surface: #ffffff;
-$fs-line: #e4e8ee;
+$fs-line: #e4e8f1;
 
 // Los mismos papeles en oscuro, elegidos y no invertidos. El verde y el rojo del modo
 // oscuro no son los de siempre aclarados: sobre fondo oscuro esa pareja se vuelve
 // indistinguible en deuteranopía, así que se re-escalonaron hasta pasar la comprobación.
+// Los papeles oscuros llevan el azul del icono y no un gris con una gota de azul: mismo
+// brillo que antes, tono llevado a 220° y más saturación. Un gris neutro detrás de una
+// baldosa tan azul hacía que la aplicación pareciera el marco de otra cosa. Comprobado
+// token a token: todos los contrastes sobre la superficie nueva salen iguales o algo
+// mejores que sobre la vieja.
 $fs-ink-dark: #e9edf2;
 $fs-ink-muted-dark: #a3acb9;
 $fs-ink-faint-dark: #78818e;
-$fs-paper-dark: #0f1319;
-$fs-surface-dark: #171d25;
-$fs-line-dark: #262e39;
+$fs-paper-dark: #0c1120;
+$fs-surface-dark: #141b2c;
+$fs-line-dark: #232c42;
 $fs-brand-dark: #7ba4ec;
-$fs-income-dark: #2f9e73;
+$fs-income-dark: #29997f;
 $fs-expense-dark: #e06055;
 
 // --- Forma -----------------------------------------------------------------------------

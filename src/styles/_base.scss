@@ -40,7 +40,7 @@
   --fs-brand: #{t.$fs-brand};
   --fs-brand-strong: #{t.$fs-brand-strong};
   --fs-brand-tint: #{t.$fs-brand-tint};
-  --fs-brand-rgb: 42, 92, 184;
+  --fs-brand-rgb: 28, 72, 148;
   /* Lo que se escribe encima del azul macizo. */
   --fs-on-brand: #ffffff;
   --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand, 0.16)};
@@ -108,13 +108,13 @@
   // contraste siga estando del lado correcto.
   --fs-brand: #{t.$fs-brand-dark};
   --fs-brand-strong: #a3c0f2;
-  --fs-brand-tint: #1a2537;
+  --fs-brand-tint: #192743;
   --fs-brand-rgb: 123, 164, 236;
   --fs-on-brand: #{t.$fs-paper-dark};
   --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand-dark, 0.22)};
 
   --fs-income: #{t.$fs-income-dark};
-  --fs-income-tint: #1a2b25;
+  --fs-income-tint: #152824;
   --fs-expense: #{t.$fs-expense-dark};
   --fs-expense-tint: #2e1e1c;
   --fs-expense-ink: #f0a49c;
@@ -122,7 +122,7 @@
   --fs-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
   --fs-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
   // En oscuro la luz no se añade con blanco encima, que ensucia: la superficie sube un paso.
-  --fs-surface-lift: #1c232d;
+  --fs-surface-lift: #192338;
   --fs-edge: #{rgba(#fff, 0.05)};
 }
 

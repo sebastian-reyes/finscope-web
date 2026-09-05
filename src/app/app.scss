@@ -87,10 +87,16 @@
   letter-spacing: -0.01em;
   color: var(--fs-ink);
   text-decoration: none;
+}
 
-  i {
-    color: var(--fs-brand);
-  }
+// El icono de la aplicación, el mismo que se ve en la pantalla de inicio, y no un glifo que
+// se le parezca: la marca de la barra y la baldosa que se toca para abrirla son la misma
+// cosa. Trae sus esquinas redondeadas dibujadas, así que aquí solo se le da su medida —algo
+// mayor que el texto, como cualquier logotipo— y se le prohíbe encoger.
+.fs-brand__mark {
+  flex: none;
+  width: 1.625rem;
+  height: 1.625rem;
 }
 
 // La navegación de arriba y la de abajo son la misma decisión tomada dos veces: en escritorio
@@ -339,6 +345,33 @@
 
   &:hover {
     opacity: 1;
+  }
+}
+
+// El aviso de versión nueva usa la misma caja que los demás, pero no se va solo ni se
+// puede cerrar: mientras esté ahí, lo que se está mirando es la versión anterior, y eso
+// conviene saberlo hasta que se recargue.
+.fs-update i:first-child {
+  color: var(--fs-paper);
+}
+
+.fs-update__apply {
+  flex: none;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background-color 0.12s ease;
+
+  &:hover {
+    background-color: color-mix(in srgb, currentColor 14%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.5;
   }
 }
 

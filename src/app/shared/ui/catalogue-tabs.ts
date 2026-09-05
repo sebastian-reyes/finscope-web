@@ -46,6 +46,19 @@ import { SegmentedDirective } from './segmented';
        solo se ajusta lo propio de unos enlaces: el icono y el subrayado. */
     .fs-tabs {
       margin-bottom: 1rem;
+      /* Lo que se salga se queda dentro del conmutador. Las cuatro opciones con su icono
+         miden 433 px, y en un teléfono de 390 eso no se recortaba: estiraba el documento y
+         dejaba toda la sección del catálogo con scroll horizontal, con las tarjetas y sus
+         botones saliéndose por la derecha. Aquí lo que se desplaza es la tira, no la
+         pantalla. */
+      max-width: 100%;
+      overflow-x: auto;
+      /* La barra de desplazamiento sobra: es una tira de cuatro y se arrastra con el dedo. */
+      scrollbar-width: none;
+    }
+
+    .fs-tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .fs-tabs__link {
@@ -53,6 +66,24 @@ import { SegmentedDirective } from './segmented';
       align-items: center;
       gap: 0.4rem;
       text-decoration: none;
+      /* Sin encoger y sin partir palabras: una opción a medias no se lee, y para eso está
+         el desplazamiento. */
+      flex: none;
+      white-space: nowrap;
+    }
+
+    /* En el teléfono los iconos se van. Son un adorno —los rótulos son palabras completas y
+       se entienden solos— y sin ellos las cuatro caben de sobra en una pantalla normal, que
+       es mejor que poder verlas arrastrando. */
+    @media (max-width: 576px) {
+      .fs-tabs__link {
+        gap: 0;
+        padding-inline: 0.7rem;
+      }
+
+      .fs-tabs__link i {
+        display: none;
+      }
     }
   `,
 })

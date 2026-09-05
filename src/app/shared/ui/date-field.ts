@@ -14,13 +14,50 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import AirDatepicker, { AirDatepickerOptions } from 'air-datepicker';
-import localeEs from 'air-datepicker/locale/es';
+import AirDatepicker, { AirDatepickerLocale, AirDatepickerOptions } from 'air-datepicker';
 import { monthLabel, toInputDateTime } from '../../core/format/period';
 import { GAP, anchorSpot } from './anchor';
 
 /** Qué se elige en el campo: un día, un día con su hora, o un mes entero. */
 export type DateFieldMode = 'date' | 'datetime' | 'month';
+
+/**
+ * El español del calendario, escrito aquí en lugar de traído de la librería.
+ *
+ * Sus locales son lo único que no publica en ESM: cada uno es un módulo CommonJS, y traerse
+ * uno obliga al empaquetador a envolverlo —avisa en cada compilación y renuncia a optimizar
+ * lo que cuelgue de él—. Es una tabla que no va a cambiar nunca, así que sale más a cuenta
+ * tenerla escrita que arrastrar el módulo.
+ *
+ * `dateFormat` y `timeFormat` los pide el tipo, pero no mandan: el formato del campo lo
+ * decide `options()` y la hora no la lleva el calendario.
+ */
+const LOCALE_ES: AirDatepickerLocale = {
+  days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+  daysShort: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  daysMin: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
+  months: [
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ],
+  monthsShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  today: 'Hoy',
+  clear: 'Limpiar',
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  // La semana empieza en lunes, como en cualquier calendario de aquí.
+  firstDay: 1,
+};
 
 /** Ancho por debajo del cual el calendario se abre centrado, como una hoja del sistema. */
 const MOBILE_WIDTH = 576;
@@ -728,7 +765,7 @@ export class DateFieldComponent implements AfterViewInit, OnDestroy {
   private options(): AirDatepickerOptions<HTMLInputElement> {
     const byMonth = this.mode() === 'month';
     return {
-      locale: localeEs,
+      locale: LOCALE_ES,
       // El mes se rotula como lo hacía la cabecera antes de tener calendario: el nombre
       // solo, y con el año únicamente cuando no es el de hoy.
       dateFormat: byMonth

@@ -8,11 +8,28 @@
  *
  * Aun así, ningún gráfico se apoya solo en el color: la serie de evolución lleva leyenda y
  * el desglose por tag rotula cada porción con su nombre.
+ *
+ * El ingreso y el egreso son los mismos valores que `$fs-income` y `$fs-expense`, copiados a
+ * mano por lo dicho arriba. Si allí cambian, aquí también: la línea de ingresos de la serie y
+ * la cifra del balance son el mismo dato y no pueden salir de dos verdes distintos.
  */
 
-/** Colores de las porciones del desglose por tag, en orden fijo. */
+/**
+ * Colores de las porciones del desglose por tag, en orden fijo.
+ *
+ * El primero es el azul de marca, que bajó de tono con ella. El tercero se queda en el verde
+ * de antes y no sigue al ingreso hasta el verde azulado del icono, aunque sea el mismo hueco
+ * de la lista: aquí el trabajo del color no es significar «entra dinero» sino distinguirse de
+ * los otros cinco, y simulado en deuteranopía ese verde azulado se junta con el magenta —3,4
+ * de distancia, contra los 10,9 que deja el verde actual—. Es decir, lo que conviene a la
+ * cifra del balance perjudica a una porción de tarta, y no son la misma decisión.
+ *
+ * Con el azul hondo la paleta mejora por los dos lados: la peor pareja pasa de 17,6 a 24,4 en
+ * visión normal, y de 7,2 a 10,9 en deuteranopía, porque el azul claro y el morado eran los
+ * que se confundían.
+ */
 const CATEGORICAL_LIGHT = [
-  '#2a5cb8',
+  '#1c4894',
   '#c9741a',
   '#0f7b54',
   '#6d5bc4',
@@ -49,7 +66,7 @@ export interface ChartPalette {
 }
 
 const LIGHT: ChartPalette = {
-  income: '#0f7b54',
+  income: '#0d7760',
   expense: '#c0392e',
   categorical: CATEGORICAL_LIGHT,
   other: OTHER_LIGHT,
@@ -60,14 +77,14 @@ const LIGHT: ChartPalette = {
 };
 
 const DARK: ChartPalette = {
-  income: '#2f9e73',
+  income: '#29997f',
   expense: '#e06055',
   categorical: CATEGORICAL_DARK,
   other: OTHER_DARK,
-  grid: '#262e39',
+  grid: '#232c42',
   ink: '#e9edf2',
   inkMuted: '#a3acb9',
-  surface: '#171d25',
+  surface: '#141b2c',
 };
 
 /**

@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
@@ -47,6 +48,9 @@ export class App {
 
   /** La hoja de registro, que se abre desde el botón central y se dibuja aquí. */
   protected readonly editor = inject(TransactionEditorService);
+
+  /** El vigilante de despliegues, que es quien enciende el aviso de versión nueva. */
+  protected readonly update = inject(AppUpdateService);
 
   protected readonly user = this.auth.user;
   protected readonly isLoggedIn = this.auth.isLoggedIn;
@@ -126,6 +130,11 @@ export class App {
 
   protected toggleTheme(): void {
     this.theme.toggle();
+  }
+
+  /** Recarga con la versión recién desplegada, que es lo que pide el aviso. */
+  protected applyUpdate(): void {
+    void this.update.apply();
   }
 
   /**

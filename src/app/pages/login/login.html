@@ -14,7 +14,9 @@
 
 <div class="fs-auth">
   <section class="fs-auth__brand" aria-hidden="true">
-    <p class="fs-auth__logo"><i class="bi bi-pie-chart-fill"></i>FinScope</p>
+    <p class="fs-auth__logo">
+      <img class="fs-auth__mark" src="icons/logo-dark.png" alt="" width="30" height="30" />FinScope
+    </p>
     <p class="fs-auth__claim">
       Saber en qué se te va el dinero no debería costar una hoja de cálculo.
     </p>
@@ -38,7 +40,13 @@
   <section class="fs-auth__form">
     <header class="fs-auth__head">
       <p class="fs-auth__logo fs-auth__logo--compact">
-        <i class="bi bi-pie-chart-fill"></i>FinScope
+        <img
+          class="fs-auth__mark"
+          [src]="resolvedTheme() === 'dark' ? 'icons/logo-dark.png' : 'icons/logo-light.png'"
+          alt=""
+          width="28"
+          height="28"
+        />FinScope
       </p>
       <h1 class="fs-auth__title">
         {{ isRegister() ? 'Crea tu cuenta' : 'Entra en tu cuenta' }}
