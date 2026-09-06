@@ -313,6 +313,7 @@ export function filterParams(filters: TransactionFilters): HttpParams {
     ['transactionTypeId', filters.transactionTypeId],
     ['categoryId', filters.categoryId],
     ['tag', filters.tag?.trim() || null],
+    ['search', filters.search?.trim() || null],
   ];
   let params = new HttpParams();
   for (const [key, value] of values) {

@@ -133,6 +133,13 @@ export interface TransactionFilters {
   categoryId?: number | null;
   /** Nombre del tag, sin distinguir mayúsculas. */
   tag?: string | null;
+  /**
+   * Texto a buscar, sin distinguir mayúsculas.
+   * La API lo busca en la descripción del movimiento, en el nombre de su categoría y en el
+   * de cualquiera de sus tags, porque quien lo escribe no se acuerda de en cuál de los tres
+   * lo apuntó. Los comodines de SQL viajan como caracteres corrientes.
+   */
+  search?: string | null;
 }
 
 /** Filtros del listado, que además pagina y ordena. */

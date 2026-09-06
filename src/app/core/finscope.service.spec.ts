@@ -18,11 +18,23 @@ describe('filterParams', () => {
     expect(params.get('tag')).toBe('gab');
   });
 
+  it('manda el texto buscado recortado', () => {
+    const params = filterParams({ search: '  dentista  ' });
+
+    expect(params.get('search')).toBe('dentista');
+  });
+
   it('omite los filtros sin informar, que para la API significan sin acotar', () => {
-    const params = filterParams({ categoryId: null, tag: '   ', transactionTypeId: undefined });
+    const params = filterParams({
+      categoryId: null,
+      tag: '   ',
+      search: '   ',
+      transactionTypeId: undefined,
+    });
 
     expect(params.has('categoryId')).toBe(false);
     expect(params.has('tag')).toBe(false);
+    expect(params.has('search')).toBe(false);
     expect(params.has('transactionTypeId')).toBe(false);
   });
 });

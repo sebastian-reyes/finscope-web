@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subject, debounceTime, forkJoin } from 'rxjs';
 import { FinscopeService } from '../../core/finscope.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
@@ -34,6 +34,13 @@ const DEFAULT_SIZE = 20;
 
 /** Cuánto se queda resaltado el movimiento que se acaba de guardar. */
 const HIGHLIGHT_MS = 1800;
+
+/**
+ * Cuánto se espera desde la última tecla antes de buscar.
+ * Buscar en cada pulsación mandaría una consulta por letra —y su resumen— para tirar todas
+ * menos la última; esperar más haría que escribir se sintiera desconectado de la lista.
+ */
+const SEARCH_DEBOUNCE_MS = 300;
 
 /** Movimientos de un mismo día, con el rótulo bajo el que se agrupan. */
 interface DayGroup {
@@ -98,6 +105,15 @@ export class TransactionsPage {
   protected readonly typeId = signal<number | null>(null);
   protected readonly categoryId = signal<number | null>(null);
   protected readonly tag = signal<string | null>(null);
+  /**
+   * Lo escrito en el cuadro de búsqueda, que se ve al instante, y el texto que de verdad
+   * está filtrando, que llega un momento después.
+   * Son dos porque teclear y consultar no van al mismo ritmo: el campo tiene que responder
+   * a cada tecla aunque la lista solo se rehaga cuando se deja de escribir.
+   */
+  protected readonly searchDraft = signal('');
+  protected readonly searchText = signal('');
+  private readonly typed = new Subject<string>();
   /** Cómo se puede ordenar la lista. */
   protected readonly sortOptions: SelectOption[] = [
     { value: 'date,desc', label: 'Más recientes', icon: 'bi-sort-down' },
@@ -128,6 +144,7 @@ export class TransactionsPage {
       transactionTypeId: this.typeId(),
       categoryId: this.categoryId(),
       tag: this.tag(),
+      search: this.searchText() || null,
     };
     if (this.periodMode() === 'month') {
       filters.month = this.month();
@@ -213,6 +230,7 @@ export class TransactionsPage {
       this.typeId() !== null ||
       this.categoryId() !== null ||
       this.tag() !== null ||
+      this.searchText() !== '' ||
       this.periodMode() !== 'month' ||
       !this.isCurrentMonth(),
   );
@@ -286,6 +304,12 @@ export class TransactionsPage {
     if ((tag || category) && !scoped) {
       this.periodMode.set('all');
     }
+
+    // Se busca desde la última tecla y no desde la primera: escribir «dentista» son ocho
+    // consultas —cada una con su resumen— de las que solo importa la última.
+    this.typed
+      .pipe(debounceTime(SEARCH_DEBOUNCE_MS), takeUntilDestroyed())
+      .subscribe((text) => this.applySearch(text));
 
     this.editor.refreshCatalogues();
     this.reload();
@@ -381,6 +405,39 @@ export class TransactionsPage {
     this.search();
   }
 
+  /** Recoge lo que se va escribiendo y deja que el retardo decida cuándo buscarlo. */
+  protected onSearchInput(text: string): void {
+    this.searchDraft.set(text);
+    this.typed.next(text.trim());
+  }
+
+  /**
+   * Vacía la búsqueda sin esperar al retardo.
+   * Quien borra el texto a propósito no está escribiendo: hacerle esperar a que pase el
+   * retardo para ver otra vez su historial sería un tirón sin motivo. El emitido al flujo
+   * descarta lo que hubiera pendiente, y su llegada más tarde ya no cambia nada.
+   */
+  protected clearSearch(): void {
+    this.searchDraft.set('');
+    this.typed.next('');
+    this.applySearch('');
+  }
+
+  /**
+   * Aplica el texto buscado, si es que ha cambiado.
+   * El mismo texto puede llegar dos veces —al limpiar, y otra vez cuando vence el retardo
+   * que se descartó—, y volver a pedir la lista por eso sería pedirla dos veces por nada.
+   *
+   * @param text texto buscado, ya recortado
+   */
+  private applySearch(text: string): void {
+    if (this.searchText() === text) {
+      return;
+    }
+    this.searchText.set(text);
+    this.search();
+  }
+
   protected setSort(value: string): void {
     this.sort.set(value);
     this.search();
@@ -408,6 +465,11 @@ export class TransactionsPage {
     this.typeId.set(null);
     this.categoryId.set(null);
     this.tag.set(null);
+    this.searchDraft.set('');
+    // Igual que al limpiar solo la búsqueda: descarta lo que se estuviera escribiendo para
+    // que no vuelva a ponerse solo un instante después.
+    this.typed.next('');
+    this.searchText.set('');
     this.search();
   }
 
