@@ -50,3 +50,199 @@
 .fs-seg {
   margin-top: 1rem;
 }
+
+// --- Colores -------------------------------------------------------------------------------
+
+// La muestra. No es un adorno: elegir un color mirando un círculo de 2 rem no dice nada, y
+// aquí se ve el mismo icono que quedará en la pestaña, el mismo botón de registrar y el
+// mismo macizo con su texto encima, que es donde se nota si un color se lee o no.
+.fs-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius);
+  background-color: var(--fs-surface-sunken);
+}
+
+.fs-preview__mark {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.fs-preview__fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-image: linear-gradient(160deg in oklch shorter hue, var(--fs-brand), var(--fs-accent));
+  color: #fff;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(var(--fs-brand-rgb), 0.35);
+}
+
+.fs-preview__btn {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--fs-radius-control);
+  background-color: var(--fs-brand);
+  color: var(--fs-on-brand);
+  font-size: var(--fs-text-sm);
+  font-weight: 550;
+}
+
+// El círculo del acento, el mismo que llevan los huecos vacíos por toda la aplicación. Está
+// aquí porque, quitado el degradado del botón de registrar, es el sitio donde el segundo
+// color se ve entero y sin mezclar.
+.fs-preview__accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: var(--fs-accent-tint);
+  color: var(--fs-accent);
+  font-size: 1.05rem;
+}
+
+// La barra de un presupuesto que va bien, que es donde la pareja se ve barrida de un color
+// al otro en horizontal. Aquí no lleva números: solo enseña el barrido.
+.fs-preview__bar {
+  display: block;
+  width: 5.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: var(--fs-shade);
+  overflow: hidden;
+}
+
+.fs-preview__bar > span {
+  display: block;
+  width: 68%;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--fs-brand);
+  background-image: linear-gradient(90deg in oklch shorter hue, var(--fs-brand), var(--fs-accent));
+}
+
+.fs-slot {
+  margin-top: 1.25rem;
+}
+
+.fs-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+// Círculos y no cuadrados: un color puesto en redondo se compara mejor con el de al lado, y
+// además es la forma que ya tienen el icono y el botón de registrar, que es lo que van a
+// pintar.
+.fs-swatch {
+  position: relative;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--fs-shade);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.fs-swatch:hover {
+  transform: scale(1.08);
+}
+
+.fs-swatch:active {
+  transform: scale(0.94);
+}
+
+// El elegido se marca con un anillo por fuera y no con un tilde encima: el tilde habría que
+// pintarlo en un color que se lea sobre cualquiera de los once, y no lo hay.
+.fs-swatch.is-active {
+  box-shadow:
+    0 0 0 2px var(--fs-surface),
+    0 0 0 4px var(--fs-ink);
+}
+
+.fs-swatch:focus-visible {
+  outline: 2px solid var(--fs-ink);
+  outline-offset: 3px;
+}
+
+// El campo de color del navegador, disfrazado de muestra. El propio campo pinta el color en
+// curso, así que hace de indicador además de puerta al selector del sistema; el cuentagotas
+// va encima solo para que se distinga de los once fijos.
+.fs-swatch--custom {
+  overflow: hidden;
+  border-style: dashed;
+  border-color: var(--fs-line-strong);
+}
+
+.fs-swatch--custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.fs-swatch--custom input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.fs-swatch--custom input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.fs-swatch--custom input::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.fs-swatch--custom i {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.fs-slot--footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-slot--footer .fs-hint {
+  margin-top: 0;
+  max-width: 34rem;
+}
+
+.fs-reset {
+  flex: none;
+  gap: 0.35rem;
+}

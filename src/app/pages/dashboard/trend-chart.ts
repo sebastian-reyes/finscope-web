@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { ChartConfiguration } from 'chart.js';
 import { ChartComponent } from '../../shared/ui/chart';
+import { PaletteService } from '../../core/palette.service';
 import { ThemeService } from '../../core/theme.service';
-import { chartPalette } from '../../core/format/chart-palette';
 import { formatMoney } from '../../core/format/money';
 import { bucketLabel } from '../../core/format/period';
 import { SummarySeriesResponse } from '../../core/models';
@@ -40,6 +40,7 @@ import { SummarySeriesResponse } from '../../core/models';
 })
 export class TrendChartComponent {
   private readonly theme = inject(ThemeService);
+  private readonly palette = inject(PaletteService);
 
   readonly series = input.required<SummarySeriesResponse>();
 
@@ -57,7 +58,7 @@ export class TrendChartComponent {
   });
 
   protected readonly config = computed<ChartConfiguration>(() => {
-    const palette = chartPalette(this.theme.resolved());
+    const palette = this.palette.chart();
     const buckets = this.series().buckets;
     return {
       type: 'line',

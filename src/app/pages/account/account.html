@@ -79,3 +79,74 @@
     Se recuerda en este navegador. Siguiendo al sistema, cambia solo cuando lo hace tu dispositivo.
   </p>
 </section>
+
+<section class="fs-panel fs-block" aria-labelledby="coloresTitle">
+  <p class="fs-section" id="coloresTitle">Colores</p>
+
+  <!--
+    Una muestra de lo que cambia, y no una fila de cuadraditos sueltos: el icono, el botón de
+    registrar, un botón macizo, el círculo de los huecos vacíos y una barra de presupuesto son
+    los cinco sitios donde la pareja se ve de verdad, así que se enseñan juntos y se mueven
+    mientras se elige. Es decorativa —lo que representa está debajo, en palabras—, de ahí
+    que no se anuncie.
+  -->
+  <div class="fs-preview" aria-hidden="true">
+    <fs-logo class="fs-preview__mark" />
+    <span class="fs-preview__fab"><i class="bi bi-plus-lg"></i></span>
+    <span class="fs-preview__btn">Guardar</span>
+    <span class="fs-preview__accent"><i class="bi bi-inbox"></i></span>
+    <span class="fs-preview__bar"><span></span></span>
+  </div>
+
+  @for (slot of slots; track slot.role) {
+    <div class="fs-slot">
+      <p class="fs-label" [id]="slot.role + 'Label'">{{ slot.label }}</p>
+
+      <div class="fs-swatches" role="group" [attr.aria-labelledby]="slot.role + 'Label'">
+        @for (preset of presets; track preset.hex) {
+          <button
+            type="button"
+            class="fs-swatch"
+            [style.background-color]="preset.hex"
+            [class.is-active]="current(slot.role) === preset.hex"
+            [attr.aria-pressed]="current(slot.role) === preset.hex"
+            [attr.aria-label]="preset.name"
+            [attr.title]="preset.name"
+            (click)="setColor(slot.role, preset.hex)"
+          ></button>
+        }
+
+        <!--
+          El campo de color nativo hace de duodécima muestra: enseña el color puesto ahora
+          —sea de la lista o no— y al pulsarlo abre el selector del sistema, que es el que
+          ya sabe usar quien llega aquí.
+        -->
+        <span class="fs-swatch fs-swatch--custom">
+          <input
+            type="color"
+            [value]="current(slot.role)"
+            [attr.aria-label]="slot.custom"
+            [attr.title]="slot.custom"
+            (input)="setColor(slot.role, $any($event.target).value)"
+          />
+          <i class="bi bi-eyedropper" aria-hidden="true"></i>
+        </span>
+      </div>
+
+      <p class="fs-hint">{{ slot.hint }}</p>
+    </div>
+  }
+
+  <div class="fs-slot fs-slot--footer">
+    <p class="fs-hint">
+      Se aplica al momento y se recuerda en este navegador, igual que el modo claro y oscuro. Si el
+      color elegido no se leyera sobre el fondo, se ajusta lo justo para que sí.
+    </p>
+
+    @if (!isDefaultPalette()) {
+      <button type="button" class="fs-btn fs-btn--ghost fs-reset" (click)="resetColors()">
+        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>Restablecer
+      </button>
+    }
+  </div>
+</section>

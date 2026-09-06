@@ -73,15 +73,36 @@ Tres cosas que no son evidentes:
 
 El original de la marca es `tools/brand/icon-master.png`: el arte tal y como vino, con su
 aire y su sombra alrededor. De ahí sale todo lo demás con `tools/make-icons.py`, que recorta
-la baldosa —el cuadrado redondeado, sin sombra ni margen— y con ella genera el favicon, los
-iconos normales, los enmascarables —con el fondo hasta el borde, que la forma la recorta el
-sistema—, el de iOS y la marca suelta. Los binarios están versionados, así que el script
-solo hace falta cuando cambie el icono.
+la baldosa —el cuadrado redondeado, sin sombra ni margen—, **la lleva a los colores de la
+aplicación** y con ella genera el favicon, los iconos normales, los enmascarables —con el
+fondo hasta el borde, que la forma la recorta el sistema—, el de iOS y la marca suelta. Los
+binarios están versionados, así que el script solo hace falta cuando cambie el icono.
+
+El recoloreado no es un capricho. El arte vino en azul marino y verde azulado, que se parecen
+a los de la aplicación pero no son los mismos, y esa distancia corta es justo la que se nota:
+dos azules casi iguales uno al lado del otro se leen como un error, no como una familia.
+
+La baldosa pasa al degradado de `$fs-brand-strong` a `$fs-brand-deep`, los dos escalones
+hondos de la marca. No lleva `$fs-brand`, el azul de los botones, y la razón es de contraste:
+ese azul está al 44 % de luz y el verde de la aplicación al 27 %, así que una barra verde
+encima se difumina —1,1 de contraste, prácticamente invisible—. El dibujo original funciona
+porque su fondo es muy oscuro y deja sitio al verde; con el fondo hondo se conserva esa
+holgura sin salirse de la paleta.
+
+A las barras se les pone el tono de `$fs-income` y se les reasigna la luz a una banda del
+36 % al 62 %, respetando el orden entre ellas para que conserven su degradado. La luz no se
+conserva tal cual porque la del dibujo llegaba a la menta —78 %— y en la aplicación no hay
+ningún verde por encima del 40 %: era eso, y no el tono, lo que hacía que el icono no
+pareciera de la casa.
+
+Un detalle que costó encontrar: solo cuenta como dibujo lo que tiene más luz que el fondo.
+Las sombras que el dibujo lleva debajo son más oscuras, y sin esa condición entraban como
+dibujo y se pintaban del color del trazo, lo que dejaba un halo pálido rodeando la lupa.
 
 La marca suelta (`icons/logo-light.png` y `logo-dark.png`) es el dibujo sin su baldosa, y es
 lo que firma la aplicación por dentro: barra superior y acceso. Va en dos versiones porque el
-trazo del original es blanco —en claro se pinta con el navy del propio icono y las barras
-bajan de luz para leerse sobre papel—, y la elige la plantilla según el tema resuelto. La
+trazo del original es blanco —en claro se pinta con `$fs-brand-strong` y las barras bajan de
+luz para leerse sobre papel—, y la elige la plantilla según el tema resuelto. La
 baldosa entera se queda para lo que es de verdad: el icono del sistema. Dentro de una barra
 blanca era el bloque más oscuro de la pantalla.
 

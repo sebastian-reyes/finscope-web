@@ -49,6 +49,17 @@ describe('AccountPage', () => {
     fixture.detectChanges();
   }
 
+  /** Las muestras de color de uno de los dos huecos, en el orden en que se ven. */
+  function swatches(role: 'primary' | 'secondary'): HTMLButtonElement[] {
+    const group = host().querySelector(`[aria-labelledby="${role}Label"]`)!;
+    return Array.from(group.querySelectorAll<HTMLButtonElement>('button.fs-swatch'));
+  }
+
+  /** La muestra marcada como puesta, que es la que lleva el anillo. */
+  function chosen(role: 'primary' | 'secondary'): HTMLButtonElement | undefined {
+    return swatches(role).find((swatch) => swatch.getAttribute('aria-pressed') === 'true');
+  }
+
   beforeEach(async () => {
     localStorage.setItem('finscope.user', JSON.stringify(USER));
     await TestBed.configureTestingModule({
@@ -125,6 +136,76 @@ describe('AccountPage', () => {
 
     expect(nameField().value).toBe('Sebastian');
     expect(actions()).toEqual([]);
+  });
+
+  it('arranca con los colores guardados a nombre de quien entra', async () => {
+    // Se rehace la pantalla con algo ya guardado bajo la clave de este usuario: es el camino
+    // de lectura, el que hace que al volver a entrar te encuentres tu color y no el de otro.
+    http.verify();
+    localStorage.setItem(
+      `finscope.colors.${USER.id}`,
+      JSON.stringify({ primary: '#7c3aed', secondary: '#d9930b' }),
+    );
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AccountPage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(USER);
+    fixture.detectChanges();
+
+    expect(chosen('primary')!.getAttribute('aria-label')).toBe('Violeta');
+    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Ámbar');
+  });
+
+  it('parte de los colores de fábrica y no ofrece restablecerlos', () => {
+    expect(chosen('primary')!.getAttribute('aria-label')).toBe('Azul');
+    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Verde');
+    expect(host().querySelector('.fs-reset')).toBeNull();
+  });
+
+  it('aplica el color elegido al documento y lo recuerda', () => {
+    const violeta = swatches('primary').find(
+      (swatch) => swatch.getAttribute('aria-label') === 'Violeta',
+    )!;
+
+    violeta.click();
+    fixture.detectChanges();
+
+    expect(chosen('primary')).toBe(violeta);
+    // Lo que importa no es el hexadecimal exacto —la escala se deriva— sino que la variable
+    // deje de valer lo que valía: es lo único que hace que la aplicación cambie de color.
+    expect(document.documentElement.style.getPropertyValue('--fs-brand')).not.toBe('');
+    // La clave lleva el identificador: lo elegido es de esta cuenta, no de este navegador.
+    expect(JSON.parse(localStorage.getItem(`finscope.colors.${USER.id}`)!).primary).toBe('#7c3aed');
+  });
+
+  it('ofrece restablecer en cuanto la pareja deja de ser la de fábrica, y la devuelve', () => {
+    swatches('secondary')
+      .find((swatch) => swatch.getAttribute('aria-label') === 'Ámbar')!
+      .click();
+    fixture.detectChanges();
+
+    host().querySelector<HTMLButtonElement>('.fs-reset')!.click();
+    fixture.detectChanges();
+
+    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Verde');
+    expect(localStorage.getItem(`finscope.colors.${USER.id}`)).toBeNull();
+    expect(host().querySelector('.fs-reset')).toBeNull();
+  });
+
+  it('deja elegir un color que no está en la lista corta', () => {
+    const field = host().querySelector<HTMLInputElement>('.fs-swatch--custom input')!;
+
+    field.value = '#123456';
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(chosen('primary')).toBeUndefined();
+    expect(JSON.parse(localStorage.getItem(`finscope.colors.${USER.id}`)!).primary).toBe('#123456');
   });
 
   it('no manda nada al correo: se enseña, pero no se toca', () => {

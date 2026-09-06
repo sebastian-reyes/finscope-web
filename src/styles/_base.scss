@@ -34,16 +34,32 @@
 
   // --- Líneas ----------------------------------------------------------------------------
   --fs-line: #{t.$fs-line};
-  --fs-line-strong: #{color.adjust(t.$fs-line, $lightness: -8%)};
+  --fs-line-strong: #{t.$fs-line-strong};
 
   // --- Marca -----------------------------------------------------------------------------
+  // Estos valores son los de fábrica y también el respaldo: si el usuario elige otros colores,
+  // `PaletteService` escribe las mismas variables en el elemento raíz y estas quedan debajo.
+  // Por eso siguen aquí enteras y no como un cálculo a medias: lo que se ve mientras arranca
+  // el JavaScript tiene que ser una paleta completa y no media.
   --fs-brand: #{t.$fs-brand};
   --fs-brand-strong: #{t.$fs-brand-strong};
   --fs-brand-tint: #{t.$fs-brand-tint};
-  --fs-brand-rgb: 28, 72, 148;
+  // El extremo del degradado del acceso, que es el único sitio donde la marca llega a fondo.
+  --fs-brand-deep: #{t.$fs-brand-deep};
+  --fs-brand-rgb: 42, 92, 184;
   /* Lo que se escribe encima del azul macizo. */
   --fs-on-brand: #ffffff;
   --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand, 0.16)};
+
+  // --- Acento ----------------------------------------------------------------------------
+  // El segundo color de la pareja. Solo lo gastan el icono, el botón de registrar y el panel
+  // del acceso: es marca, no información.
+  --fs-accent: #{t.$fs-accent};
+  --fs-accent-strong: #{t.$fs-accent-strong};
+  --fs-accent-tint: #{t.$fs-accent-tint};
+  --fs-accent-deep: #{t.$fs-accent-deep};
+  --fs-accent-rgb: 10, 135, 88;
+  --fs-on-accent: #ffffff;
 
   // --- Semántica del dinero --------------------------------------------------------------
   --fs-income: #{t.$fs-income};
@@ -67,6 +83,27 @@
   // rectángulo pintado.
   --fs-surface-lift: #ffffff;
   --fs-edge: #{rgba(#fff, 0.7)};
+
+  // --- Fichas ----------------------------------------------------------------------------
+  // Los ocho pares que reparte `paletteVariant()` por el nombre de la categoría o del tag.
+  // Están medidos por su distancia en grados al azul de la marca, de modo que elegir otro
+  // color principal los gira a todos a la vez sin acercarlos entre sí.
+  --fs-chip-0-bg: #e8eefb;
+  --fs-chip-0-ink: #2c4c8f;
+  --fs-chip-1-bg: #e6f2ec;
+  --fs-chip-1-ink: #216b50;
+  --fs-chip-2-bg: #fdeee2;
+  --fs-chip-2-ink: #8f5220;
+  --fs-chip-3-bg: #f0e9fa;
+  --fs-chip-3-ink: #5a3f96;
+  --fs-chip-4-bg: #fbe9ef;
+  --fs-chip-4-ink: #91375a;
+  --fs-chip-5-bg: #e4f1f6;
+  --fs-chip-5-ink: #1f5f78;
+  --fs-chip-6-bg: #f2f0e4;
+  --fs-chip-6-ink: #6a6425;
+  --fs-chip-7-bg: #eceef1;
+  --fs-chip-7-ink: #454f5c;
 
   --fs-tabbar-height: #{t.$fs-tabbar-height};
   // Alto exacto de la barra superior. Es un valor y no lo que midan sus contenidos porque el
@@ -101,20 +138,28 @@
   --fs-ink-faint: #{t.$fs-ink-faint-dark};
 
   --fs-line: #{t.$fs-line-dark};
-  --fs-line-strong: #{color.adjust(t.$fs-line-dark, $lightness: 8%)};
+  --fs-line-strong: #{t.$fs-line-strong-dark};
 
   // El azul de marca se eligió para papel blanco y sobre fondo oscuro queda apagado: aquí
   // manda su versión clara, y lo que se escribe encima pasa a ser oscuro para que el
   // contraste siga estando del lado correcto.
   --fs-brand: #{t.$fs-brand-dark};
-  --fs-brand-strong: #a3c0f2;
-  --fs-brand-tint: #192743;
-  --fs-brand-rgb: 123, 164, 236;
+  --fs-brand-strong: #{t.$fs-brand-strong-dark};
+  --fs-brand-tint: #{t.$fs-brand-tint-dark};
+  --fs-brand-deep: #00123c;
+  --fs-brand-rgb: 96, 150, 247;
   --fs-on-brand: #{t.$fs-paper-dark};
-  --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand-dark, 0.22)};
+  --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand-dark, 0.24)};
+
+  --fs-accent: #{t.$fs-accent-dark};
+  --fs-accent-strong: #{t.$fs-accent-strong-dark};
+  --fs-accent-tint: #{t.$fs-accent-tint-dark};
+  --fs-accent-deep: #011c0f;
+  --fs-accent-rgb: 58, 177, 123;
+  --fs-on-accent: #{t.$fs-paper-dark};
 
   --fs-income: #{t.$fs-income-dark};
-  --fs-income-tint: #152824;
+  --fs-income-tint: #1a2b25;
   --fs-expense: #{t.$fs-expense-dark};
   --fs-expense-tint: #2e1e1c;
   --fs-expense-ink: #f0a49c;
@@ -122,7 +167,24 @@
   --fs-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
   --fs-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
   // En oscuro la luz no se añade con blanco encima, que ensucia: la superficie sube un paso.
-  --fs-surface-lift: #192338;
+  --fs-chip-0-bg: #1c2740;
+  --fs-chip-0-ink: #9dbaf0;
+  --fs-chip-1-bg: #172b25;
+  --fs-chip-1-ink: #74c9a2;
+  --fs-chip-2-bg: #30241a;
+  --fs-chip-2-ink: #dda877;
+  --fs-chip-3-bg: #262039;
+  --fs-chip-3-ink: #b39fe0;
+  --fs-chip-4-bg: #331e28;
+  --fs-chip-4-ink: #dc95ac;
+  --fs-chip-5-bg: #16292f;
+  --fs-chip-5-ink: #7fb8cb;
+  --fs-chip-6-bg: #2a2818;
+  --fs-chip-6-ink: #c3bd7d;
+  --fs-chip-7-bg: #242a31;
+  --fs-chip-7-ink: #a4aebc;
+
+  --fs-surface-lift: #{t.$fs-surface-lift-dark};
   --fs-edge: #{rgba(#fff, 0.05)};
 }
 
@@ -322,7 +384,11 @@ body:has(.fs-topbar) {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--fs-ink-faint);
+  // El acento. Un rótulo de sección no compite con nada —no es un botón ni un importe— y
+  // hay uno en cada panel, así que es el sitio donde el segundo color se ve por toda la
+  // aplicación sin estorbar. Va en su tono ajustado, no crudo: así se lee sobre el papel
+  // aunque lo elegido fuera un amarillo.
+  color: var(--fs-accent);
 }
 
 .fs-count {
@@ -357,6 +423,10 @@ body:has(.fs-topbar) {
   text-align: center;
 }
 
+// El círculo de un hueco vacío es el sitio del acento: es decoración pura —no hay nada que
+// rotular cuando no hay nada—, va lejos de cualquier importe y sale plano, sin mezclarse con
+// la marca. Es lo que hace que el segundo color se vea por la aplicación y no solo en el
+// icono.
 .fs-blank i {
   display: inline-flex;
   align-items: center;
@@ -365,8 +435,8 @@ body:has(.fs-topbar) {
   height: 3.5rem;
   margin-bottom: 1rem;
   border-radius: 50%;
-  background-color: var(--fs-brand-tint);
-  color: var(--fs-brand);
+  background-color: var(--fs-accent-tint);
+  color: var(--fs-accent);
   font-size: 1.5rem;
 }
 
@@ -431,70 +501,16 @@ fs-category-chip {
   font-size: var(--fs-text-xs);
 }
 
-.fs-chip--0 {
-  --fs-chip-bg: #e8eefb;
-  --fs-chip-ink: #2c4c8f;
-}
-.fs-chip--1 {
-  --fs-chip-bg: #e6f2ec;
-  --fs-chip-ink: #216b50;
-}
-.fs-chip--2 {
-  --fs-chip-bg: #fdeee2;
-  --fs-chip-ink: #8f5220;
-}
-.fs-chip--3 {
-  --fs-chip-bg: #f0e9fa;
-  --fs-chip-ink: #5a3f96;
-}
-.fs-chip--4 {
-  --fs-chip-bg: #fbe9ef;
-  --fs-chip-ink: #91375a;
-}
-.fs-chip--5 {
-  --fs-chip-bg: #e4f1f6;
-  --fs-chip-ink: #1f5f78;
-}
-.fs-chip--6 {
-  --fs-chip-bg: #f2f0e4;
-  --fs-chip-ink: #6a6425;
-}
-.fs-chip--7 {
-  --fs-chip-bg: #eceef1;
-  --fs-chip-ink: #454f5c;
-}
-
-[data-theme='dark'] .fs-chip--0 {
-  --fs-chip-bg: #1c2740;
-  --fs-chip-ink: #9dbaf0;
-}
-[data-theme='dark'] .fs-chip--1 {
-  --fs-chip-bg: #172b25;
-  --fs-chip-ink: #74c9a2;
-}
-[data-theme='dark'] .fs-chip--2 {
-  --fs-chip-bg: #30241a;
-  --fs-chip-ink: #dda877;
-}
-[data-theme='dark'] .fs-chip--3 {
-  --fs-chip-bg: #262039;
-  --fs-chip-ink: #b39fe0;
-}
-[data-theme='dark'] .fs-chip--4 {
-  --fs-chip-bg: #331e28;
-  --fs-chip-ink: #dc95ac;
-}
-[data-theme='dark'] .fs-chip--5 {
-  --fs-chip-bg: #16292f;
-  --fs-chip-ink: #7fb8cb;
-}
-[data-theme='dark'] .fs-chip--6 {
-  --fs-chip-bg: #2a2818;
-  --fs-chip-ink: #c3bd7d;
-}
-[data-theme='dark'] .fs-chip--7 {
-  --fs-chip-bg: #242a31;
-  --fs-chip-ink: #a4aebc;
+// Las ocho variantes de ficha leen su pareja de `:root`, y no la llevan escrita: una regla
+// de clase gana siempre a una variable del elemento raíz, así que si el color viviera aquí
+// `PaletteService` no podría cambiarlo. Lo de abajo son los valores de fábrica y el respaldo
+// de antes de que arranque el JavaScript; el servicio publica los mismos nombres girados al
+// tono elegido.
+@for $i from 0 through 7 {
+  .fs-chip--#{$i} {
+    --fs-chip-bg: var(--fs-chip-#{$i}-bg);
+    --fs-chip-ink: var(--fs-chip-#{$i}-ink);
+  }
 }
 
 // --- Control segmentado ------------------------------------------------------------------

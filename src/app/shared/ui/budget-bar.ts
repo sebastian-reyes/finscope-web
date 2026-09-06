@@ -90,16 +90,26 @@ const CLOSE_RATIO = 0.85;
     .fs-bud {
       --fs-bud-ink: var(--fs-ink-muted);
       --fs-bud-fill: var(--fs-brand);
+      /* El barrido de la pareja, solo mientras el presupuesto va bien: es lo único
+         decorativo de la barra. En cuanto aprieta manda el tono del estado y esto se apaga,
+         porque ahí el color ya no adorna, avisa. */
+      --fs-bud-sweep: linear-gradient(
+        90deg in oklch shorter hue,
+        var(--fs-brand),
+        var(--fs-accent)
+      );
     }
 
     .fs-bud[data-tone='close'] {
       --fs-bud-ink: #8f5220;
       --fs-bud-fill: #d98324;
+      --fs-bud-sweep: none;
     }
 
     .fs-bud[data-tone='over'] {
       --fs-bud-ink: var(--fs-expense-ink);
       --fs-bud-fill: var(--fs-expense);
+      --fs-bud-sweep: none;
     }
 
     .fs-bud__head {
@@ -156,8 +166,12 @@ const CLOSE_RATIO = 0.85;
       transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
+    /* El color macizo va debajo del barrido, no en su lugar: el tramo rayado de lo
+       comprometido tira del mismo color macizo, y si aquí fuera un degradado se quedaría
+       sin color con el que dibujar la trama. */
     .fs-bud__fill {
       background-color: var(--fs-bud-fill);
+      background-image: var(--fs-bud-sweep);
     }
 
     /* Rayado y no un tono más claro a secas: en una barra de medio milímetro de alto, dos

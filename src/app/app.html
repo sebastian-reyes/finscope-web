@@ -2,13 +2,7 @@
   <header class="fs-topbar">
     <div class="fs-page fs-topbar__inner">
       <a class="fs-brand" routerLink="/dashboard">
-        <img
-          class="fs-brand__mark"
-          [src]="resolvedTheme() === 'dark' ? 'icons/logo-dark.png' : 'icons/logo-light.png'"
-          alt=""
-          width="26"
-          height="26"
-        />
+        <fs-logo class="fs-brand__mark" />
         <span>FinScope</span>
       </a>
 

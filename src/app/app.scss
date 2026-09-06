@@ -89,10 +89,10 @@
   text-decoration: none;
 }
 
-// El icono de la aplicación, el mismo que se ve en la pantalla de inicio, y no un glifo que
-// se le parezca: la marca de la barra y la baldosa que se toca para abrirla son la misma
-// cosa. Trae sus esquinas redondeadas dibujadas, así que aquí solo se le da su medida —algo
-// mayor que el texto, como cualquier logotipo— y se le prohíbe encoger.
+// El icono de la aplicación, el mismo que se ve en la pestaña y en la pantalla de inicio, y
+// no un glifo que se le parezca. Va dibujado en línea para que tome los dos colores que haya
+// elegido el usuario, así que aquí solo se le da su medida —algo mayor que el texto, como
+// cualquier logotipo— y se le prohíbe encoger.
 .fs-brand__mark {
   flex: none;
   width: 1.625rem;
@@ -271,7 +271,14 @@
   height: 3.25rem;
   margin-top: calc(var(--fs-fab-rise) * -1);
   border-radius: 50%;
-  background-image: linear-gradient(160deg, var(--fs-brand), var(--fs-brand-strong));
+  // Los dos colores de la pareja, en el mismo orden en que salen en el icono.
+  //
+  // La mezcla va por el círculo de tonos de OKLCH y no en línea recta: en sRGB —y también en
+  // Oklab— el punto medio entre dos colores lejanos es un pardo apagado que no es ninguno de
+  // los dos, y en un círculo de 3 rem el punto medio es casi todo lo que se ve. Girando por
+  // el tono, un violeta y un ámbar se encuentran pasando por el rojo, con el color siempre
+  // arriba. `background-color` queda debajo por si el navegador no sabe interpolar así.
+  background-image: linear-gradient(160deg in oklch shorter hue, var(--fs-brand), var(--fs-accent));
   background-color: var(--fs-brand);
   color: #fff;
   font-size: 1.4rem;

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { describeError } from '../../core/api-error';
+import { LogoComponent } from '../../shared/ui/logo';
 import { SegmentedDirective } from '../../shared/ui/segmented';
 
 /** Longitud mínima que exige el contrato para la contraseña. */
@@ -25,7 +26,7 @@ const MAX_PASSWORD = 72;
  */
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, SegmentedDirective],
+  imports: [ReactiveFormsModule, LogoComponent, SegmentedDirective],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

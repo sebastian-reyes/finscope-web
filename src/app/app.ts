@@ -4,9 +4,11 @@ import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router
 import { filter, map } from 'rxjs';
 import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
+import { PaletteService } from './core/palette.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
+import { LogoComponent } from './shared/ui/logo';
 import { SegmentedDirective } from './shared/ui/segmented';
 import { SlideOutletDirective } from './shared/ui/slide-outlet';
 import { TransactionEditorComponent } from './shared/ui/transaction-editor';
@@ -33,6 +35,7 @@ interface NavItem {
   imports: [
     RouterOutlet,
     RouterLink,
+    LogoComponent,
     SegmentedDirective,
     SlideOutletDirective,
     TransactionEditorComponent,
@@ -45,6 +48,11 @@ export class App {
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
   private readonly toastService = inject(ToastService);
+
+  // La paleta no se consulta desde aquí, pero es la carcasa quien tiene que despertarla: es
+  // lo primero que se instancia, y hasta que no existe no hay colores escritos en el
+  // documento ni icono de pestaña reteñido.
+  private readonly palette = inject(PaletteService);
 
   /** La hoja de registro, que se abre desde el botón central y se dibuja aquí. */
   protected readonly editor = inject(TransactionEditorService);

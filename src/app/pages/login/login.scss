@@ -23,9 +23,18 @@
   gap: 1.5rem;
   padding: 2.5rem;
   color: #fff;
+  // El único sitio donde la marca ocupa una pared entera, y por eso el único donde entran
+  // los dos colores en un mismo degradado. Va por variables y no por tokens: aquí es donde
+  // más se nota la pareja que haya elegido el usuario.
   background:
     radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
-    linear-gradient(150deg, #{t.$fs-brand} 0%, #{t.$fs-brand-strong} 55%, #{t.$fs-brand-deep} 100%);
+    linear-gradient(
+      150deg in oklch shorter hue,
+      var(--fs-brand) 0%,
+      var(--fs-brand-strong) 28%,
+      var(--fs-accent) 64%,
+      var(--fs-brand-deep) 100%
+    );
 }
 
 .fs-auth__logo {
@@ -49,6 +58,14 @@
   flex: none;
   width: 1.875rem;
   height: 1.875rem;
+}
+
+// Sobre la pared de marca el icono no puede ir de su color: sería azul sobre azul. Se le
+// cambian las dos variables de las que tira —no el dibujo— y pasa a blanco, con las barras
+// un punto por debajo para que se sigan distinguiendo del aro.
+.fs-auth__brand .fs-auth__mark {
+  --fs-brand: #ffffff;
+  --fs-accent: #{rgba(#fff, 0.72)};
 }
 
 .fs-auth__logo--compact .fs-auth__mark {

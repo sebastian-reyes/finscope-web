@@ -14,8 +14,9 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { ChartComponent } from '../../shared/ui/chart';
+import { PaletteService } from '../../core/palette.service';
 import { ThemeService } from '../../core/theme.service';
-import { MAX_SLICES, chartPalette } from '../../core/format/chart-palette';
+import { MAX_SLICES } from '../../core/format/chart-palette';
 import { formatMoney } from '../../core/format/money';
 import { CategorySummaryResponse, TagSummaryResponse } from '../../core/models';
 
@@ -478,6 +479,7 @@ export function tagSlices(
 })
 export class SpendingChartComponent {
   private readonly theme = inject(ThemeService);
+  private readonly palette = inject(PaletteService);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
 
@@ -522,7 +524,7 @@ export class SpendingChartComponent {
 
   /** Lo que se dibuja, ya sea en porciones o en barras. */
   protected readonly slices = computed<Slice[]>(() => {
-    const palette = chartPalette(this.theme.resolved());
+    const palette = this.palette.chart();
     return this.mode() === 'category'
       ? categorySlices(this.byCategory(), palette.categorical, palette.other)
       : tagSlices(this.byTag(), palette.categorical, palette.other);
@@ -638,7 +640,7 @@ export class SpendingChartComponent {
   }
 
   private doughnut(): ChartConfiguration<'doughnut'> {
-    const palette = chartPalette(this.theme.resolved());
+    const palette = this.palette.chart();
     const slices = this.slices();
     return {
       type: 'doughnut',
