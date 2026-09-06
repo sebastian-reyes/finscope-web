@@ -11,6 +11,54 @@
   margin-bottom: 1rem;
 }
 
+// La búsqueda va sola y arriba del todo: es la pregunta con la que se llega a esta pantalla
+// —«¿cuánto llevo gastado en el dentista?»— y compartir fila con los desplegables la
+// convertiría en un filtro más.
+.fs-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fs-search__icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--fs-ink-faint);
+  pointer-events: none;
+}
+
+.fs-search__input {
+  padding-left: 2.25rem;
+  padding-right: 2.25rem;
+}
+
+// El buscador nativo ya trae su propia aspa, que ni sigue el tema ni avisa a la aplicación
+// de que se ha vaciado el campo. Se quita y se pone la nuestra.
+.fs-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.fs-search__clear {
+  position: absolute;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fs-ink-faint);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.fs-search__clear:hover {
+  background-color: var(--fs-hover);
+  color: var(--fs-ink);
+}
+
 .fs-filters__group {
   display: flex;
   flex-wrap: wrap;

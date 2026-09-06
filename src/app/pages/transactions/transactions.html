@@ -33,6 +33,32 @@
 }
 
 <section class="fs-panel fs-filters" aria-label="Filtros">
+  <div class="fs-search">
+    <i class="bi bi-search fs-search__icon" aria-hidden="true"></i>
+    <label class="visually-hidden" for="filterSearch">
+      Buscar en descripciones, categorías y tags
+    </label>
+    <input
+      id="filterSearch"
+      class="fs-field fs-search__input"
+      type="search"
+      autocomplete="off"
+      placeholder="Buscar: dentista, Salud, ocio…"
+      [value]="searchDraft()"
+      (input)="onSearchInput($any($event.target).value)"
+    />
+    @if (searchDraft()) {
+      <button
+        type="button"
+        class="fs-search__clear"
+        (click)="clearSearch()"
+        aria-label="Borrar la búsqueda"
+      >
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+
   <div class="fs-filters__group fs-filters__period">
     <div class="fs-seg" role="group" aria-label="Periodo">
       <button
@@ -324,10 +350,19 @@
         <div class="fs-blank">
           <i class="bi bi-receipt" aria-hidden="true"></i>
           @if (isFiltered()) {
-            <p class="fs-blank__title">Nada que enseñar con estos filtros</p>
-            <p class="fs-blank__hint">
-              Prueba con otro periodo o quita el tipo y el tag para ver el historial completo.
-            </p>
+            @if (searchText(); as text) {
+              <p class="fs-blank__title">Nada responde a «{{ text }}»</p>
+              <p class="fs-blank__hint">
+                Se busca en la descripción, en la categoría y en los tags, pero solo dentro del
+                periodo y los filtros que tengas puestos. Prueba con menos letras o abre todo el
+                historial.
+              </p>
+            } @else {
+              <p class="fs-blank__title">Nada que enseñar con estos filtros</p>
+              <p class="fs-blank__hint">
+                Prueba con otro periodo o quita el tipo y el tag para ver el historial completo.
+              </p>
+            }
             <button class="fs-btn fs-btn--outline" type="button" (click)="clearFilters()">
               Limpiar filtros
             </button>
