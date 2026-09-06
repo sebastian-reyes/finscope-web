@@ -7,6 +7,12 @@
  *
  * No es un secreto: se compila dentro del bundle y cualquiera puede leerla. Lo único que
  * hay que hacer al desplegar es sustituirla por la URL real del servicio en Render.
+ *
+ * **Si cambias esta URL, cambia también los `dataGroups` de `ngsw-config.json`.** Ahí van
+ * repetidas porque el trabajador de servicio empareja por dirección completa —la API vive en
+ * otro origen— y ese archivo es JSON estricto, sin forma de importar nada ni de dejar un
+ * comentario. Si las dos se separan, la caché deja de emparejar y la aplicación se queda sin
+ * datos sin conexión, en silencio y sin que falle ninguna prueba.
  */
 export const environment = {
   production: true,

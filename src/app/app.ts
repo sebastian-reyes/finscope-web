@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router
 import { filter, map } from 'rxjs';
 import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
+import { ConnectionService } from './core/connection.service';
 import { PaletteService } from './core/palette.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
@@ -59,6 +60,10 @@ export class App {
 
   /** El vigilante de despliegues, que es quien enciende el aviso de versión nueva. */
   protected readonly update = inject(AppUpdateService);
+
+  /** Si hay red. Sin ella, lo que se ve puede venir de la copia del trabajador de servicio,
+   *  y eso hay que decirlo antes de que alguien tome una decisión con una cifra vieja. */
+  protected readonly online = inject(ConnectionService).online;
 
   protected readonly user = this.auth.user;
   protected readonly isLoggedIn = this.auth.isLoggedIn;

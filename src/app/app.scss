@@ -337,6 +337,13 @@
   color: var(--fs-expense);
 }
 
+// El aviso de sin conexión no es un error —la aplicación funciona, con datos de antes—, así
+// que no lleva el rojo del fallo sino el ámbar de lo que hay que tener en cuenta. Y no se va
+// solo, a diferencia de los demás avisos: mientras no haya red, sigue siendo verdad.
+.fs-offline i:first-child {
+  color: #d98324;
+}
+
 .fs-toast span {
   flex: 1;
   min-width: 0;

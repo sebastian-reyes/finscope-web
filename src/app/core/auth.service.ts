@@ -9,6 +9,7 @@ import {
   UserResponse,
 } from './models';
 import { environment } from '../../environments/environment';
+import { clearCachedApiData } from './data-cache';
 
 const ACCESS_TOKEN_KEY = 'finscope.accessToken';
 const REFRESH_TOKEN_KEY = 'finscope.refreshToken';
@@ -130,6 +131,11 @@ export class AuthService {
     localStorage.removeItem(USER_KEY);
     this.accessTokenSignal.set(null);
     this.userSignal.set(null);
+    // La copia sin conexión se va con la sesión. El trabajador de servicio empareja por
+    // dirección y no por credenciales, así que dejarla ahí significaría enseñarle los
+    // movimientos de esta cuenta a la siguiente que entre en este navegador sin red. No se
+    // espera a que termine: salir no puede quedarse colgado de un borrado.
+    void clearCachedApiData();
   }
 
   /** Guarda el usuario en curso, sin tocar las credenciales. */

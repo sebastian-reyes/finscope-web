@@ -10,11 +10,55 @@
       }
     },
     {
+      "name": "iconos",
+      "installMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreSearch": true
+      },
+      "resources": {
+        "files": ["/media/*.woff2"]
+      }
+    },
+    {
       "name": "assets",
       "installMode": "lazy",
       "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreSearch": true
+      },
       "resources": {
         "files": ["/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "catalogos",
+      "urls": [
+        "https://finscope-api-ok2a.onrender.com/categories**",
+        "https://finscope-api-ok2a.onrender.com/tags**",
+        "https://finscope-api-ok2a.onrender.com/transaction-types**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "timeout": "2s",
+        "maxSize": 60,
+        "maxAge": "30d"
+      }
+    },
+    {
+      "name": "datos",
+      "urls": [
+        "https://finscope-api-ok2a.onrender.com/auth/me",
+        "https://finscope-api-ok2a.onrender.com/transactions**",
+        "https://finscope-api-ok2a.onrender.com/transactions/**",
+        "https://finscope-api-ok2a.onrender.com/budgets**",
+        "https://finscope-api-ok2a.onrender.com/recurring-transactions**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 200,
+        "maxAge": "7d"
       }
     }
   ]

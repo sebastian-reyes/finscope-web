@@ -8,9 +8,47 @@ import {
   input,
   viewChild,
 } from '@angular/core';
-import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import {
+  ArcElement,
+  CategoryScale,
+  Chart,
+  ChartConfiguration,
+  DoughnutController,
+  Filler,
+  Legend,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip,
+} from 'chart.js';
 
-Chart.register(...registerables);
+// Solo las piezas que la aplicación dibuja, y no `...registerables`.
+//
+// Chart.js no reparte su código por tipo de gráfico: lo que se registra es lo que entra en
+// el paquete. Con el juego completo viajaban también las barras, las burbujas, el radar, el
+// polar y el de dispersión, que aquí no se usan, y el inicio es la primera pantalla que se
+// abre tras entrar. Registrando lo justo, su fragmento baja de 74 a 64 kB en el cable.
+//
+// La lista es corta a propósito: si algún día se añade un gráfico de otro tipo, no pintará
+// nada hasta que su controlador aparezca aquí. El error de Chart.js en ese caso es claro
+// —dice qué falta por registrar—, así que el aviso llega en la primera ejecución.
+Chart.register(
+  // El desglose por categoría y por tag.
+  DoughnutController,
+  ArcElement,
+  // La evolución de ingresos y egresos, con su área bajo la línea.
+  LineController,
+  LineElement,
+  PointElement,
+  Filler,
+  // Los ejes de esa misma serie: importes a la izquierda, meses abajo.
+  LinearScale,
+  CategoryScale,
+  // La leyenda es de la serie de evolución; el desglose rotula sus porciones aparte.
+  Legend,
+  Tooltip,
+);
 
 /**
  * Lienzo de Chart.js gobernado por señales.

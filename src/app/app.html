@@ -107,6 +107,18 @@
 }
 
 <div class="fs-toasts" role="status" aria-live="polite">
+  <!--
+    Sin red, la aplicación sigue funcionando con lo último que descargó, así que lo que hay
+    que decir no es «falló» sino de cuándo es lo que se está viendo. Va sin botón: no hay
+    nada que pulsar, se quita solo al volver la conexión.
+  -->
+  @if (!online()) {
+    <div class="fs-toast fs-offline" animate.enter="is-in" animate.leave="is-out">
+      <i class="bi bi-wifi-off" aria-hidden="true"></i>
+      <span>Sin conexión. Ves lo último que se descargó.</span>
+    </div>
+  }
+
   @if (update.ready()) {
     <div class="fs-toast fs-update" animate.enter="is-in">
       <i class="bi bi-arrow-repeat" aria-hidden="true"></i>

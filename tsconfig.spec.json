@@ -5,9 +5,14 @@
   "compilerOptions": {
     "types": [
       "vitest/globals"
-    ]
+    ],
+    /* Para que una prueba pueda leer `ngsw-config.json` y comprobar lo que declara. Es de
+       las pruebas y no de la aplicación: ese archivo lo consume el generador del trabajador
+       de servicio, no el bundle. */
+    "resolveJsonModule": true
   },
   "include": [
+    "ngsw-config.json",
     "src/**/*.d.ts",
     "src/**/*.spec.ts",
     "src/test-setup.ts"
