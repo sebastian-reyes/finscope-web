@@ -28,3 +28,11 @@ window.scrollTo = () => {};
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
+
+// jsdom tampoco dibuja: `getContext` existe pero avisa de que no está implementado, y cada
+// prueba que monta una pantalla con gráficos escupía una decena de «Not implemented» que no
+// dicen nada de ella. Devolver nulo es lo mismo que jsdom acaba devolviendo, y Chart.js ya
+// sabe quedarse quieto sin lienzo: el gráfico no se dibuja, que en una prueba de jsdom
+// tampoco podría comprobarse. Lo que rodea al gráfico —la leyenda, el reparto, los enlaces—
+// es HTML y sí se comprueba.
+HTMLCanvasElement.prototype.getContext = () => null;
