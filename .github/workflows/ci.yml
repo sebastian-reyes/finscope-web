@@ -1,0 +1,54 @@
+# Comprobación automática del frontend.
+#
+# Las 228 pruebas del proyecto solo valen si alguien las lanza, y hasta ahora eso dependía de
+# acordarse. Aquí se ejecutan en cada empujón a `master` y en cada pull request, que son los dos
+# momentos en los que todavía es barato enterarse de que algo se ha roto.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Empujar dos veces seguidas a la misma rama cancela la comprobación anterior: lo que importa es
+# el estado del último commit, y dejar corriendo la del penúltimo solo gasta minutos.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # La misma versión mayor que se usa para desarrollar. `cache: npm` guarda el caché de
+          # npm entre ejecuciones apoyándose en `package-lock.json`.
+          node-version: '24'
+          cache: npm
+
+      # `ci` y no `install`: instala exactamente lo que fija el lockfile y falla si el lockfile
+      # y `package.json` se han separado, en lugar de arreglarlo por su cuenta y seguir.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # `--check` no escribe nada: solo dice qué ficheros no están formateados. Se comprueba
+      # antes de compilar porque es lo más rápido de los tres pasos y lo más fácil de arreglar.
+      #
+      # En el repositorio los finales de línea van en LF, así que aquí no hay ruido de CRLF
+      # aunque en un Windows con `core.autocrlf` el árbol de trabajo los tenga.
+      - name: Comprobar formato
+        run: npx prettier --check "src/**/*.{ts,html,scss,json}"
+
+      # La compilación de producción no es redundante con las pruebas: es la única que hace la
+      # comprobación de tipos de las plantillas con AOT. Un `@if` sobre una propiedad que ya no
+      # existe pasa las pruebas de los componentes que no la montan y muere aquí.
+      - name: Compilar
+        run: npm run build
+
+      # Nunca `npx vitest run`: sin el `setupFiles` que declara `angular.json` todas las pruebas
+      # revientan con «Need to call TestBed.initTestEnvironment() first».
+      - name: Pruebas
+        run: npx ng test --no-watch

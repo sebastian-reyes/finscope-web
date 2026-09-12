@@ -134,9 +134,7 @@ export class RecurringPage {
    * Los que este mes hay que mirar: vencen en él, en cualquiera de sus estados.
    * Los que no vencen se listan aparte y en gris, porque en un checklist estorban.
    */
-  protected readonly due = computed(() =>
-    this.items().filter((item) => item.status !== 'NOT_DUE'),
-  );
+  protected readonly due = computed(() => this.items().filter((item) => item.status !== 'NOT_DUE'));
 
   /** Los que no tocan este mes: pausados, o de los que van cada varios meses. */
   protected readonly resting = computed(() =>

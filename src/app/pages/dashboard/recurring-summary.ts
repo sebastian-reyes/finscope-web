@@ -64,8 +64,8 @@ const VISIBLE = 4;
         @if (hidden() > 0) {
           Y {{ hidden() }} {{ hidden() === 1 ? 'fijo más' : 'fijos más' }} por resolver.
         } @else {
-          Marcarlo registra el movimiento con el importe de siempre. Si vino distinto, ajústalo
-          en la pantalla de fijos.
+          Marcarlo registra el movimiento con el importe de siempre. Si vino distinto, ajústalo en
+          la pantalla de fijos.
         }
       </p>
     } @else if (items().length) {
@@ -199,9 +199,7 @@ export class RecurringSummaryComponent {
    * que lo que vence dentro de tres semanas, cueste lo que cueste.
    */
   protected readonly visible = computed(() =>
-    [...this.pending()]
-      .sort((left, right) => left.dayOfMonth - right.dayOfMonth)
-      .slice(0, VISIBLE),
+    [...this.pending()].sort((left, right) => left.dayOfMonth - right.dayOfMonth).slice(0, VISIBLE),
   );
 
   protected readonly hidden = computed(() => Math.max(0, this.pending().length - VISIBLE));
