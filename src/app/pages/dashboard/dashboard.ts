@@ -215,9 +215,7 @@ export class DashboardPage {
       // El plan del mes es lo único de esta pantalla que puede fallar solo. Si se dejara
       // caer con los demás, un problema con los presupuestos borraría el balance, el reparto
       // y el historial, que no tienen nada que ver.
-      budgets: this.api
-        .listBudgets(filters.month!, filters.year!)
-        .pipe(catchError(() => of(null))),
+      budgets: this.api.listBudgets(filters.month!, filters.year!).pipe(catchError(() => of(null))),
       // Los fijos caen solos por el mismo motivo que los presupuestos: sin ellos el inicio
       // sigue contestando a todo lo demás.
       recurring: this.api

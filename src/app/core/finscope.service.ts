@@ -225,11 +225,7 @@ export class FinscopeService {
    * su categoría, que es lo que hace útil la omisión: lo que no se va a pagar no debería
    * estar reservando dinero.
    */
-  skipRecurring(
-    id: number,
-    month: number,
-    year: number,
-  ): Observable<RecurringOccurrenceResponse> {
+  skipRecurring(id: number, month: number, year: number): Observable<RecurringOccurrenceResponse> {
     return this.http.post<RecurringOccurrenceResponse>(
       `${this.api}/recurring-transactions/${id}/skip`,
       { month, year } satisfies SkipRecurringTransactionRequest,

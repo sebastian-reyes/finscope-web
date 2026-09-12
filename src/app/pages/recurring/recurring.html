@@ -163,8 +163,8 @@
     </form>
 
     <p class="fs-note">
-      El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede
-      corregir, y lo corregido va al movimiento. Un cargo del 31 vence el 28 en febrero.
+      El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede corregir,
+      y lo corregido va al movimiento. Un cargo del 31 vence el 28 en febrero.
     </p>
   </section>
 }
@@ -262,7 +262,11 @@
               >
                 Registrar
               </button>
-              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelAdjust()">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="cancelAdjust()"
+              >
                 Cancelar
               </button>
             </div>
@@ -287,7 +291,11 @@
               >
                 Sí, eliminar
               </button>
-              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelRemove()">
+              <button
+                class="fs-btn fs-btn--sm fs-btn--ghost"
+                type="button"
+                (click)="cancelRemove()"
+              >
                 Cancelar
               </button>
             </span>
