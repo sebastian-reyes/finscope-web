@@ -116,16 +116,37 @@
 
       <div>
         <label class="fs-label" for="recurringAmount">Importe habitual</label>
-        <input
-          id="recurringAmount"
-          class="fs-field fs-num"
-          type="number"
-          inputmode="decimal"
-          min="0.01"
-          step="0.01"
-          placeholder="180.00"
-          formControlName="amount"
-        />
+        <div class="fs-new__amount">
+          <input
+            id="recurringAmount"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="180.00"
+            formControlName="amount"
+          />
+          <!--
+            La plantilla guarda la moneda pero no el tipo de cambio: el de cada mes es el
+            del dia en que se pague, asi que se pide al confirmar.
+          -->
+          <div class="fs-money-switch" role="group" aria-label="Moneda del cargo">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="currency() === option"
+                [attr.aria-pressed]="currency() === option"
+                [attr.aria-label]="currencyName(option)"
+                [disabled]="saving()"
+                (click)="currency.set(option)"
+              >
+                {{ currencySign(option) }}
+              </button>
+            }
+          </div>
+        </div>
       </div>
 
       <div>
@@ -197,7 +218,7 @@
     </p>
     @if (totals().pendingCount) {
       <p class="fs-sum__figure">
-        <span class="fs-num fs-sum__amount">{{ money(totals().pendingExpense) }}</span>
+        <span class="fs-num fs-sum__amount">{{ totals().pendingExpense }}</span>
         <span class="fs-sum__of">
           en {{ totals().pendingCount }}
           {{ totals().pendingCount === 1 ? 'fijo por pagar' : 'fijos por pagar' }}
@@ -211,14 +232,12 @@
     }
     <p class="fs-sum__reading">
       @if (totals().paidCount) {
-        Ya llevas {{ money(totals().paidExpense) }} en
+        Ya llevas {{ totals().paidExpense }} en
         {{ totals().paidCount }}
         {{ totals().paidCount === 1 ? 'fijo' : 'fijos' }}.
       }
       @if (totals().income) {
-        <span class="fs-sum__income">
-          Y {{ money(totals().income) }} de ingresos fijos este mes.
-        </span>
+        <span class="fs-sum__income"> Y {{ totals().income }} de ingresos fijos este mes. </span>
       }
     </p>
   </section>
@@ -243,7 +262,7 @@
 
           <div class="fs-fix__figures">
             <span class="fs-num fs-fix__amount" [class.fs-income]="item.type === 'INCOME'">
-              {{ money(item.paidAmount ?? item.amount) }}
+              {{ money(item.paidAmount ?? item.amount, item.currency) }}
             </span>
             <span class="fs-fix__state">{{ stateLabel(item) }}</span>
           </div>
@@ -266,6 +285,27 @@
                 (keyup.escape)="cancelAdjust()"
               />
             </div>
+            <!--
+              El cambio del dia solo existe fuera de la moneda base. Viene propuesto con el
+              ultimo que se uso: confirmarlo cada mes tiene que costar un vistazo, no una
+              consulta.
+            -->
+            @if (needsRate(item)) {
+              <div class="fs-adjust__field">
+                <label class="fs-label" [attr.for]="'adjustRate' + item.id"> Tipo de cambio </label>
+                <input
+                  [id]="'adjustRate' + item.id"
+                  class="fs-field fs-num"
+                  type="number"
+                  inputmode="decimal"
+                  min="0.000001"
+                  step="0.000001"
+                  placeholder="3.55"
+                  formControlName="exchangeRate"
+                  (keyup.escape)="cancelAdjust()"
+                />
+              </div>
+            }
             <div class="fs-adjust__field">
               <span class="fs-label">Fecha</span>
               <fs-date-field

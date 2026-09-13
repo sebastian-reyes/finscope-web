@@ -296,7 +296,8 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
       border: none;
       background: none;
       color: var(--fs-ink);
-      font-size: 0.9375rem;
+      /* De solo lectura, pero enfocable: iOS acerca la página igual al tocarlo. */
+      font-size: var(--fs-text-field);
       cursor: pointer;
     }
 

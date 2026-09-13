@@ -31,6 +31,14 @@ html {
   // El desplazamiento por anclas y el foco no dan saltos secos, pero se respeta a quien
   // pide menos movimiento.
   -webkit-text-size-adjust: 100%;
+  // El dedo solo desplaza: ni pellizco ni doble toque para acercar. Es la otra mitad de lo
+  // que pide el `viewport` del documento, y hace falta porque el navegador tiene dos vías
+  // para acercar y el `meta` cierra una sola —en una pestaña de Safari ni siquiera esa—.
+  // `pan-x pan-y` en lugar de `manipulation` porque `manipulation` solo quita el doble
+  // toque; el pellizco, que es el que se dispara sin querer al desplazar con dos dedos,
+  // seguiría vivo. Lo que se desplaza por dentro (la lista de la hoja, el selector) sigue
+  // haciéndolo: esto no toca el desplazamiento, solo la escala.
+  touch-action: pan-x pan-y;
   // La pantalla que entra lo hace desplazándose desde un lado, y ese medio segundo de
   // desbordamiento no debe asomar una barra horizontal. Va en la raíz, que es donde recorta
   // sin convertir a nadie más en una caja con desplazamiento propio.

@@ -15,6 +15,7 @@ function budget(amount: number, spent: number, committed = 0): BudgetResponse {
     category: 'Comida',
     month: 8,
     year: 2026,
+    currency: 'PEN',
     amount,
     spent,
     committed,
@@ -125,5 +126,16 @@ describe('BudgetBarComponent', () => {
 
     expect(tone()).toBe('ok');
     expect(fillWidth()).toBe('0%');
+  });
+
+  it('ensena las cifras en la moneda del plan, no en la base', () => {
+    render({ ...budget(30, 15.99), currency: 'USD' });
+
+    // Un presupuesto de 30 dolares no se lee como 30 soles: el simbolo es lo unico que los
+    // distingue, porque el numero es el mismo.
+    const text = (host().textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('$ 15.99');
+    expect(text).toContain('$ 30.00');
+    expect(text).not.toContain('S/');
   });
 });

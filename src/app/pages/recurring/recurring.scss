@@ -295,3 +295,15 @@
   color: var(--fs-ink-faint);
   white-space: nowrap;
 }
+
+// El importe y su moneda van juntos: la moneda es lo que decide que significa la cifra.
+.fs-new__amount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fs-new__amount .fs-field {
+  flex: 1;
+  min-width: 0;
+}

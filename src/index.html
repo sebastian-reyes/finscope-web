@@ -9,8 +9,23 @@
       iOS y las reservas de zona segura que ya hacen la barra inferior y los avisos no se
       aplican nunca. Instalada en la pantalla de inicio, la aplicación ocupa la pantalla
       entera, así que sin esto el botón de registrar acabaría bajo la barra de gestos.
+
+      `maximum-scale=1` y `user-scalable=no` quitan el zoom a pellizco y el de doble toque. No
+      es un capricho de maquetación: instalada en el teléfono, la aplicación se maneja con el
+      pulgar sobre listas, chips y una barra inferior, y ahí el pellizco se dispara solo al
+      desplazar con dos dedos y el doble toque al insistir sobre una fila que tardó en
+      responder. La escala se queda entonces a medias, sin barra de direcciones donde tocar
+      dos veces para deshacerla, y la única salida es cerrar la aplicación.
+
+      En Safari dentro de una pestaña estos dos valores se ignoran a propósito —accesibilidad—,
+      pero sí se respetan cuando se abre desde la pantalla de inicio, que es el caso que duele.
+      El tamaño de letra del sistema se sigue obedeciendo: lo garantiza
+      `-webkit-text-size-adjust: 100%` en la puesta a cero, que es otra cosa que el zoom.
     -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="description" content="Control de gastos e ingresos personales." />
     <!--
       El color de la interfaz del navegador. Va por duplicado y no como valor único porque

@@ -35,6 +35,7 @@ const SUMMARY: TransactionSummaryResponse = {
   expense: 1200,
   net: 1800,
   transactionCount: 12,
+  byCurrency: [{ currency: 'PEN', income: 3000, expense: 1200, net: 1800, transactionCount: 12 }],
   byCategory: [{ categoryId: 4, category: 'Comida', income: 0, expense: 800, transactionCount: 9 }],
   byTag: [{ tag: 'gab', income: 0, expense: 300, transactionCount: 2 }],
 };
@@ -51,6 +52,7 @@ const RECENT: TransactionPageResponse = {
     {
       id: 7,
       amount: 120,
+      currency: 'PEN',
       description: 'Limpieza dental',
       date: '2026-08-14T18:00:00',
       transactionType: TYPES[1],
@@ -71,6 +73,7 @@ const BUDGETS: BudgetResponse[] = [
     category: 'Comida',
     month: 8,
     year: 2026,
+    currency: 'PEN',
     amount: 1000,
     spent: 800,
     committed: 100,
@@ -86,6 +89,7 @@ const RECURRING: RecurringOccurrenceResponse[] = [
     transactionTypeId: 2,
     description: 'Internet',
     amount: 180,
+    currency: 'PEN',
     dayOfMonth: 12,
     everyMonths: 1,
     startMonth: 1,
@@ -127,8 +131,12 @@ describe('DashboardPage', () => {
    */
   function settlePeriod(month = 8, broken?: Broken): void {
     const period = `month=${month}&year=2026`;
-    const summary = http.expectOne(`/transactions/summary?${period}`);
-    const series = http.expectOne(`/transactions/summary/series?${period}&granularity=DAY`);
+    // El reparto y la evolución van acotados a una moneda: sin acotar, sus totales sumarían
+    // cantidades que no se suman. El listado de los últimos movimientos no, porque cada fila
+    // enseña la suya.
+    const scoped = `${period}&currency=PEN`;
+    const summary = http.expectOne(`/transactions/summary?${scoped}`);
+    const series = http.expectOne(`/transactions/summary/series?${scoped}&granularity=DAY`);
     const recent = http.expectOne(`/transactions?${period}&page=0&size=6&sort=date,desc`);
     const budgets = http.expectOne(`/budgets?${period}`);
     const recurring = http.expectOne(`/recurring-transactions?${period}`);

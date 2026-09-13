@@ -142,6 +142,32 @@
   color: var(--fs-ink-muted);
 }
 
+// Las herramientas de la cabecera de una tarjeta: el selector de moneda y el de reparto, que
+// se reparten el sitio que quede y bajan juntos cuando no cabe.
+.fs-card__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+// Cada moneda del balance es un bloque completo —neto, frase y desglose— y no una fila mas:
+// son respuestas independientes a la misma pregunta, no partes de una suma.
+.fs-balance__block + .fs-balance__block {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-balance__currency {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-ink-muted);
+}
+
 .fs-balance__value {
   margin: 0.35rem 0 0;
   font-size: clamp(2.5rem, 8vw, 3.25rem);

@@ -141,3 +141,33 @@
 .fs-edit__row .fs-field {
   flex: 0 1 10rem;
 }
+
+// El campo del importe y su moneda van juntos: la moneda es lo que decide que significa el
+// numero que se acaba de escribir, y separarla dejaria el dato principal a medias.
+.fs-new__amount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fs-new__amount .fs-field {
+  flex: 1;
+  min-width: 0;
+}
+
+// Cada moneda del total es un bloque entero. Solo se rotula cuando hay mas de una: con una
+// sola, el rotulo seria ruido sobre algo que no admite duda.
+.fs-total__block + .fs-total__block {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-total__currency {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-ink-muted);
+}

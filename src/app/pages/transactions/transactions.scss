@@ -150,6 +150,18 @@
   margin-bottom: 1rem;
 }
 
+// El rotulo de la moneda solo aparece cuando hay mas de una, y entonces ocupa su propia
+// linea entera: es lo que separa dos tarjetas que por dentro se parecen mucho.
+.fs-totals__currency {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-ink-muted);
+}
+
 .fs-totals__item {
   display: flex;
   flex-direction: column;

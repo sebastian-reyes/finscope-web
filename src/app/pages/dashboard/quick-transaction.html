@@ -5,7 +5,7 @@
       class="fs-quick__field"
       [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
     >
-      <span class="fs-quick__currency" aria-hidden="true">{{ currency }}</span>
+      <span class="fs-quick__currency" aria-hidden="true">{{ symbol() }}</span>
       <input
         #amountField
         id="quickAmount"
@@ -18,11 +18,52 @@
         formControlName="amount"
         autocomplete="off"
       />
+      <div class="fs-money-switch" role="group" aria-label="Moneda del movimiento">
+        @for (option of currencies; track option) {
+          <button
+            type="button"
+            class="fs-money-switch__btn"
+            [class.is-active]="currency() === option"
+            [attr.aria-pressed]="currency() === option"
+            [disabled]="saving()"
+            (click)="setCurrency(option)"
+          >
+            {{ symbolOf(option) }}
+          </button>
+        }
+      </div>
     </div>
     @if (form.controls.amount.touched && form.controls.amount.invalid) {
       <p class="fs-quick__error">Escribe un monto mayor que cero.</p>
     }
   </div>
+
+  @if (!isBaseCurrency()) {
+    <div>
+      <label class="fs-label fs-quick__label" for="quickRate">
+        Tipo de cambio <span class="fs-quick__optional">a soles</span>
+      </label>
+      <input
+        id="quickRate"
+        type="number"
+        inputmode="decimal"
+        step="0.000001"
+        min="0.000001"
+        placeholder="3.55"
+        class="fs-field fs-num"
+        formControlName="exchangeRate"
+        autocomplete="off"
+      />
+      @if (form.controls.exchangeRate.touched && form.controls.exchangeRate.invalid) {
+        <p class="fs-quick__error">Escribe el tipo de cambio con el que se registró.</p>
+      } @else if (converted(); as equivalent) {
+        <p class="fs-hint">{{ equivalent }}</p>
+      }
+      @if (suggestedFrom(); as when) {
+        <p class="fs-hint">Es el que usaste el {{ when }}. Cámbialo si hoy es otro.</p>
+      }
+    </div>
+  }
 
   <div>
     <label class="fs-label fs-quick__label" for="quickDescription">

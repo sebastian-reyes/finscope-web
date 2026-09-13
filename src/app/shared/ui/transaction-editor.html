@@ -24,7 +24,7 @@
           class="fs-amount-field"
           [class.is-invalid]="form.controls.amount.touched && form.controls.amount.invalid"
         >
-          <span class="fs-amount-field__currency" aria-hidden="true">{{ currency }}</span>
+          <span class="fs-amount-field__currency" aria-hidden="true">{{ symbol() }}</span>
           <input
             #amountField
             id="editorAmount"
@@ -37,11 +37,73 @@
             formControlName="amount"
             autocomplete="off"
           />
+          <!--
+            La moneda va pegada al monto y no en una fila aparte: es lo que decide qué
+            significa el número que se acaba de escribir, y separarla dejaría el dato
+            principal diciendo la mitad.
+          -->
+          <div class="fs-money-switch" role="group" aria-label="Moneda del movimiento">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="currency() === option"
+                [attr.aria-pressed]="currency() === option"
+                [disabled]="saving()"
+                (click)="setCurrency(option)"
+              >
+                {{ symbolOf(option) }}
+              </button>
+            }
+          </div>
         </div>
         @if (form.controls.amount.touched && form.controls.amount.invalid) {
           <p class="fs-error">Escribe un monto mayor que cero.</p>
         }
       </div>
+
+      <!--
+        El tipo de cambio solo existe fuera de la moneda base, así que el campo aparece con
+        ella y desaparece al volver: enseñarlo deshabilitado sería ofrecer algo que no se
+        puede rellenar nunca.
+      -->
+      @if (!isBaseCurrency()) {
+        <div>
+          <label class="fs-label" for="editorRate">
+            Tipo de cambio <span class="fs-label__optional">a soles</span>
+          </label>
+          <input
+            id="editorRate"
+            type="number"
+            inputmode="decimal"
+            step="0.000001"
+            min="0.000001"
+            placeholder="3.55"
+            class="fs-field fs-num"
+            formControlName="exchangeRate"
+            autocomplete="off"
+          />
+          @if (form.controls.exchangeRate.touched && form.controls.exchangeRate.invalid) {
+            <p class="fs-error">Escribe el tipo de cambio con el que se registró.</p>
+          } @else {
+            <p class="fs-hint">
+              @if (converted(); as equivalent) {
+                {{ equivalent }}
+              } @else {
+                Se guarda tal cual: cuando el cambio suba, este movimiento seguirá valiendo lo que
+                valió hoy.
+              }
+            </p>
+            <!--
+              De cuándo es lo que se propone. Una tasa de hace dos semanas vale como punto de
+              partida, pero darla por buena sin saber que es de hace dos semanas no.
+            -->
+            @if (suggestedFrom(); as when) {
+              <p class="fs-hint">Es el que usaste el {{ when }}. Cámbialo si hoy es otro.</p>
+            }
+          }
+        </div>
+      }
 
       <div>
         <label class="fs-label" for="editorDescription">

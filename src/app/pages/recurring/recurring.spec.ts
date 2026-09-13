@@ -45,6 +45,7 @@ function item(
     type: 'EXPENSE',
     description: 'Internet',
     amount: 180,
+    currency: 'PEN',
     dayOfMonth: 12,
     everyMonths: 1,
     startMonth: 1,
@@ -231,6 +232,57 @@ describe('RecurringPage', () => {
     settle();
   });
 
+  it('un fijo en dolares se lee con su moneda, no con la base', () => {
+    settle([item({ id: 11, description: 'Hosting', currency: 'USD', amount: 15.99 })]);
+
+    // 15.99 dolares y 15.99 soles son el mismo numero: el simbolo es lo unico que los separa.
+    const text = (row('Hosting').textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('$ 15.99');
+  });
+
+  it('pide el tipo de cambio del dia al ajustar un fijo en dolares', () => {
+    settle([item({ id: 11, description: 'Hosting', currency: 'USD', amount: 15.99 })]);
+
+    button(row('Hosting'), 'Ajustar').click();
+    fixture.detectChanges();
+    // Al abrir el ajuste se pregunta cual fue la ultima tasa, para proponerla; aqui no hay
+    // ninguna todavia, asi que el campo se queda vacio y obligatorio.
+    http
+      .match((request) => request.url === '/transactions')
+      .forEach((request) =>
+        request.flush({ content: [], page: 0, size: 1, totalElements: 0, totalPages: 0 }),
+      );
+    fixture.detectChanges();
+
+    const rate = host().querySelector<HTMLInputElement>('#adjustRate11')!;
+    expect(rate).not.toBeNull();
+    rate.value = '3.55';
+    rate.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    host()
+      .querySelector<HTMLFormElement>('.fs-adjust')!
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const request = http.expectOne('/recurring-transactions/11/confirm');
+    // El cambio viaja con la confirmacion: es el del dia en que se paga, y no existia el
+    // dia en que el fijo se dio de alta.
+    expect(request.request.body.exchangeRate).toBe(3.55);
+    request.flush(item({ id: 11, description: 'Hosting', currency: 'USD', status: 'PAID' }));
+
+    settle([item({ id: 11, description: 'Hosting', currency: 'USD', status: 'PAID' })]);
+  });
+
+  it('un fijo en soles no pide ningun tipo de cambio', () => {
+    settle();
+
+    button(row('Internet'), 'Ajustar').click();
+    fixture.detectChanges();
+
+    // La moneda base no se convierte a si misma: el campo ni aparece.
+    expect(host().querySelector('#adjustRate11')).toBeNull();
+  });
+
   it('omitir un mes no toca la plantilla ni los demás meses', () => {
     settle();
 
@@ -300,6 +352,7 @@ describe('RecurringPage', () => {
       transactionTypeId: 2,
       description: 'Gimnasio',
       amount: 120,
+      currency: 'PEN',
       dayOfMonth: 15,
       everyMonths: 1,
       // Arranca en el mes que se está mirando: dar de alta un fijo hoy no dice nada de enero.
@@ -313,6 +366,7 @@ describe('RecurringPage', () => {
       transactionTypeId: 2,
       description: 'Gimnasio',
       amount: 120,
+      currency: 'PEN',
       dayOfMonth: 15,
       everyMonths: 1,
       startMonth: 8,

@@ -16,6 +16,14 @@
   --fs-text-base: 0.9375rem;
   --fs-text-md: 1.0625rem;
   --fs-text-lg: 1.375rem;
+  // Lo que se escribe dentro de un campo tiene su propio tamaño y no usa el de arriba: en
+  // iOS, enfocar un campo de menos de 16 px acerca la página, y eso no lo evita el
+  // `viewport` —es una ayuda de lectura, no el zoom del usuario, y se aplica igual—. La
+  // página se queda desplazada a un lado hasta que se cierra el teclado. Con ratón se
+  // mantiene la escala del resto del texto, que es donde el campo tiene que acompañar al
+  // tamaño de la interfaz; con el dedo manda no dar el tirón.
+  --fs-text-field: var(--fs-text-base);
+  --fs-text-field-sm: var(--fs-text-sm);
 
   // --- Papeles ---------------------------------------------------------------------------
   // La superficie es un papel distinto del fondo. Sin esto, tarjetas y fondo comparten color
@@ -186,6 +194,17 @@
 
   --fs-surface-lift: #{t.$fs-surface-lift-dark};
   --fs-edge: #{rgba(#fff, 0.05)};
+}
+
+// Donde se escribe con el dedo, el campo sube a 16 px. Por debajo de esa cifra —y es la de
+// Safari, no una redondez— iOS acerca la página al enfocar. Va por puntero y no por ancho de
+// ventana porque lo que decide es cómo se toca, no cuánto mide: un teléfono en horizontal
+// sigue siendo un dedo, y una ventana estrecha en el escritorio no lo es.
+@media (pointer: coarse) {
+  :root {
+    --fs-text-field: 1rem;
+    --fs-text-field-sm: 1rem;
+  }
 }
 
 body {
@@ -517,6 +536,46 @@ fs-category-chip {
 // Lo usan los filtros, el catálogo y el acceso: son opciones pocas y excluyentes, y se ven
 // todas a la vez en lugar de esconderse en un desplegable que hay que abrir para saber qué
 // hay dentro.
+// --- Selector de moneda --------------------------------------------------------------------
+// Vive pegado al campo del monto, dentro de su caja, porque es lo que decide que significa el
+// numero que se esta escribiendo. Dos o tres opciones cortas, asi que se ensenan todas a la
+// vez en lugar de esconderlas en un desplegable: elegir moneda tiene que costar un toque.
+//
+// Es mas pequeno y mas callado que el segmentado de las pantallas: ahi la eleccion es el
+// asunto principal, y aqui acompana a un importe que es quien manda.
+.fs-money-switch {
+  display: inline-flex;
+  flex: none;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-shade);
+}
+
+.fs-money-switch__btn {
+  min-width: 2.1rem;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  border-radius: t.$fs-radius-pill;
+  background: none;
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  color: var(--fs-ink-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fs-money-switch__btn.is-active {
+  background-color: var(--fs-surface);
+  color: var(--fs-ink);
+  box-shadow: var(--fs-shadow);
+}
+
+.fs-money-switch__btn:disabled {
+  opacity: 0.6;
+}
+
 .fs-seg {
   position: relative;
   display: inline-flex;

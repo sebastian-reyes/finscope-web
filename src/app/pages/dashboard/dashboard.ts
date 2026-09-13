@@ -2,13 +2,17 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
+import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
+import { BASE_CURRENCY, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
 import {
   BudgetResponse,
+  Currency,
+  CurrencySummaryResponse,
   RecurringOccurrenceResponse,
   SummaryGranularity,
   SummarySeriesResponse,
@@ -57,6 +61,7 @@ const HIGHLIGHT_MS = 1800;
 })
 export class DashboardPage {
   private readonly api = inject(FinscopeService);
+  private readonly rates = inject(ExchangeRateService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
   private readonly toasts = inject(ToastService);
@@ -103,6 +108,15 @@ export class DashboardPage {
   protected readonly period = signal(currentMonth());
 
   /**
+   * Moneda de la que hablan el reparto y la evolución.
+   *
+   * No afecta al balance, que enseña todas a la vez: ahí la pregunta es cuánto hay, y hay
+   * una respuesta por moneda. En los gráficos sí hace falta elegir, porque un anillo que
+   * mezclara soles con dólares repartiría porcentajes de una cantidad que no existe.
+   */
+  protected readonly currency = signal<Currency>(BASE_CURRENCY);
+
+  /**
    * Por qué se reparte el gasto en la tarjeta del anillo.
    *
    * La categoría es el reparto de verdad y por eso abre; los tags contestan a la otra
@@ -135,6 +149,43 @@ export class DashboardPage {
     this.route.queryParamMap.pipe(map((params) => Number(params.get('registrar')) || null)),
     { initialValue: null },
   );
+
+  /**
+   * Totales de cada moneda del periodo, que es lo que enseña el balance.
+   * Vienen de `byCurrency`, el único desglose al que no afecta la moneda elegida: de él sale
+   * también qué monedas ofrecer.
+   */
+  protected readonly currencyTotals = computed<CurrencySummaryResponse[]>(
+    () => this.summary()?.byCurrency ?? [],
+  );
+
+  /** Si el periodo tiene movimientos en más de una moneda, que es cuando hay que elegir. */
+  protected readonly hasSeveralCurrencies = computed(() => this.currencyTotals().length > 1);
+
+  /** Las monedas entre las que se puede cambiar el reparto, en el orden del resumen. */
+  protected readonly currencyChoices = computed(() =>
+    this.currencyTotals().map((totals) => totals.currency),
+  );
+
+  /**
+   * Nombre y simbolo con los que se rotula una moneda en pantalla.
+   *
+   * @param currency moneda a rotular
+   * @return su nombre en castellano
+   */
+  protected currencyName(currency: Currency): string {
+    return CURRENCY_NAMES[currency];
+  }
+
+  /**
+   * Simbolo de una moneda, para los rotulos donde no cabe su nombre.
+   *
+   * @param currency moneda a rotular
+   * @return su simbolo
+   */
+  protected currencySign(currency: Currency): string {
+    return currencySymbol(currency);
+  }
 
   protected readonly title = computed(() => {
     const { month, year } = this.period();
@@ -181,6 +232,23 @@ export class DashboardPage {
     });
   }
 
+  /**
+   * Cambia la moneda del reparto y de la evolución.
+   *
+   * Recarga, no filtra en memoria: los desgloses por categoría y por tag vienen ya acotados
+   * del servidor, que es lo que garantiza que el anillo sume exactamente lo que dice el
+   * total de esa moneda.
+   *
+   * @param currency moneda elegida
+   */
+  protected setCurrency(currency: Currency): void {
+    if (this.currency() === currency) {
+      return;
+    }
+    this.currency.set(currency);
+    this.load();
+  }
+
   /** Salta al mes elegido en el calendario. */
   protected setMonthValue(value: string): void {
     if (!value) {
@@ -203,9 +271,12 @@ export class DashboardPage {
     this.loading.set(true);
     this.error.set(null);
     const filters = this.period();
+    // El reparto y la evolucion van acotados a una moneda; el listado de los ultimos
+    // movimientos no, porque cada fila ensena la suya.
+    const scoped = { ...filters, currency: this.currency() };
     forkJoin({
-      summary: this.api.getSummary(filters),
-      series: this.api.getSummarySeries(filters, this.granularity),
+      summary: this.api.getSummary(scoped),
+      series: this.api.getSummarySeries(scoped, this.granularity),
       recent: this.api.listTransactions({
         ...filters,
         page: 0,
@@ -265,18 +336,35 @@ export class DashboardPage {
       return;
     }
     const { month, year } = this.period();
+    // Un fijo que no está en la moneda base necesita el tipo de cambio del día, y aquí no
+    // hay dónde escribirlo: esta tarjeta es de un toque. Se usa el último que se apuntó, y
+    // si todavía no hay ninguno se manda a la pantalla de fijos, que sí puede pedirlo.
+    const rate =
+      item.currency === BASE_CURRENCY ? undefined : this.rates.lastRate(item.currency)?.rate;
+    if (item.currency !== BASE_CURRENCY && !rate) {
+      this.toasts.error(
+        `Confírmalo desde Fijos: hace falta el tipo de cambio de hoy para registrarlo en ` +
+          `${this.currencyName(item.currency).toLowerCase()}.`,
+      );
+      return;
+    }
     this.confirming.set(true);
-    this.api.confirmRecurring(item.id, { month: month!, year: year! }).subscribe({
-      next: () => {
-        this.toasts.success(`«${item.description}» registrado`);
-        this.confirming.set(false);
-        this.load();
-      },
-      error: (error) => {
-        this.confirming.set(false);
-        this.toasts.error(describeError(error));
-      },
-    });
+    this.api
+      .confirmRecurring(item.id, { month: month!, year: year!, exchangeRate: rate })
+      .subscribe({
+        next: () => {
+          if (rate) {
+            this.rates.remember(item.currency, rate, new Date().toISOString());
+          }
+          this.toasts.success(`«${item.description}» registrado`);
+          this.confirming.set(false);
+          this.load();
+        },
+        error: (error) => {
+          this.confirming.set(false);
+          this.toasts.error(describeError(error));
+        },
+      });
   }
 
   /** Alguien creó una categoría desde el formulario: el catálogo de aquí ya no vale. */

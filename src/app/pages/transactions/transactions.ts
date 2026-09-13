@@ -14,6 +14,8 @@ import {
   toInputDateTime,
 } from '../../core/format/period';
 import {
+  Currency,
+  CurrencySummaryResponse,
   TransactionFilters,
   TransactionPageQuery,
   TransactionPageResponse,
@@ -21,6 +23,7 @@ import {
   TransactionSummaryResponse,
   TransactionTypeCode,
 } from '../../core/models';
+import { CURRENCIES, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
 import { iconFor } from '../../core/format/icons';
 import { AmountComponent } from '../../shared/ui/amount';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
@@ -105,6 +108,8 @@ export class TransactionsPage {
   protected readonly typeId = signal<number | null>(null);
   protected readonly categoryId = signal<number | null>(null);
   protected readonly tag = signal<string | null>(null);
+  /** Moneda por la que se filtra, o nula para ver todas: cada fila dice la suya. */
+  protected readonly currency = signal<Currency | null>(null);
   /**
    * Lo escrito en el cuadro de búsqueda, que se ve al instante, y el texto que de verdad
    * está filtrando, que llega un momento después.
@@ -144,6 +149,7 @@ export class TransactionsPage {
       transactionTypeId: this.typeId(),
       categoryId: this.categoryId(),
       tag: this.tag(),
+      currency: this.currency(),
       search: this.searchText() || null,
     };
     if (this.periodMode() === 'month') {
@@ -191,6 +197,42 @@ export class TransactionsPage {
     })),
   ]);
 
+  protected readonly currencyOptions = computed<SelectOption[]>(() => [
+    { value: '', label: 'Todas las monedas', icon: 'bi-coin' },
+    ...CURRENCIES.map((code) => ({
+      value: code,
+      label: `${CURRENCY_NAMES[code]} (${currencySymbol(code)})`,
+      icon: 'bi-coin',
+    })),
+  ]);
+
+  /**
+   * Los totales del periodo, uno por moneda.
+   *
+   * Salen de `byCurrency` y no de los totales de primer nivel porque esos son los de una
+   * sola moneda: sumar soles con dólares no daría una cantidad de nada. Con una moneda —lo
+   * normal— la lista tiene un elemento y la pantalla se ve igual que siempre.
+   *
+   * <p>Con el filtro de moneda puesto se queda solo esa. La API devuelve siempre todas las
+   * del periodo, a propósito, porque de ahí sale qué monedas ofrecer; pero encima de una
+   * lista que ya está acotada, un total de la moneda que no se está viendo no cuadraría con
+   * nada de lo que hay debajo.</p>
+   */
+  protected readonly currencyTotals = computed<CurrencySummaryResponse[]>(() => {
+    const totals = this.summary()?.byCurrency ?? [];
+    const picked = this.currency();
+    return picked ? totals.filter((total) => total.currency === picked) : totals;
+  });
+
+  /**
+   * Si el periodo tiene movimientos en más de una moneda, que es cuando hay que elegir.
+   * Mira el resumen entero y no la lista ya acotada: con el filtro puesto sigue habiendo
+   * varias, y es lo que mantiene el selector en pantalla para poder quitarlo.
+   */
+  protected readonly hasSeveralCurrencies = computed(
+    () => (this.summary()?.byCurrency ?? []).length > 1,
+  );
+
   protected readonly monthValue = computed(
     () => `${this.year()}-${String(this.month()).padStart(2, '0')}`,
   );
@@ -209,20 +251,34 @@ export class TransactionsPage {
   );
 
   /**
-   * Lo que suma de media cada movimiento del tipo por el que se filtra.
+   * Lo que suma de media cada movimiento del tipo por el que se filtra, dentro de una
+   * moneda.
    *
    * Solo se calcula con un tipo puesto: mezclando ingresos y egresos, la media sería el
-   * promedio de dos cosas que no se suman entre sí y no querría decir nada.
+   * promedio de dos cosas que no se suman entre sí y no querría decir nada. Y se calcula
+   * dentro de una moneda por lo mismo, un paso más alla.
+   *
+   * @param totals totales de una moneda del periodo
+   * @return la media por movimiento, o nulo si no hay tipo filtrado o no hay movimientos
    */
-  protected readonly average = computed(() => {
-    const totals = this.summary();
+  protected average(totals: CurrencySummaryResponse): number | null {
     const kind = this.filteredKind();
-    if (!totals || !kind || !totals.transactionCount) {
+    if (!kind || !totals.transactionCount) {
       return null;
     }
     const total = kind === 'INCOME' ? totals.income : totals.expense;
     return total / totals.transactionCount;
-  });
+  }
+
+  /**
+   * Nombre con el que se rotula una moneda cuando hay varias en pantalla.
+   *
+   * @param currency moneda a rotular
+   * @return su nombre en castellano
+   */
+  protected currencyName(currency: Currency): string {
+    return CURRENCY_NAMES[currency];
+  }
 
   /** Si hay algo puesto que merezca ofrecer un «limpiar». */
   protected readonly isFiltered = computed(
@@ -230,6 +286,7 @@ export class TransactionsPage {
       this.typeId() !== null ||
       this.categoryId() !== null ||
       this.tag() !== null ||
+      this.currency() !== null ||
       this.searchText() !== '' ||
       this.periodMode() !== 'month' ||
       !this.isCurrentMonth(),
@@ -405,6 +462,12 @@ export class TransactionsPage {
     this.search();
   }
 
+  /** Filtra por una moneda, o por ninguna para volver a verlas todas. */
+  protected setCurrency(code: string): void {
+    this.currency.set((code as Currency) || null);
+    this.search();
+  }
+
   /** Recoge lo que se va escribiendo y deja que el retardo decida cuándo buscarlo. */
   protected onSearchInput(text: string): void {
     this.searchDraft.set(text);
@@ -465,6 +528,7 @@ export class TransactionsPage {
     this.typeId.set(null);
     this.categoryId.set(null);
     this.tag.set(null);
+    this.currency.set(null);
     this.searchDraft.set('');
     // Igual que al limpiar solo la búsqueda: descarta lo que se estuviera escribiendo para
     // que no vuelva a ponerse solo un instante después.
