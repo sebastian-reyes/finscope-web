@@ -152,6 +152,14 @@
   color: var(--fs-ink-faint);
 }
 
+// Los tags de la plantilla, bajo la categoría y el ritmo: acompañan, no compiten.
+.fs-fix__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.35rem 0 0;
+}
+
 .fs-fix__figures {
   flex: 0 0 auto;
   display: flex;

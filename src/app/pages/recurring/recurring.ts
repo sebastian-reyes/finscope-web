@@ -10,12 +10,15 @@ import { iconFor } from '../../core/format/icons';
 import {
   CategoryResponse,
   RecurringOccurrenceResponse,
+  TagResponse,
   TransactionTypeCode,
   TransactionTypeResponse,
 } from '../../core/models';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
+import { TagChipComponent } from '../../shared/ui/tag-chip';
+import { TagsFieldComponent } from '../../shared/ui/tags-field';
 
 /** Cómo va el mes de fijos: lo que falta, lo que ya se pagó y lo que se espera cobrar. */
 interface RecurringTotals {
@@ -53,10 +56,22 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
  *
  * Los ingresos entran igual que los egresos. El sueldo es lo más recurrente que existe y es
  * lo que hace que «cuánto me queda» sea una cuenta y no una intuición.
+ *
+ * Los tags se escriben en la plantilla, no cada mes. La categoría es una sola y reparte el
+ * gasto; el contexto —casa, teletrabajo, mascota— se solapa, y por eso son tags. Al confirmar
+ * un mes viajan al movimiento, de modo que lo más previsible del mes deja de ser justo lo que
+ * falta en el desglose por tag.
  */
 @Component({
   selector: 'app-recurring',
-  imports: [ReactiveFormsModule, CategoryPickerComponent, DateFieldComponent, SelectFieldComponent],
+  imports: [
+    ReactiveFormsModule,
+    CategoryPickerComponent,
+    DateFieldComponent,
+    SelectFieldComponent,
+    TagsFieldComponent,
+    TagChipComponent,
+  ],
   templateUrl: './recurring.html',
   styleUrl: './recurring.scss',
 })
@@ -68,6 +83,9 @@ export class RecurringPage {
   protected readonly items = signal<RecurringOccurrenceResponse[]>([]);
   protected readonly categories = signal<CategoryResponse[]>([]);
   protected readonly types = signal<TransactionTypeResponse[]>([]);
+
+  /** Catálogo de tags del usuario: es lo que el campo ofrece de un toque al escribirlos. */
+  protected readonly tagCatalogue = signal<TagResponse[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -108,14 +126,18 @@ export class RecurringPage {
   });
 
   /**
-   * Los tres campos que no son del formulario reactivo.
-   * El selector de categoría, el desplegable de la casa y el campo de mes se comunican con
-   * `value`/`valueChange` y no implementan el acceso de los formularios reactivos.
+   * Los cuatro campos que no son del formulario reactivo.
+   * El selector de categoría, el desplegable de la casa, el campo de mes y el de tags se
+   * comunican con `value`/`valueChange` y no implementan el acceso de los formularios
+   * reactivos.
    */
   protected readonly kind = signal<TransactionTypeCode>('EXPENSE');
   protected readonly categoryId = signal<number | null>(null);
   protected readonly everyMonths = signal('1');
   protected readonly startValue = signal('');
+
+  /** Tags con los que queda la plantilla, y con los que nacerá el movimiento de cada mes. */
+  protected readonly pickedTags = signal<string[]>([]);
 
   /** Fecha real del movimiento con el que se confirma, cuando no es la prevista. */
   protected readonly adjustDate = signal('');
@@ -180,11 +202,13 @@ export class RecurringPage {
       items: this.api.listRecurring(month!, year!),
       categories: this.api.listCategories(),
       types: this.api.listTransactionTypes(),
+      tags: this.api.listTags(),
     }).subscribe({
-      next: ({ items, categories, types }) => {
+      next: ({ items, categories, types, tags }) => {
         this.items.set(items);
         this.categories.set(categories);
         this.types.set(types);
+        this.tagCatalogue.set(tags);
         this.loading.set(false);
       },
       error: (error) => {
@@ -234,6 +258,7 @@ export class RecurringPage {
     });
     this.kind.set(item.type);
     this.categoryId.set(item.categoryId);
+    this.pickedTags.set([...item.tags]);
     this.everyMonths.set(String(item.everyMonths));
     this.startValue.set(`${item.startYear}-${String(item.startMonth).padStart(2, '0')}`);
     this.showForm.set(true);
@@ -268,6 +293,9 @@ export class RecurringPage {
       everyMonths: Number(this.everyMonths()),
       startMonth,
       startYear,
+      // Van siempre, también vacíos: al modificar, la lista reemplaza la que hubiera, y el
+      // formulario enseña la definitiva. Callarlos al quitar el último lo dejaría puesto.
+      tags: this.pickedTags(),
     };
     const editing = this.editingId();
     this.saving.set(true);
@@ -449,6 +477,7 @@ export class RecurringPage {
     this.form.reset({ description: '', amount: null, dayOfMonth: 1 });
     this.kind.set('EXPENSE');
     this.categoryId.set(null);
+    this.pickedTags.set([]);
     this.everyMonths.set('1');
     this.startValue.set(`${year}-${String(month).padStart(2, '0')}`);
   }

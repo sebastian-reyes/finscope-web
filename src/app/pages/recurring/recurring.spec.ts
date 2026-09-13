@@ -7,6 +7,7 @@ import { RecurringPage } from './recurring';
 import {
   CategoryResponse,
   RecurringOccurrenceResponse,
+  TagResponse,
   TransactionTypeResponse,
 } from '../../core/models';
 
@@ -16,6 +17,11 @@ const TODAY = new Date(2026, 7, 15, 10, 0, 0);
 const TYPES: TransactionTypeResponse[] = [
   { id: 1, name: 'Ingreso', code: 'INCOME' },
   { id: 2, name: 'Egreso', code: 'EXPENSE' },
+];
+
+const TAGS: TagResponse[] = [
+  { id: 1, name: 'casa', transactionCount: 20 },
+  { id: 2, name: 'teletrabajo', transactionCount: 4 },
 ];
 
 const CATALOGUE: CategoryResponse[] = [
@@ -48,12 +54,13 @@ function item(
     year: 2026,
     dueDate: '2026-08-12',
     status: 'OVERDUE',
+    tags: [],
     ...overrides,
   };
 }
 
 const ITEMS: RecurringOccurrenceResponse[] = [
-  item({ id: 11 }),
+  item({ id: 11, tags: ['casa', 'teletrabajo'] }),
   item({
     id: 12,
     description: 'Netflix',
@@ -91,11 +98,31 @@ describe('RecurringPage', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  /** Contesta a la carga inicial, que pide el mes, el catálogo y los tipos a la vez. */
+  /**
+   * Contesta a la carga inicial, que pide el mes, los dos catálogos y los tipos a la vez.
+   * El de tags entra porque el formulario los ofrece de un toque al escribirlos.
+   */
   function settle(items: RecurringOccurrenceResponse[] = ITEMS): void {
     http.expectOne('/recurring-transactions?month=8&year=2026').flush(items);
     http.expectOne('/categories').flush(CATALOGUE);
     http.expectOne('/transaction-types').flush(TYPES);
+    http.expectOne('/tags').flush(TAGS);
+    fixture.detectChanges();
+  }
+
+  /** Abre el formulario de arriba, sea para dar de alta o para modificar. */
+  function openForm(): void {
+    host().querySelector<HTMLButtonElement>('.fs-head__actions .fs-btn--solid')!.click();
+    fixture.detectChanges();
+  }
+
+  /** Escribe un tag en el campo y lo confirma con el intro, como se hace a mano. */
+  function addTag(name: string): void {
+    const field = host().querySelector<HTMLInputElement>('#recurringTags')!;
+    field.value = name;
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     fixture.detectChanges();
   }
 
@@ -240,8 +267,7 @@ describe('RecurringPage', () => {
   it('da de alta una plantilla con su ritmo y su mes de arranque', () => {
     settle();
 
-    host().querySelector<HTMLButtonElement>('.fs-head__actions .fs-btn--solid')!.click();
-    fixture.detectChanges();
+    openForm();
 
     const description = host().querySelector<HTMLInputElement>('#recurringDescription')!;
     description.value = 'Gimnasio';
@@ -279,6 +305,7 @@ describe('RecurringPage', () => {
       // Arranca en el mes que se está mirando: dar de alta un fijo hoy no dice nada de enero.
       startMonth: 8,
       startYear: 2026,
+      tags: [],
     });
     request.flush({
       id: 20,
@@ -291,7 +318,77 @@ describe('RecurringPage', () => {
       startMonth: 8,
       startYear: 2026,
       active: true,
+      tags: [],
     });
+
+    settle();
+  });
+
+  it('los tags de la plantilla se ven en su fila', () => {
+    settle();
+
+    const tags = Array.from(row('Internet').querySelectorAll('.fs-fix__tags .fs-chip')).map(
+      (chip) => chip.textContent!.trim(),
+    );
+    // La categoría es una y reparte el gasto; el contexto se solapa y por eso son varios.
+    expect(tags).toEqual(['casa', 'teletrabajo']);
+    expect(row('Netflix').querySelector('.fs-fix__tags')).toBeNull();
+  });
+
+  it('los tags escritos viajan en el alta y nacen con el movimiento de cada mes', () => {
+    settle();
+    openForm();
+
+    const description = host().querySelector<HTMLInputElement>('#recurringDescription')!;
+    description.value = 'Gimnasio';
+    description.dispatchEvent(new Event('input'));
+    const amount = host().querySelector<HTMLInputElement>('#recurringAmount')!;
+    amount.value = '120';
+    amount.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const servicios = Array.from(
+      host().querySelectorAll<HTMLButtonElement>('fs-category-picker button'),
+    ).find((option) => option.textContent!.includes('Servicios'))!;
+    servicios.click();
+    fixture.detectChanges();
+
+    addTag('deporte');
+
+    host()
+      .querySelector<HTMLFormElement>('.fs-form')!
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const request = http.expectOne('/recurring-transactions');
+    expect(request.request.body.tags).toEqual(['deporte']);
+    request.flush({ ...item({ id: 20, description: 'Gimnasio' }), tags: ['deporte'] });
+
+    settle();
+  });
+
+  it('al modificar, el formulario llega con los tags que la plantilla ya tenía', () => {
+    settle();
+
+    row('Internet').querySelector<HTMLButtonElement>('[aria-label^="Cambiar"]')!.click();
+    fixture.detectChanges();
+
+    const chips = Array.from(host().querySelectorAll('.fs-tags__item')).map((chip) =>
+      chip.textContent!.trim(),
+    );
+    expect(chips).toEqual(['casa', 'teletrabajo']);
+
+    // Quitar el último tiene que poder mandarse: si no, el fijo se quedaría con los dos.
+    host().querySelectorAll<HTMLButtonElement>('.fs-tags__item')[1].click();
+    fixture.detectChanges();
+
+    host()
+      .querySelector<HTMLFormElement>('.fs-form')!
+      .dispatchEvent(new Event('submit', { cancelable: true }));
+
+    const request = http.expectOne('/recurring-transactions/11');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body.tags).toEqual(['casa']);
+    request.flush({ ...item({ id: 11 }), tags: ['casa'] });
 
     settle();
   });
@@ -319,6 +416,7 @@ describe('RecurringPage', () => {
     http.expectOne('/recurring-transactions?month=7&year=2026').flush([]);
     http.expectOne('/categories').flush(CATALOGUE);
     http.expectOne('/transaction-types').flush(TYPES);
+    http.expectOne('/tags').flush(TAGS);
     fixture.detectChanges();
 
     expect(host().querySelector('.fs-blank__title')!.textContent).toContain('Todavía no tienes');

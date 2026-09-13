@@ -100,6 +100,20 @@
         />
       </div>
 
+      <div class="fs-form__wide">
+        <label class="fs-label" for="recurringTags">Tags</label>
+        <fs-tags-field
+          inputId="recurringTags"
+          [(tags)]="pickedTags"
+          [catalogue]="tagCatalogue()"
+          [disabled]="saving()"
+        />
+        <p class="fs-hint">
+          Se escriben una vez: cada mes que marques este fijo como pagado, el movimiento nace con
+          ellos. La categoría es una sola y reparte el gasto; los tags se solapan.
+        </p>
+      </div>
+
       <div>
         <label class="fs-label" for="recurringAmount">Importe habitual</label>
         <input
@@ -164,7 +178,8 @@
 
     <p class="fs-note">
       El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede corregir,
-      y lo corregido va al movimiento. Un cargo del 31 vence el 28 en febrero.
+      y lo corregido va al movimiento. Los tags sí van tal cual, mes a mes. Un cargo del 31 vence el
+      28 en febrero.
     </p>
   </section>
 }
@@ -217,6 +232,13 @@
           <div class="fs-fix__body">
             <p class="fs-fix__name text-truncate">{{ item.description }}</p>
             <p class="fs-fix__meta text-truncate">{{ item.category }} · {{ schedule(item) }}</p>
+            @if (item.tags.length) {
+              <p class="fs-fix__tags">
+                @for (name of item.tags; track name) {
+                  <fs-tag-chip [name]="name" />
+                }
+              </p>
+            }
           </div>
 
           <div class="fs-fix__figures">
