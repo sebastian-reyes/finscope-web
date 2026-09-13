@@ -23,6 +23,7 @@ const BUDGETS: BudgetResponse[] = [
     category: 'Comida',
     month: 8,
     year: 2026,
+    currency: 'PEN',
     amount: 400,
     spent: 455.5,
     committed: 0,
@@ -35,6 +36,7 @@ const BUDGETS: BudgetResponse[] = [
     category: 'Transporte',
     month: 8,
     year: 2026,
+    currency: 'PEN',
     amount: 150,
     spent: 20,
     committed: 0,
@@ -117,6 +119,30 @@ describe('BudgetsPage', () => {
     expect(options.join(' ')).not.toContain('Comida');
   });
 
+  it('separa el total del mes por moneda en lugar de sumarlas', () => {
+    settle([
+      BUDGETS[0],
+      {
+        ...BUDGETS[1],
+        id: 13,
+        category: 'Suscripciones',
+        currency: 'USD',
+        amount: 30,
+        spent: 15.99,
+        remaining: 14.01,
+        available: 14.01,
+      },
+    ]);
+
+    // Dos bloques, uno por moneda: 400 soles y 30 dolares no se suman, y una cifra unica
+    // seria un numero que no corresponde a ningun dinero.
+    expect(host().querySelectorAll('.fs-total__block').length).toBe(2);
+    const text = (host().textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('S/ 455.50');
+    expect(text).toContain('$ 15.99');
+    expect(text).toContain('Dólares');
+  });
+
   it('fija un presupuesto para el mes que se está mirando', () => {
     settle();
 
@@ -145,7 +171,14 @@ describe('BudgetsPage', () => {
 
     const request = http.expectOne('/budgets');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ categoryId: 1, month: 8, year: 2026, amount: 250 });
+    // La moneda forma parte de lo que identifica al plan, asi que viaja siempre.
+    expect(request.request.body).toEqual({
+      categoryId: 1,
+      month: 8,
+      year: 2026,
+      currency: 'PEN',
+      amount: 250,
+    });
     request.flush({
       id: 13,
       categoryId: 1,

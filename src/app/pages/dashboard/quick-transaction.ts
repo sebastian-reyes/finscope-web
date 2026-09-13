@@ -10,18 +10,27 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { TagsFieldComponent } from '../../shared/ui/tags-field';
+import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
-import { CURRENCY_SYMBOL } from '../../core/format/money';
+import {
+  BASE_CURRENCY,
+  CURRENCIES,
+  currencySymbol,
+  formatMoney,
+  toBaseCurrency,
+} from '../../core/format/money';
 import { toApiDateTime } from '../../core/format/period';
 import {
   CategoryResponse,
   CreateTransactionRequest,
+  Currency,
   TagResponse,
   TransactionTypeCode,
   TransactionTypeResponse,
@@ -46,6 +55,7 @@ import {
 })
 export class QuickTransactionComponent {
   private readonly api = inject(FinscopeService);
+  private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
 
@@ -69,7 +79,9 @@ export class QuickTransactionComponent {
   /** Se ha creado una categoría desde el selector: el catálogo de fuera se ha quedado viejo. */
   readonly catalogueChanged = output<void>();
 
-  protected readonly currency = CURRENCY_SYMBOL;
+  protected readonly currencies = CURRENCIES;
+  /** Moneda elegida. Manda sobre el tipo de cambio, que solo existe fuera de la base. */
+  protected readonly currency = signal<Currency>(BASE_CURRENCY);
   protected readonly kind = signal<TransactionTypeCode>('EXPENSE');
   /** Categoría elegida. Vive fuera del formulario porque se elige tocando una ficha. */
   protected readonly categoryId = signal<number | null>(null);
@@ -82,8 +94,42 @@ export class QuickTransactionComponent {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    // Obligatorio o prohibido segun la moneda: lo decide `setCurrency`.
+    exchangeRate: [null as number | null],
     description: ['', Validators.maxLength(255)],
     date: [''],
+  });
+
+  /** Si el movimiento esta en la moneda base, la unica que no lleva tipo de cambio. */
+  protected readonly isBaseCurrency = computed(() => this.currency() === BASE_CURRENCY);
+
+  /** Simbolo de la moneda elegida, el que acompana al monto mientras se escribe. */
+  protected readonly symbol = computed(() => currencySymbol(this.currency()));
+
+  /** Lo escrito en el formulario, como senal, para poder recalcular la conversion. */
+  private readonly draft = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  /** De cuando es la tasa propuesta, o nulo si el usuario ya escribio otra. */
+  protected readonly suggestedFrom = computed(() => {
+    const last = this.rates.lastRate(this.currency());
+    if (this.isBaseCurrency() || !last || Number(this.draft().exchangeRate) !== last.rate) {
+      return null;
+    }
+    return new Date(last.date).toLocaleDateString('es', { day: 'numeric', month: 'long' });
+  });
+
+  /** La conversion en palabras, que es lo que delata un cambio mal tecleado. */
+  protected readonly converted = computed(() => {
+    const value = this.draft();
+    const amount = Number(value.amount);
+    const rate = Number(value.exchangeRate);
+    if (!amount || !rate || this.isBaseCurrency()) {
+      return null;
+    }
+    const money = formatMoney(amount, this.currency());
+    return `${money} \u00d7 ${rate} = ${formatMoney(toBaseCurrency(amount, rate))}`;
   });
 
   /** Tags escritos. Viven fuera del formulario porque se manejan como fichas. */
@@ -95,6 +141,17 @@ export class QuickTransactionComponent {
   );
 
   constructor() {
+    // La ultima tasa conocida se pide a la API, asi que puede llegar despues de haber
+    // elegido la moneda: sin esto habria que volver a tocar el selector para verla.
+    effect(() => {
+      const currency = this.currency();
+      const last = this.rates.lastRate(currency);
+      const control = this.form.controls.exchangeRate;
+      if (currency !== BASE_CURRENCY && last && control.value == null) {
+        control.setValue(last.rate);
+      }
+    });
+
     effect(() => {
       if (this.focusRequest() === null) {
         return;
@@ -109,6 +166,36 @@ export class QuickTransactionComponent {
 
   protected setKind(kind: TransactionTypeCode): void {
     this.kind.set(kind);
+  }
+
+  /**
+   * Elige la moneda y deja el tipo de cambio como esa moneda exige: obligatorio fuera de la
+   * base, vaciado al volver a ella para que no viaje un cambio que ya no convierte nada.
+   *
+   * @param currency moneda elegida
+   */
+  protected setCurrency(currency: Currency): void {
+    this.currency.set(currency);
+    const control = this.form.controls.exchangeRate;
+    if (currency === BASE_CURRENCY) {
+      control.reset(null);
+      control.clearValidators();
+    } else {
+      control.setValidators([Validators.required, Validators.min(0.000001)]);
+      // Se propone la ultima que se uso: teclearla en cada movimiento es el paso de sobra
+      // que hace que se deje de registrar. Solo si el campo esta vacio.
+      this.rates.ensureLoaded(currency);
+      const last = this.rates.lastRate(currency);
+      if (control.value == null && last) {
+        control.setValue(last.rate);
+      }
+    }
+    control.updateValueAndValidity();
+  }
+
+  /** Simbolo con el que se rotula cada moneda en el selector. */
+  protected symbolOf(currency: Currency): string {
+    return currencySymbol(currency);
   }
 
   /** Recoge la categoría elegida y retira el aviso en cuanto deja de faltar. */
@@ -131,9 +218,13 @@ export class QuickTransactionComponent {
     const value = this.form.getRawValue();
     const request: CreateTransactionRequest = {
       amount: Number(value.amount),
+      currency: this.currency(),
       transactionTypeId: type.id,
       categoryId,
     };
+    if (!this.isBaseCurrency()) {
+      request.exchangeRate = Number(value.exchangeRate);
+    }
     if (value.description.trim()) {
       request.description = value.description.trim();
     }
@@ -150,6 +241,11 @@ export class QuickTransactionComponent {
     this.form.disable();
     this.api.createTransaction(request).subscribe({
       next: (created) => {
+        // Lo que acaba de guardarse es, por definicion, lo ultimo: se recuerda para el
+        // siguiente movimiento en lugar de volver a preguntarselo a la API.
+        if (created.currency && created.exchangeRate) {
+          this.rates.remember(created.currency, created.exchangeRate, created.date);
+        }
         this.toasts.success(type.code === 'INCOME' ? 'Ingreso registrado' : 'Egreso registrado');
         this.reset();
         this.saved.emit(created.id);
@@ -163,7 +259,8 @@ export class QuickTransactionComponent {
 
   private reset(): void {
     this.finish();
-    this.form.reset({ amount: null, description: '', date: '' });
+    this.form.reset({ amount: null, exchangeRate: null, description: '', date: '' });
+    this.setCurrency(BASE_CURRENCY);
     this.pickedTags.set([]);
     this.categoryId.set(null);
     this.categoryMissing.set(false);

@@ -43,6 +43,49 @@ src/app/
   La renovación es manual desde *Mi cuenta*.
 - Los mensajes de error salen del cuerpo `ErrorResponse` de la API, con su código de negocio.
 
+## Monedas
+
+Un movimiento se guarda **en la moneda en la que ocurrió** y no se convierte nunca: cien
+dólares son cien dólares el día que se registran y el día que se consultan. Hay dos
+admitidas, `PEN` y `USD`, y **`PEN` es la base**: la que se asume cuando no se indica ninguna
+y la única que no lleva tipo de cambio, porque no se convierte a sí misma.
+
+Al registrar fuera de la base hace falta el **tipo de cambio de ese día**, que se guarda
+junto al movimiento y no participa en ningún cálculo: es memoria de aquel día, de modo que
+cuando el cambio suba, la compra de agosto seguirá valiendo lo que valió. Editar un
+movimiento no lo recalcula.
+
+**No hay que teclearlo en cada movimiento.** Al elegir la moneda se propone el último que se
+usó en ella, sacado del propio historial —la tasa que el banco aplicó de verdad la última
+vez, no la de ninguna fuente externa—, y el campo dice de cuándo es para que una de hace dos
+semanas no se dé por buena sin mirarla. Registrar en dólares cuesta entonces lo mismo que en
+soles: el campo viene puesto y basta con confirmarlo. De eso se ocupa
+`core/exchange-rate.service.ts`, que pregunta una sola vez por moneda y se actualiza solo al
+guardar.
+
+**Ningún total suma monedas distintas.** El balance del inicio y los del historial enseñan
+una cifra por moneda, y el reparto y la evolución llevan un selector, porque un anillo que
+mezclara soles con dólares repartiría porcentajes de una cantidad que no existe. Con una
+sola moneda —lo normal— no aparece ningún selector y todo se ve como siempre.
+
+**El presupuesto también es de una moneda**, y por eso una categoría puede tener dos planes
+en el mismo mes: S/ 100 y además $ 30. Cada uno cuenta solo lo gastado en su moneda, así que
+**un gasto en dólares no consume el presupuesto en soles**, sino el que esa categoría tenga
+en dólares. Convertirlo haría que el avance de la barra dependiera del día en que se mira.
+
+**El movimiento fijo lleva moneda pero no tipo de cambio.** No es un olvido: un fijo se da de
+alta hoy y se confirma dentro de meses, así que el cambio es el del día en que se pague y se
+pide al confirmarlo —propuesto con el último que usaste, como en cualquier movimiento—. Eso
+es además lo que permite calcular lo comprometido sin convertir nada: cada presupuesto suma
+los fijos de su moneda.
+
+Desde el inicio, un fijo en dólares se marca como pagado con la última tasa conocida. Si
+todavía no hay ninguna, esa tarjeta manda a la pantalla de fijos, que es donde se puede
+escribir: una tarjeta de un toque no tiene dónde pedirla.
+
+Añadir una moneda —EUR, por ejemplo— es ampliar el enum `Currency` del contrato, la
+restricción equivalente de la base y la tabla de símbolos de `core/format/money.ts`.
+
 ## Instalable en el móvil
 
 Es una PWA: se instala desde el navegador, sin pasar por ninguna tienda. En el iPhone,

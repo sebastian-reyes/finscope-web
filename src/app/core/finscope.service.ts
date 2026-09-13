@@ -8,6 +8,7 @@ import {
   ConfirmRecurringTransactionRequest,
   CopyBudgetsRequest,
   CreateTransactionRequest,
+  Currency,
   RecurringOccurrenceResponse,
   RecurringTransactionResponse,
   SaveBudgetRequest,
@@ -123,12 +124,14 @@ export class FinscopeService {
     categoryId: number,
     month: number,
     year: number,
+    currency: Currency,
     amount: number,
   ): Observable<BudgetResponse> {
     return this.http.post<BudgetResponse>(`${this.api}/budgets`, {
       categoryId,
       month,
       year,
+      currency,
       amount,
     } satisfies SaveBudgetRequest);
   }
@@ -310,6 +313,7 @@ export function filterParams(filters: TransactionFilters): HttpParams {
     ['categoryId', filters.categoryId],
     ['tag', filters.tag?.trim() || null],
     ['search', filters.search?.trim() || null],
+    ['currency', filters.currency],
   ];
   let params = new HttpParams();
   for (const [key, value] of values) {

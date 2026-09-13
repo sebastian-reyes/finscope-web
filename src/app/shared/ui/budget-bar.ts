@@ -274,20 +274,28 @@ export class BudgetBarComponent {
    */
   protected readonly reading = computed(() => {
     const budget = this.budget();
-    const base = `${budget.category}: ${formatMoney(budget.spent)} de ${formatMoney(budget.amount)}`;
+    const money = (amount: number) => formatMoney(amount, budget.currency);
+    const base = `${budget.category}: ${money(budget.spent)} de ${money(budget.amount)}`;
     if (this.tone() === 'over') {
-      return `${base}, te pasaste por ${formatMoney(-budget.remaining)}`;
+      return `${base}, te pasaste por ${money(-budget.remaining)}`;
     }
     if (budget.committed > 0) {
-      const fixed = `${formatMoney(budget.committed)} en fijos por pagar`;
+      const fixed = `${money(budget.committed)} en fijos por pagar`;
       return budget.available < 0
-        ? `${base}, con ${fixed} te pasas por ${formatMoney(-budget.available)}`
-        : `${base}, ${fixed}, quedan ${formatMoney(budget.available)} libres`;
+        ? `${base}, con ${fixed} te pasas por ${money(-budget.available)}`
+        : `${base}, ${fixed}, quedan ${money(budget.available)} libres`;
     }
-    return `${base}, queda ${formatMoney(budget.remaining)}`;
+    return `${base}, queda ${money(budget.remaining)}`;
   });
 
+  /**
+   * Da formato a un importe de este presupuesto, en su moneda.
+   * Todas las cifras de la barra son de la misma: el plan, lo gastado y lo comprometido.
+   *
+   * @param amount importe a formatear
+   * @return el importe con el símbolo de la moneda del plan
+   */
   protected money(amount: number): string {
-    return formatMoney(amount);
+    return formatMoney(amount, this.budget().currency);
   }
 }

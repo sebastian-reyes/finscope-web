@@ -5,15 +5,23 @@ import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
-import { formatMoney } from '../../core/format/money';
+import {
+  BASE_CURRENCY,
+  CURRENCIES,
+  CURRENCY_NAMES,
+  currencySymbol,
+  formatMoney,
+} from '../../core/format/money';
 import { iconFor } from '../../core/format/icons';
-import { BudgetResponse, CategoryResponse } from '../../core/models';
+import { BudgetResponse, CategoryResponse, Currency } from '../../core/models';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
 
 /** Totales del mes: el plan entero contra lo que de verdad se lleva gastado. */
 interface BudgetTotals {
+  /** Moneda de la que hablan todas las cifras de este total. */
+  currency: Currency;
   amount: number;
   spent: number;
   remaining: number;
@@ -75,6 +83,16 @@ export class BudgetsPage {
   protected readonly newForm = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
   });
+
+  protected readonly currencies = CURRENCIES;
+
+  /**
+   * Moneda del plan que se esta dando de alta.
+   * Vive fuera del formulario porque se elige tocando un boton, igual que la categoria, y
+   * porque forma parte de lo que identifica al presupuesto: una categoria admite uno por
+   * moneda y mes.
+   */
+  protected readonly newCurrency = signal<Currency>(BASE_CURRENCY);
 
   protected readonly editForm = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
@@ -154,17 +172,36 @@ export class BudgetsPage {
    * Se suman aquí y no en la API porque son la misma resta que ya viene fila a fila: pedir
    * un agregado más obligaría a un viaje extra para no aportar ningún dato nuevo.
    */
-  protected readonly totals = computed<BudgetTotals>(() => {
-    const budgets = this.budgets();
-    const amount = budgets.reduce((sum, budget) => sum + budget.amount, 0);
-    const spent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
-    return {
-      amount,
-      spent,
-      remaining: amount - spent,
-      percent: amount > 0 ? Math.round((spent / amount) * 100) : 0,
-    };
+  /**
+   * El mes entero, con un total por moneda.
+   *
+   * No hay una cifra que los resuma: un plan en soles y otro en dolares son dos cantidades
+   * distintas, y sumarlas dará un numero que no significa nada. Con una sola moneda —lo
+   * normal— la lista tiene un elemento y la pantalla se ve como siempre.
+   */
+  protected readonly totals = computed<BudgetTotals[]>(() => {
+    const grouped = new Map<Currency, BudgetTotals>();
+    for (const budget of this.budgets()) {
+      const total = grouped.get(budget.currency) ?? {
+        currency: budget.currency,
+        amount: 0,
+        spent: 0,
+        remaining: 0,
+        percent: 0,
+      };
+      total.amount += budget.amount;
+      total.spent += budget.spent;
+      grouped.set(budget.currency, total);
+    }
+    for (const total of grouped.values()) {
+      total.remaining = total.amount - total.spent;
+      total.percent = total.amount > 0 ? Math.round((total.spent / total.amount) * 100) : 0;
+    }
+    return [...grouped.values()];
   });
+
+  /** Si el mes tiene planes en mas de una moneda, que es cuando hay que rotularlas. */
+  protected readonly hasSeveralCurrencies = computed(() => this.totals().length > 1);
 
   /** Los que ya se pasaron del límite, que son los que hay que mirar primero. */
   protected readonly overspent = computed(() =>
@@ -226,11 +263,17 @@ export class BudgetsPage {
     const { month, year } = this.period();
     this.saving.set(true);
     this.api
-      .createBudget(Number(this.newCategoryId()), month!, year!, Number(this.newAmount.value))
+      .createBudget(
+        Number(this.newCategoryId()),
+        month!,
+        year!,
+        this.newCurrency(),
+        Number(this.newAmount.value),
+      )
       .subscribe({
         next: (budget) => {
           this.toasts.success(
-            `«${budget.category}» presupuestada en ${formatMoney(budget.amount)}`,
+            `«${budget.category}» presupuestada en ${formatMoney(budget.amount, budget.currency)}`,
           );
           this.showCreate.set(false);
           this.resetCreate();
@@ -332,8 +375,25 @@ export class BudgetsPage {
       });
   }
 
-  protected money(amount: number): string {
-    return formatMoney(amount);
+  /**
+   * Da formato a un importe en la moneda indicada.
+   *
+   * @param amount   importe a formatear
+   * @param currency moneda del importe; la base si no se dice otra
+   * @return el importe con el simbolo de su moneda
+   */
+  protected money(amount: number, currency: Currency = BASE_CURRENCY): string {
+    return formatMoney(amount, currency);
+  }
+
+  /** Nombre con el que se rotula una moneda cuando hay varias en pantalla. */
+  protected currencyName(currency: Currency): string {
+    return CURRENCY_NAMES[currency];
+  }
+
+  /** Simbolo con el que se rotula cada moneda en el selector del alta. */
+  protected currencySign(currency: Currency): string {
+    return currencySymbol(currency);
   }
 
   /** Cierra lo que estuviera abierto al cambiar de mes: ya no se refiere a lo que se mira. */
@@ -348,6 +408,7 @@ export class BudgetsPage {
   private resetCreate(): void {
     this.newForm.reset({ amount: null });
     this.newCategoryId.set('');
+    this.newCurrency.set(BASE_CURRENCY);
   }
 
   private fail(error: unknown): void {

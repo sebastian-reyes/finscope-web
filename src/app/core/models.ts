@@ -86,9 +86,24 @@ export interface SaveTagRequest {
   name: string;
 }
 
+/**
+ * Moneda de un movimiento, en código ISO 4217.
+ * `PEN` es la base: la que se asume cuando no se indica ninguna y la única que no lleva
+ * tipo de cambio, porque no se convierte a sí misma.
+ */
+export type Currency = 'PEN' | 'USD';
+
 export interface TransactionResponse {
   id: number;
+  /** Importe en la moneda de `currency`. No se convierte nunca. */
   amount: number;
+  currency: Currency;
+  /**
+   * Tipo de cambio a moneda base con el que se registró, nulo si ya estaba en la base.
+   * Es memoria de aquel día y no entra en ningún total: multiplicado por `amount` da su
+   * equivalente en soles en el momento en que se apuntó, no el de hoy.
+   */
+  exchangeRate?: number | null;
   description?: string;
   date: string;
   transactionType: TransactionTypeResponse;
@@ -108,6 +123,14 @@ export interface TransactionPageResponse {
 
 export interface CreateTransactionRequest {
   amount: number;
+  /** Moneda del importe. Omitirla significa moneda base. */
+  currency?: Currency;
+  /**
+   * Tipo de cambio con el que se registra.
+   * Obligatorio fuera de la moneda base y prohibido dentro de ella: la API rechaza las dos
+   * combinaciones imposibles, porque moneda y cambio son una pareja.
+   */
+  exchangeRate?: number | null;
   description?: string;
   date?: string;
   transactionTypeId: number;
@@ -133,6 +156,13 @@ export interface TransactionFilters {
   categoryId?: number | null;
   /** Nombre del tag, sin distinguir mayúsculas. */
   tag?: string | null;
+  /**
+   * Moneda del movimiento.
+   * En el listado es un filtro corriente y omitirlo trae todas, porque cada fila dice la
+   * suya. En los agregados no: omitirlo pide los totales de la moneda base, ya que un total
+   * que sumara monedas distintas no sería ninguna cantidad.
+   */
+  currency?: Currency | null;
   /**
    * Texto a buscar, sin distinguir mayúsculas.
    * La API lo busca en la descripción del movimiento, en el nombre de su categoría y en el
@@ -169,13 +199,33 @@ export interface TagSummaryResponse {
   transactionCount: number;
 }
 
-/** Totales del periodo y sus desgloses por categoría y por tag. */
+/** Ingresos y egresos acumulados en una moneda dentro del periodo. */
+export interface CurrencySummaryResponse {
+  currency: Currency;
+  income: number;
+  expense: number;
+  /** Diferencia entre income y expense; negativa si se gastó de más. */
+  net: number;
+  transactionCount: number;
+}
+
+/**
+ * Totales del periodo y sus desgloses por moneda, por categoría y por tag.
+ * Todo lo de un mismo nivel habla de la misma moneda —la del filtro, o la base— salvo
+ * `byCurrency`, que es donde están todas.
+ */
 export interface TransactionSummaryResponse {
   income: number;
   expense: number;
   /** Diferencia entre income y expense; negativa si se gastó de más. */
   net: number;
   transactionCount: number;
+  /**
+   * Totales de cada moneda presente en el periodo, con la base primero.
+   * Sus importes no se suman entre sí: son cantidades distintas, no sumandos. Es lo único
+   * que el filtro de moneda no acota, y de aquí sale qué monedas ofrecer.
+   */
+  byCurrency: CurrencySummaryResponse[];
   /**
    * Desglose por categoría, de mayor a menor egreso. Como cada transacción tiene
    * exactamente una, sus importes suman el total del periodo: es el único que puede
@@ -226,6 +276,12 @@ export interface BudgetResponse {
   category: string;
   month: number;
   year: number;
+  /**
+   * Moneda del plan. Todas sus cifras están en ella y solo cuenta lo que se mueve en esa
+   * misma moneda: un gasto en dólares no consume un presupuesto en soles, sino el que esa
+   * categoría tenga en dólares.
+   */
+  currency: Currency;
   /** Importe presupuestado para el mes. */
   amount: number;
   /**
@@ -254,6 +310,12 @@ export interface SaveBudgetRequest {
   categoryId: number;
   month: number;
   year: number;
+  /**
+   * Moneda del plan. Omitirla significa la base.
+   * Una categoría admite un presupuesto por moneda y mes, así que planear en dólares no
+   * pisa lo que ya estuviera planeado en soles.
+   */
+  currency?: Currency;
   amount: number;
 }
 
@@ -301,6 +363,11 @@ export interface RecurringTransactionResponse {
   description: string;
   /** Lo que se suele pagar, no lo definitivo: al confirmar se puede corregir. */
   amount: number;
+  /**
+   * Moneda del cargo. La plantilla no guarda tipo de cambio: el de cada mes se pide al
+   * confirmarlo, porque es el del día en que se paga.
+   */
+  currency: Currency;
   /** Día previsto, entre 1 y 31. Se recorta al último día en los meses cortos. */
   dayOfMonth: number;
   /** Cada cuántos meses toca: 1 mensual, 2 bimestral, 3 trimestral, 12 anual. */
@@ -347,6 +414,12 @@ export interface SaveRecurringTransactionRequest {
   transactionTypeId: number;
   description: string;
   amount: number;
+  /**
+   * Moneda del cargo. Omitirla significa la base.
+   * La plantilla no lleva tipo de cambio: el de cada mes se pide al confirmarlo, porque es
+   * el del día en que se paga y no existía cuando el fijo se dio de alta.
+   */
+  currency?: Currency;
   dayOfMonth: number;
   everyMonths?: number;
   startMonth: number;
@@ -379,6 +452,12 @@ export interface ConfirmRecurringTransactionRequest {
   month: number;
   year: number;
   amount?: number;
+  /**
+   * Tipo de cambio del día en que se paga.
+   * Obligatorio cuando la plantilla no está en la moneda base y prohibido cuando lo está,
+   * igual que en cualquier otro movimiento.
+   */
+  exchangeRate?: number;
   date?: string;
   description?: string;
 }

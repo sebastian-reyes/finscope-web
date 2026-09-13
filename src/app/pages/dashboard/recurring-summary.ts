@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { RecurringOccurrenceResponse } from '../../core/models';
+import { Currency, RecurringOccurrenceResponse } from '../../core/models';
 import { formatMoney } from '../../core/format/money';
 
 /** Cuántos pendientes caben en el inicio antes de que la tarjeta deje de ser un vistazo. */
@@ -25,7 +25,7 @@ const VISIBLE = 4;
   template: `
     @if (pending().length) {
       <p class="fs-recsum__total">
-        <span class="fs-num fs-recsum__amount">{{ money(pendingAmount()) }}</span>
+        <span class="fs-num fs-recsum__amount">{{ pendingAmount() }}</span>
         <span class="fs-recsum__of">
           en {{ pending().length }}
           {{ pending().length === 1 ? 'fijo por pagar' : 'fijos por pagar' }}
@@ -45,7 +45,7 @@ const VISIBLE = 4;
                 }
               </span>
             </span>
-            <span class="fs-num fs-recsum__figure">{{ money(item.amount) }}</span>
+            <span class="fs-num fs-recsum__figure">{{ money(item.amount, item.currency) }}</span>
             <button
               class="fs-btn fs-btn--sm fs-btn--soft"
               type="button"
@@ -204,14 +204,31 @@ export class RecurringSummaryComponent {
 
   protected readonly hidden = computed(() => Math.max(0, this.pending().length - VISIBLE));
 
-  /** Lo que se van a llevar los que faltan. Solo los egresos: un cobro no es una deuda. */
-  protected readonly pendingAmount = computed(() =>
-    this.pending()
-      .filter((item) => item.type === 'EXPENSE')
-      .reduce((total, item) => total + item.amount, 0),
-  );
+  /**
+   * Lo que se van a llevar los que faltan. Solo los egresos: un cobro no es una deuda.
+   *
+   * Ya escrito y por moneda —«S/ 180.00 · $ 15.99»— porque soles y dólares no se suman: un
+   * total único sería una cifra que no corresponde a ningún dinero. Con una sola moneda, lo
+   * normal, se lee igual que antes.
+   */
+  protected readonly pendingAmount = computed(() => {
+    const totals = new Map<Currency, number>();
+    for (const item of this.pending().filter((pending) => pending.type === 'EXPENSE')) {
+      totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.amount);
+    }
+    return [...totals.entries()]
+      .map(([currency, amount]) => formatMoney(amount, currency))
+      .join(' · ');
+  });
 
-  protected money(amount: number): string {
-    return formatMoney(amount);
+  /**
+   * Da formato a un importe en la moneda indicada.
+   *
+   * @param amount   importe a formatear
+   * @param currency moneda del importe
+   * @return el importe con el símbolo de su moneda
+   */
+  protected money(amount: number, currency: Currency): string {
+    return formatMoney(amount, currency);
   }
 }

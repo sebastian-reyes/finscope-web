@@ -536,6 +536,46 @@ fs-category-chip {
 // Lo usan los filtros, el catálogo y el acceso: son opciones pocas y excluyentes, y se ven
 // todas a la vez en lugar de esconderse en un desplegable que hay que abrir para saber qué
 // hay dentro.
+// --- Selector de moneda --------------------------------------------------------------------
+// Vive pegado al campo del monto, dentro de su caja, porque es lo que decide que significa el
+// numero que se esta escribiendo. Dos o tres opciones cortas, asi que se ensenan todas a la
+// vez en lugar de esconderlas en un desplegable: elegir moneda tiene que costar un toque.
+//
+// Es mas pequeno y mas callado que el segmentado de las pantallas: ahi la eleccion es el
+// asunto principal, y aqui acompana a un importe que es quien manda.
+.fs-money-switch {
+  display: inline-flex;
+  flex: none;
+  gap: 0.15rem;
+  padding: 0.15rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-shade);
+}
+
+.fs-money-switch__btn {
+  min-width: 2.1rem;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  border-radius: t.$fs-radius-pill;
+  background: none;
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  color: var(--fs-ink-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.fs-money-switch__btn.is-active {
+  background-color: var(--fs-surface);
+  color: var(--fs-ink);
+  box-shadow: var(--fs-shadow);
+}
+
+.fs-money-switch__btn:disabled {
+  opacity: 0.6;
+}
+
 .fs-seg {
   position: relative;
   display: inline-flex;

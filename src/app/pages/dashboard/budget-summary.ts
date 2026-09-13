@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { BudgetResponse } from '../../core/models';
+import { BudgetResponse, Currency } from '../../core/models';
 import { formatMoney } from '../../core/format/money';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
 
@@ -24,10 +24,18 @@ const VISIBLE = 4;
   imports: [RouterLink, BudgetBarComponent],
   template: `
     @if (budgets().length) {
-      <p class="fs-budsum__total">
-        <span class="fs-num fs-budsum__spent">{{ money(spent()) }}</span>
-        <span class="fs-budsum__of">de {{ money(planned()) }} presupuestados</span>
-      </p>
+      <!--
+        Un total por moneda. Sumar un plan en soles con uno en dolares daria una cifra que
+        no es ninguna cantidad; con una sola moneda —lo normal— se ve como siempre.
+      -->
+      @for (total of totals(); track total.currency) {
+        <p class="fs-budsum__total">
+          <span class="fs-num fs-budsum__spent">{{ money(total.spent, total.currency) }}</span>
+          <span class="fs-budsum__of">
+            de {{ money(total.planned, total.currency) }} presupuestados
+          </span>
+        </p>
+      }
 
       <ul class="fs-budsum__list">
         @for (budget of visible(); track budget.id) {
@@ -126,16 +134,37 @@ export class BudgetSummaryComponent {
 
   protected readonly hidden = computed(() => Math.max(0, this.budgets().length - VISIBLE));
 
-  protected readonly planned = computed(() =>
-    this.budgets().reduce((sum, budget) => sum + budget.amount, 0),
-  );
+  /**
+   * Lo planeado y lo gastado, agrupados por moneda.
+   *
+   * No hay un total de todo: dos planes en monedas distintas son dos cantidades, y la suma
+   * de ambas no existe mientras nadie las convierta. El orden es el de llegada, que ya trae
+   * la base primero.
+   */
+  protected readonly totals = computed(() => {
+    const grouped = new Map<Currency, { currency: Currency; planned: number; spent: number }>();
+    for (const budget of this.budgets()) {
+      const total = grouped.get(budget.currency) ?? {
+        currency: budget.currency,
+        planned: 0,
+        spent: 0,
+      };
+      total.planned += budget.amount;
+      total.spent += budget.spent;
+      grouped.set(budget.currency, total);
+    }
+    return [...grouped.values()];
+  });
 
-  protected readonly spent = computed(() =>
-    this.budgets().reduce((sum, budget) => sum + budget.spent, 0),
-  );
-
-  protected money(amount: number): string {
-    return formatMoney(amount);
+  /**
+   * Da formato a un importe en la moneda indicada.
+   *
+   * @param amount   importe a formatear
+   * @param currency moneda del importe
+   * @return el importe con el símbolo de su moneda
+   */
+  protected money(amount: number, currency: Currency): string {
+    return formatMoney(amount, currency);
   }
 }
 

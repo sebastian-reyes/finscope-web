@@ -39,6 +39,7 @@ const EMPTY_PAGE: TransactionPageResponse = {
 const MOVEMENT: TransactionResponse = {
   id: 1,
   amount: 120,
+  currency: 'PEN',
   description: 'Limpieza dental',
   date: '2026-08-14T18:00:00',
   transactionType: TYPES[1],
@@ -60,6 +61,7 @@ const EMPTY_SUMMARY: TransactionSummaryResponse = {
   expense: 0,
   net: 0,
   transactionCount: 0,
+  byCurrency: [],
   byCategory: [],
   byTag: [],
 };
@@ -70,6 +72,17 @@ describe('TransactionsPage', () => {
 
   function host(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
+  }
+
+  /**
+   * El texto de la pantalla con los espacios normalizados.
+   * El simbolo y la cifra viven en nodos distintos y la plantilla los separa con saltos de
+   * linea, asi que comparar contra el texto crudo fallaria por el sangrado.
+   *
+   * @return el texto pintado, con cada racha de espacios reducida a uno
+   */
+  function rendered(): string {
+    return (host().textContent ?? '').replace(/\s+/g, ' ');
   }
 
   function box(): HTMLInputElement {
@@ -122,6 +135,54 @@ describe('TransactionsPage', () => {
   afterEach(() => {
     http.verify();
     vi.useRealTimers();
+  });
+
+  it('ensena la moneda de cada movimiento, no solo su numero', () => {
+    http.expectOne('/transaction-types').flush(TYPES);
+    http.expectOne('/categories').flush(CATEGORIES);
+    http.expectOne('/tags').flush(TAGS);
+    http.expectOne('/transactions?month=8&year=2026&page=0&size=20&sort=date,desc').flush({
+      content: [
+        MOVEMENT,
+        { ...MOVEMENT, id: 2, amount: 15.99, currency: 'USD', exchangeRate: 3.55 },
+      ],
+      page: 0,
+      size: 20,
+      totalElements: 2,
+      totalPages: 1,
+    });
+    http.expectOne('/transactions/summary?month=8&year=2026').flush(EMPTY_SUMMARY);
+    fixture.detectChanges();
+
+    // Sin el simbolo, 120 y 15.99 pareceria que se pueden sumar.
+    expect(rendered()).toContain('S/ 120.00');
+    expect(rendered()).toContain('$ 15.99');
+  });
+
+  it('ensena un balance por moneda en lugar de sumarlas', () => {
+    http.expectOne('/transaction-types').flush(TYPES);
+    http.expectOne('/categories').flush(CATEGORIES);
+    http.expectOne('/tags').flush(TAGS);
+    http
+      .expectOne('/transactions?month=8&year=2026&page=0&size=20&sort=date,desc')
+      .flush(EMPTY_PAGE);
+    http.expectOne('/transactions/summary?month=8&year=2026').flush({
+      ...EMPTY_SUMMARY,
+      expense: 120,
+      net: -120,
+      transactionCount: 1,
+      byCurrency: [
+        { currency: 'PEN', income: 0, expense: 120, net: -120, transactionCount: 1 },
+        { currency: 'USD', income: 500, expense: 15.99, net: 484.01, transactionCount: 2 },
+      ],
+    });
+    fixture.detectChanges();
+
+    // Dos tarjetas, cada una con su moneda: mil soles no son mas ni menos que quinientos
+    // dolares mientras nadie los convierta, asi que no hay una cifra que los resuma.
+    expect(host().querySelectorAll('.fs-totals').length).toBe(2);
+    expect(rendered()).toContain('S/ 120.00');
+    expect(rendered()).toContain('$ 484.01');
   });
 
   it('busca una sola vez cuando se deja de escribir, no en cada tecla', () => {

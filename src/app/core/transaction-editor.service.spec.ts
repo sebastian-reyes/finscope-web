@@ -25,6 +25,7 @@ const TAGS: TagResponse[] = [{ id: 1, name: 'gab', transactionCount: 4 }];
 const EXISTING: TransactionResponse = {
   id: 10,
   amount: 40,
+  currency: 'PEN',
   description: 'Almuerzo con Gab',
   date: '2026-08-26T13:35:00',
   transactionType: TYPES[1],

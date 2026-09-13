@@ -199,6 +199,21 @@
       (valueChange)="setTag($event)"
     />
 
+    <!--
+      El filtro de moneda aparece cuando hay algo que filtrar. Mientras todo esta en la
+      moneda base es un desplegable con una sola respuesta posible, y eso es ruido.
+    -->
+    @if (hasSeveralCurrencies() || currency()) {
+      <fs-select-field
+        class="fs-filters__select"
+        inputId="filterCurrency"
+        ariaLabel="Moneda"
+        [options]="currencyOptions()"
+        [value]="currency() ?? ''"
+        (valueChange)="setCurrency($event)"
+      />
+    }
+
     @if (isFiltered()) {
       <button
         class="fs-btn fs-btn--sm fs-btn--ghost fs-filters__clear"
@@ -211,8 +226,20 @@
   </div>
 </section>
 
-@if (summary(); as totals) {
-  <section class="fs-panel fs-totals" aria-label="Totales del periodo">
+<!--
+  Una tarjeta por moneda. Los importes de monedas distintas no se suman —mil soles no son
+  mas ni menos que quinientos dolares mientras nadie los convierta—, asi que cada una lleva
+  su propio balance en lugar de compartir una cifra que no significaria nada.
+  Con una sola moneda, que es lo normal, se ve exactamente igual que antes.
+-->
+@for (totals of currencyTotals(); track totals.currency) {
+  <section
+    class="fs-panel fs-totals"
+    [attr.aria-label]="'Totales del periodo en ' + currencyName(totals.currency)"
+  >
+    @if (hasSeveralCurrencies()) {
+      <p class="fs-totals__currency">{{ currencyName(totals.currency) }}</p>
+    }
     @if (filteredKind(); as kind) {
       <!--
         Con un tipo filtrado, el otro vale cero por definición y el balance repite el mismo
@@ -228,14 +255,18 @@
             <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
           }
         </span>
-        <fs-amount [amount]="kind === 'INCOME' ? totals.income : totals.expense" [code]="kind" />
+        <fs-amount
+          [amount]="kind === 'INCOME' ? totals.income : totals.expense"
+          [currency]="totals.currency"
+          [code]="kind"
+        />
       </div>
-      @if (average(); as media) {
+      @if (average(totals); as media) {
         <div class="fs-totals__item">
           <span class="fs-totals__label">
             <i class="bi bi-calculator" aria-hidden="true"></i>Media por movimiento
           </span>
-          <fs-amount [amount]="media" />
+          <fs-amount [amount]="media" [currency]="totals.currency" />
         </div>
       }
     } @else {
@@ -243,19 +274,19 @@
         <span class="fs-totals__label">
           <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
         </span>
-        <fs-amount [amount]="totals.income" code="INCOME" />
+        <fs-amount [amount]="totals.income" [currency]="totals.currency" code="INCOME" />
       </div>
       <div class="fs-totals__item">
         <span class="fs-totals__label">
           <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
         </span>
-        <fs-amount [amount]="totals.expense" code="EXPENSE" />
+        <fs-amount [amount]="totals.expense" [currency]="totals.currency" code="EXPENSE" />
       </div>
       <div class="fs-totals__item fs-totals__item--net">
         <span class="fs-totals__label">
           <i class="bi bi-wallet2" aria-hidden="true"></i>Balance
         </span>
-        <fs-amount [amount]="totals.net" [signed]="true" />
+        <fs-amount [amount]="totals.net" [currency]="totals.currency" [signed]="true" />
       </div>
     }
   </section>
@@ -339,6 +370,7 @@
               <span class="fs-mov__right">
                 <fs-amount
                   [amount]="transaction.amount"
+                  [currency]="transaction.currency"
                   [code]="transaction.transactionType.code"
                 />
                 <i class="bi bi-pencil fs-mov__pencil" aria-hidden="true"></i>

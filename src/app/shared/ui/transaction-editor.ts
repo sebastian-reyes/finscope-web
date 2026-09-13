@@ -6,21 +6,31 @@ import {
   OnDestroy,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   output,
   signal,
   viewChild,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
-import { CURRENCY_SYMBOL } from '../../core/format/money';
+import {
+  BASE_CURRENCY,
+  CURRENCIES,
+  currencySymbol,
+  formatMoney,
+  toBaseCurrency,
+} from '../../core/format/money';
 import { toApiDateTime, toInputDateTime } from '../../core/format/period';
 import {
   CategoryResponse,
   CreateTransactionRequest,
+  Currency,
   TagResponse,
   TransactionResponse,
   TransactionTypeCode,
@@ -56,6 +66,7 @@ import { TagsFieldComponent } from './tags-field';
 })
 export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly api = inject(FinscopeService);
+  private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly document = inject(DOCUMENT);
@@ -85,7 +96,12 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
   /** Se ha creado una categoría desde el selector: el catálogo de fuera se ha quedado viejo. */
   readonly catalogueChanged = output<void>();
 
-  protected readonly currency = CURRENCY_SYMBOL;
+  protected readonly currencies = CURRENCIES;
+  /**
+   * Moneda elegida. Vive fuera del formulario porque se elige tocando un botón, igual que
+   * el tipo, y porque manda sobre otro campo: al volver a la base limpia el tipo de cambio.
+   */
+  protected readonly currency = signal<Currency>(BASE_CURRENCY);
   protected readonly kind = signal<TransactionTypeCode>('EXPENSE');
   /** Categoría elegida. Vive fuera del formulario porque se elige tocando una ficha. */
   protected readonly categoryId = signal<number | null>(null);
@@ -100,25 +116,90 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
 
   protected readonly form = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    // Sin validador fijo: es obligatorio o prohibido según la moneda, y de eso se encarga
+    // `setCurrency`, que es lo único que puede cambiar esa condición.
+    exchangeRate: [null as number | null],
     description: ['', Validators.maxLength(255)],
     date: ['', Validators.required],
   });
 
   protected readonly isEdit = computed(() => this.transaction() !== null);
 
+  /**
+   * Lo que hay escrito en el formulario, como señal.
+   * El formulario reactivo no lo es, y la ayuda de conversión tiene que recalcularse con
+   * cada tecla: sin este puente habría que repetir el cálculo en dos manejadores de evento.
+   */
+  private readonly draft = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  /** Si el movimiento está en la moneda base, la única que no lleva tipo de cambio. */
+  protected readonly isBaseCurrency = computed(() => this.currency() === BASE_CURRENCY);
+
+  /** Símbolo de la moneda elegida, el que acompaña al monto mientras se escribe. */
+  protected readonly symbol = computed(() => currencySymbol(this.currency()));
+
+  /**
+   * De cuándo es la tasa que se ha propuesto, o nulo si el usuario ya escribió otra.
+   * Una tasa de hace dos semanas es una propuesta razonable, pero hay que poder ver que es
+   * de hace dos semanas antes de darla por buena.
+   */
+  protected readonly suggestedFrom = computed(() => {
+    const last = this.rates.lastRate(this.currency());
+    if (this.isBaseCurrency() || !last || Number(this.draft().exchangeRate) !== last.rate) {
+      return null;
+    }
+    return new Date(last.date).toLocaleDateString('es', { day: 'numeric', month: 'long' });
+  });
+
+  /**
+   * La conversión escrita en palabras, mientras se teclean monto y cambio.
+   * Es lo que evita el error de tecleo que no se ve hasta el mes siguiente: un cambio de
+   * 35.5 en lugar de 3.55 se lee de golpe al ver el resultado.
+   */
+  protected readonly converted = computed(() => {
+    const value = this.draft();
+    const amount = Number(value.amount);
+    const rate = Number(value.exchangeRate);
+    if (!amount || !rate || this.isBaseCurrency()) {
+      return null;
+    }
+    const money = formatMoney(amount, this.currency());
+    return `${money} × ${rate} = ${formatMoney(toBaseCurrency(amount, rate))}`;
+  });
+
   /** El tipo elegido dentro del catálogo, que es de donde sale su identificador. */
   protected readonly selectedType = computed(() =>
     this.types().find((type) => type.code === this.kind()),
   );
+
+  constructor() {
+    // La última tasa conocida se pide a la API, así que puede llegar después de haber
+    // elegido la moneda. Sin esto habría que volver a tocar el selector para que la
+    // propuesta apareciera, que es justo el paso de más que se quiere quitar.
+    effect(() => {
+      const currency = this.currency();
+      const last = this.rates.lastRate(currency);
+      const control = this.form.controls.exchangeRate;
+      if (currency !== BASE_CURRENCY && last && control.value == null) {
+        control.setValue(last.rate);
+      }
+    });
+  }
 
   ngOnInit(): void {
     const current = this.transaction();
     if (current) {
       this.form.setValue({
         amount: current.amount,
+        exchangeRate: current.exchangeRate ?? null,
         description: current.description ?? '',
         date: toInputDateTime(current.date),
       });
+      // Se carga lo que se guardó, no lo que valdría hoy: editar la descripción de una
+      // compra de agosto no puede cambiar por cuánto se apuntó aquel día.
+      this.setCurrency(current.currency);
       this.kind.set(current.transactionType.code);
       this.categoryId.set(current.category.id);
       this.tags.set([...current.tags]);
@@ -141,6 +222,41 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
 
   protected setKind(kind: TransactionTypeCode): void {
     this.kind.set(kind);
+  }
+
+  /**
+   * Elige la moneda y deja el tipo de cambio como esa moneda exige.
+   *
+   * La base no lo lleva, así que al volver a ella el campo se limpia y deja de ser
+   * obligatorio; fuera de ella pasa a hacer falta. Vaciarlo al salir no es solo cosmético:
+   * un cambio que se quedó escrito de antes viajaría con un importe que ya no convierte
+   * nada, y la API lo rechazaría con un error que el usuario no sabría de dónde sale.
+   *
+   * @param currency moneda elegida
+   */
+  protected setCurrency(currency: Currency): void {
+    this.currency.set(currency);
+    const control = this.form.controls.exchangeRate;
+    if (currency === BASE_CURRENCY) {
+      control.reset(null);
+      control.clearValidators();
+    } else {
+      control.setValidators([Validators.required, Validators.min(0.000001)]);
+      // La tasa se propone sola: teclearla en cada movimiento es el paso de sobra que hace
+      // que se deje de registrar. Solo se rellena si el campo está vacío, de modo que ni
+      // pisa lo que el usuario haya escrito ni la que traiga un movimiento que se edita.
+      this.rates.ensureLoaded(currency);
+      const last = this.rates.lastRate(currency);
+      if (control.value == null && last) {
+        control.setValue(last.rate);
+      }
+    }
+    control.updateValueAndValidity();
+  }
+
+  /** Símbolo con el que se rotula cada moneda en el selector. */
+  protected symbolOf(currency: Currency): string {
+    return currencySymbol(currency);
   }
 
   /** Recoge la categoría elegida y retira el aviso en cuanto deja de faltar. */
@@ -200,6 +316,8 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
     let target: HTMLElement | null = null;
     if (this.form.controls.amount.invalid) {
       target = this.amountField()?.nativeElement ?? null;
+    } else if (this.form.controls.exchangeRate.invalid) {
+      target = host.querySelector('#editorRate');
     } else if (this.categoryId() === null) {
       target = host.querySelector('fs-category-picker');
     } else if (this.form.controls.date.invalid) {
@@ -244,10 +362,16 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
     const value = this.form.getRawValue();
     const request: CreateTransactionRequest = {
       amount: Number(value.amount),
+      currency: this.currency(),
       transactionTypeId: type.id,
       categoryId,
       date: toApiDateTime(value.date),
     };
+    // El cambio viaja solo fuera de la moneda base: mandarlo en un movimiento en soles es
+    // justo lo que la API rechaza, porque nadie convirtió nada.
+    if (!this.isBaseCurrency()) {
+      request.exchangeRate = Number(value.exchangeRate);
+    }
     if (value.description.trim()) {
       request.description = value.description.trim();
     }
@@ -260,6 +384,7 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
     this.start();
     this.api.createTransaction(request).subscribe({
       next: (created) => {
+        this.rememberRate(created);
         this.toasts.success(type.code === 'INCOME' ? 'Ingreso registrado' : 'Egreso registrado');
         this.finish();
         this.saved.emit(created.id);
@@ -282,6 +407,7 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
     this.start();
     this.api.updateTransaction(current.id, request).subscribe({
       next: (updated) => {
+        this.rememberRate(updated);
         this.toasts.success('Movimiento actualizado');
         this.finish();
         this.saved.emit(updated.id);
@@ -297,8 +423,12 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
    * nulo es «este campo no viene» y dejaría la descripción anterior intacta: sin esto no
    * habría forma de quitar una descripción escrita por error.
    *
-   * @param current  movimiento tal y como estaba al abrir el editor
-   * @param type     tipo elegido en el formulario
+   * Volver a la moneda base no manda ningún tipo de cambio: la API lo borra al ver la
+   * moneda, que es lo único que puede hacerse cuando un nulo significa «no lo toques».
+   *
+   * @param current    movimiento tal y como estaba al abrir el editor
+   * @param type       tipo elegido en el formulario
+   * @param categoryId categoría elegida en el formulario
    * @return los cambios a enviar, vacío si no hay ninguno
    */
   private buildPatch(
@@ -312,6 +442,16 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
     const amount = Number(value.amount);
     if (amount !== current.amount) {
       request.amount = amount;
+    }
+    // La moneda manda sobre el cambio, igual que en la API: si cambia, el cambio viaja con
+    // ella aunque el número sea el mismo, porque el anterior era el de la moneda anterior.
+    const currencyChanged = this.currency() !== current.currency;
+    if (currencyChanged) {
+      request.currency = this.currency();
+    }
+    const rate = this.isBaseCurrency() ? null : Number(value.exchangeRate);
+    if (!this.isBaseCurrency() && (currencyChanged || rate !== current.exchangeRate)) {
+      request.exchangeRate = rate;
     }
     const description = value.description.trim();
     if (description !== (current.description ?? '')) {
@@ -331,6 +471,19 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
       request.tags = this.tags();
     }
     return request;
+  }
+
+  /**
+   * Se queda con la tasa del movimiento recién guardado, para proponerla en el siguiente.
+   * Lo que acaba de guardarse es, por definición, lo último: no hace falta volver a
+   * preguntárselo a la API.
+   *
+   * @param saved movimiento tal y como lo devolvió la API
+   */
+  private rememberRate(saved: TransactionResponse): void {
+    if (saved.currency && saved.exchangeRate) {
+      this.rates.remember(saved.currency, saved.exchangeRate, saved.date);
+    }
   }
 
   private start(): void {

@@ -1,14 +1,22 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
+import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
 import { currentMonth, monthLabel, startOfDay } from '../../core/format/period';
-import { formatMoney } from '../../core/format/money';
+import {
+  BASE_CURRENCY,
+  CURRENCIES,
+  CURRENCY_NAMES,
+  currencySymbol,
+  formatMoney,
+} from '../../core/format/money';
 import { iconFor } from '../../core/format/icons';
 import {
   CategoryResponse,
+  Currency,
   RecurringOccurrenceResponse,
   TagResponse,
   TransactionTypeCode,
@@ -22,15 +30,45 @@ import { TagsFieldComponent } from '../../shared/ui/tags-field';
 
 /** Cómo va el mes de fijos: lo que falta, lo que ya se pagó y lo que se espera cobrar. */
 interface RecurringTotals {
-  /** Cuántos vencen este mes y siguen sin resolverse. */
+  /** Cuántos vencen este mes y siguen sin resolverse. Contar sí cruza monedas. */
   pendingCount: number;
-  /** Suma de los egresos que faltan por pagar. */
-  pendingExpense: number;
+  /**
+   * Los egresos que faltan por pagar, ya escritos.
+   *
+   * Es texto y no un número porque puede haber más de una moneda, y entonces no hay una
+   * cifra: son dos cantidades distintas que se enseñan juntas —«S/ 180.00 · $ 15.99»— en
+   * lugar de sumarse en un total que no significaría nada. Vacío si no hay ninguno.
+   */
+  pendingExpense: string;
   paidCount: number;
-  /** Suma de lo que de verdad se pagó, que puede no ser lo estimado. */
-  paidExpense: number;
-  /** Ingresos fijos del mes, pagados o no: el sueldo también es un fijo. */
-  income: number;
+  /** Lo que de verdad se pagó, que puede no ser lo estimado, por moneda. */
+  paidExpense: string;
+  /** Ingresos fijos del mes, pagados o no, por moneda: el sueldo también es un fijo. */
+  income: string;
+}
+
+/**
+ * Escribe juntos los importes de una lista, uno por moneda.
+ *
+ * Nunca los suma entre sí: soles y dólares no se suman, así que lo que sale es «S/ 180.00 ·
+ * $ 15.99» y no una tercera cifra que no corresponde a ningún dinero. Con una sola moneda
+ * —lo normal— devuelve exactamente lo que decía antes.
+ *
+ * @param items lista de fijos a sumar
+ * @param pick  de dónde sale el importe de cada uno
+ * @return los totales escritos, o vacío si no hay ninguno
+ */
+function byCurrency(
+  items: RecurringOccurrenceResponse[],
+  pick: (item: RecurringOccurrenceResponse) => number,
+): string {
+  const totals = new Map<Currency, number>();
+  for (const item of items) {
+    totals.set(item.currency, (totals.get(item.currency) ?? 0) + pick(item));
+  }
+  return [...totals.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(' · ');
 }
 
 /** Cada cuántos meses puede repetirse un fijo, con el nombre que se le da a cada ritmo. */
@@ -77,6 +115,7 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
 })
 export class RecurringPage {
   private readonly api = inject(FinscopeService);
+  private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
 
@@ -123,7 +162,18 @@ export class RecurringPage {
   /** Importe real con el que se confirma un mes que no salió por lo previsto. */
   protected readonly adjustForm = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
+    // El tipo de cambio del día en que se paga. Solo hace falta fuera de la moneda base, y
+    // es `startAdjust` quien decide si es obligatorio, porque depende del fijo que se ajuste.
+    exchangeRate: [null as number | null],
   });
+
+  protected readonly currencies = CURRENCIES;
+
+  /**
+   * Moneda del fijo que se está dando de alta o editando.
+   * Vive fuera del formulario porque se elige tocando un botón, igual que el tipo.
+   */
+  protected readonly currency = signal<Currency>(BASE_CURRENCY);
 
   /**
    * Los cuatro campos que no son del formulario reactivo.
@@ -174,13 +224,12 @@ export class RecurringPage {
     const paid = due.filter((item) => item.status === 'PAID');
     return {
       pendingCount: pending.length,
-      pendingExpense: sum(pending.filter(isExpense).map((item) => item.amount)),
+      pendingExpense: byCurrency(pending.filter(isExpense), (item) => item.amount),
       paidCount: paid.length,
-      paidExpense: sum(paid.filter(isExpense).map((item) => item.paidAmount ?? item.amount)),
-      income: sum(
-        due
-          .filter((item) => !isExpense(item) && item.status !== 'SKIPPED')
-          .map((item) => item.paidAmount ?? item.amount),
+      paidExpense: byCurrency(paid.filter(isExpense), (item) => item.paidAmount ?? item.amount),
+      income: byCurrency(
+        due.filter((item) => !isExpense(item) && item.status !== 'SKIPPED'),
+        (item) => item.paidAmount ?? item.amount,
       ),
     };
   });
@@ -257,6 +306,7 @@ export class RecurringPage {
       dayOfMonth: item.dayOfMonth,
     });
     this.kind.set(item.type);
+    this.currency.set(item.currency);
     this.categoryId.set(item.categoryId);
     this.pickedTags.set([...item.tags]);
     this.everyMonths.set(String(item.everyMonths));
@@ -289,6 +339,7 @@ export class RecurringPage {
       transactionTypeId: typeId,
       description: this.form.controls.description.value.trim(),
       amount: Number(this.form.controls.amount.value),
+      currency: this.currency(),
       dayOfMonth: Number(this.form.controls.dayOfMonth.value),
       everyMonths: Number(this.everyMonths()),
       startMonth,
@@ -317,19 +368,66 @@ export class RecurringPage {
 
   // --- Lo que se hace de un toque ---------------------------------------------------------
 
-  /** Registra el movimiento con lo previsto: el caso de casi todos los meses. */
+  /**
+   * Registra el movimiento con lo previsto: el caso de casi todos los meses.
+   *
+   * <p>Un fijo que no está en la moneda base necesita además el tipo de cambio del día. Se
+   * usa el último que se apuntó, que es lo que evita convertir un toque en un formulario; y
+   * si no hay ninguno todavía, se abre el ajuste para escribirlo en lugar de fallar contra
+   * la API con un error que el usuario no sabría de dónde sale.</p>
+   *
+   * @param item fijo que se da por pagado
+   */
   protected confirm(item: RecurringOccurrenceResponse): void {
     const { month, year } = this.period();
-    this.run(this.api.confirmRecurring(item.id, { month: month!, year: year! }), () =>
-      this.toasts.success(`«${item.description}» registrado por ${formatMoney(item.amount)}`),
+    const rate = this.needsRate(item) ? this.rates.lastRate(item.currency)?.rate : undefined;
+    if (this.needsRate(item) && !rate) {
+      this.startAdjust(item);
+      return;
+    }
+    this.run(
+      this.api.confirmRecurring(item.id, { month: month!, year: year!, exchangeRate: rate }),
+      () => {
+        this.rememberRate(item, rate);
+        this.toasts.success(
+          `«${item.description}» registrado por ${formatMoney(item.amount, item.currency)}`,
+        );
+      },
     );
+  }
+
+  /**
+   * Se queda con la tasa que se acaba de usar, para proponerla en el siguiente fijo.
+   *
+   * @param item fijo confirmado
+   * @param rate tipo de cambio con el que se confirmó, si llevaba
+   */
+  private rememberRate(item: RecurringOccurrenceResponse, rate?: number): void {
+    if (rate) {
+      this.rates.remember(item.currency, rate, new Date().toISOString());
+    }
   }
 
   /** Abre el ajuste con lo previsto ya puesto: casi siempre solo cambia el importe. */
   protected startAdjust(item: RecurringOccurrenceResponse): void {
     this.adjustingId.set(item.id);
     this.confirmingId.set(null);
-    this.adjustForm.setValue({ amount: item.amount });
+    const control = this.adjustForm.controls.exchangeRate;
+    if (this.needsRate(item)) {
+      this.rates.ensureLoaded(item.currency);
+      control.setValidators([Validators.required, Validators.min(0.000001)]);
+    } else {
+      control.clearValidators();
+    }
+    this.adjustForm.setValue({
+      amount: item.amount,
+      // Se propone la última tasa usada, igual que al registrar a mano: teclearla cada mes
+      // es el paso de sobra que hace que se deje de confirmar.
+      exchangeRate: this.needsRate(item)
+        ? (this.rates.lastRate(item.currency)?.rate ?? null)
+        : null,
+    });
+    control.updateValueAndValidity();
     this.adjustDate.set(item.dueDate ?? '');
   }
 
@@ -344,17 +442,26 @@ export class RecurringPage {
     }
     const { month, year } = this.period();
     const amount = Number(this.adjustForm.controls.amount.value);
+    const rate = this.needsRate(item)
+      ? Number(this.adjustForm.controls.exchangeRate.value)
+      : undefined;
     const date = this.adjustDate();
     this.run(
       this.api.confirmRecurring(item.id, {
         month: month!,
         year: year!,
         amount,
+        exchangeRate: rate,
         // El campo entrega un día suelto y la API espera un instante. Se manda el comienzo
         // del día porque lo que importa es en qué día cae, no a qué hora se pagó.
         date: date ? startOfDay(date) : undefined,
       }),
-      () => this.toasts.success(`«${item.description}» registrado por ${formatMoney(amount)}`),
+      () => {
+        this.rememberRate(item, rate);
+        this.toasts.success(
+          `«${item.description}» registrado por ${formatMoney(amount, item.currency)}`,
+        );
+      },
     );
   }
 
@@ -428,8 +535,30 @@ export class RecurringPage {
     return iconFor(item.description || item.category);
   }
 
-  protected money(amount: number): string {
-    return formatMoney(amount);
+  /**
+   * Da formato a un importe en la moneda indicada.
+   *
+   * @param amount   importe a formatear
+   * @param currency moneda del importe; la base si no se dice otra
+   * @return el importe con el símbolo de su moneda
+   */
+  protected money(amount: number, currency: Currency = BASE_CURRENCY): string {
+    return formatMoney(amount, currency);
+  }
+
+  /** Símbolo con el que se rotula cada moneda en el selector del formulario. */
+  protected currencySign(currency: Currency): string {
+    return currencySymbol(currency);
+  }
+
+  /** Nombre de una moneda, para las etiquetas que no caben en un símbolo. */
+  protected currencyName(currency: Currency): string {
+    return CURRENCY_NAMES[currency];
+  }
+
+  /** Si un fijo está en una moneda que exige tipo de cambio al confirmarlo. */
+  protected needsRate(item: RecurringOccurrenceResponse): boolean {
+    return item.currency !== BASE_CURRENCY;
   }
 
   protected setKind(kind: TransactionTypeCode): void {
@@ -476,6 +605,7 @@ export class RecurringPage {
     this.editingId.set(null);
     this.form.reset({ description: '', amount: null, dayOfMonth: 1 });
     this.kind.set('EXPENSE');
+    this.currency.set(BASE_CURRENCY);
     this.categoryId.set(null);
     this.pickedTags.set([]);
     this.everyMonths.set('1');

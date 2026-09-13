@@ -17,8 +17,8 @@ import { ChartComponent } from '../../shared/ui/chart';
 import { PaletteService } from '../../core/palette.service';
 import { ThemeService } from '../../core/theme.service';
 import { MAX_SLICES } from '../../core/format/chart-palette';
-import { formatMoney } from '../../core/format/money';
-import { CategorySummaryResponse, TagSummaryResponse } from '../../core/models';
+import { BASE_CURRENCY, formatMoney } from '../../core/format/money';
+import { CategorySummaryResponse, Currency, TagSummaryResponse } from '../../core/models';
 
 /** Por qué se reparte el gasto del periodo: por su categoría o por sus tags. */
 export type SpendingBreakdown = 'category' | 'tag';
@@ -168,7 +168,7 @@ export function tagSlices(
               <span class="fs-legend__dot" [style.background-color]="slice.color"></span>
               <span class="fs-legend__name text-truncate">{{ slice.label }}</span>
               <span class="fs-legend__share fs-num">{{ share(slice.value) }}</span>
-              <span class="fs-legend__value fs-num">{{ money(slice.value) }}</span>
+              <span class="fs-legend__value fs-num">{{ money()(slice.value) }}</span>
             </ng-template>
 
             <p class="fs-note">
@@ -198,7 +198,7 @@ export function tagSlices(
                     <span class="fs-rank__count fs-num">
                       {{ slice.count }} {{ slice.count === 1 ? 'mov.' : 'movs.' }}
                     </span>
-                    <span class="fs-rank__value fs-num">{{ money(slice.value) }}</span>
+                    <span class="fs-rank__value fs-num">{{ money()(slice.value) }}</span>
                     <span class="fs-rank__track">
                       <span
                         class="fs-rank__bar"
@@ -504,12 +504,22 @@ export class SpendingChartComponent {
   /** Desglose por tag, ya ordenado de mayor a menor egreso. */
   readonly byTag = input.required<TagSummaryResponse[]>();
 
+  /**
+   * Moneda del reparto, para rotular sus importes.
+   * El desglose ya viene acotado a una: un anillo que mezclara monedas repartiría
+   * porcentajes de una cantidad que no existe.
+   */
+  readonly currency = input<Currency>(BASE_CURRENCY);
+
   readonly mode = input<SpendingBreakdown>('category');
 
   /** Mes que se está mirando, que viaja con el filtro para no abrir el historial entero. */
   readonly period = input<{ month: number; year: number } | null>(null);
 
-  protected readonly money = formatMoney;
+  /** Da formato a un importe del reparto con la moneda que se está mirando. */
+  protected readonly money = computed(
+    () => (amount: number) => formatMoney(amount, this.currency()),
+  );
 
   /**
    * Parámetros del enlace al historial: el filtro de la porción más el mes que se mira.
@@ -564,7 +574,7 @@ export class SpendingChartComponent {
    */
   protected reading(slice: Slice): string {
     const movements = slice.count === 1 ? 'movimiento' : 'movimientos';
-    return `${slice.label}: ${formatMoney(slice.value)} en ${slice.count} ${movements}`;
+    return `${slice.label}: ${this.money()(slice.value)} en ${slice.count} ${movements}`;
   }
 
   /**
@@ -582,7 +592,7 @@ export class SpendingChartComponent {
    * su propia lectura en el enlace que la contiene. */
   protected readonly description = computed(() => {
     const parts = this.slices().map(
-      (slice) => `${slice.label}: ${formatMoney(slice.value)}, ${this.share(slice.value)}`,
+      (slice) => `${slice.label}: ${this.money()(slice.value)}, ${this.share(slice.value)}`,
     );
     return `Gasto por categoría. ${parts.join('. ')}`;
   });
@@ -669,7 +679,7 @@ export class SpendingChartComponent {
           tooltip: {
             callbacks: {
               label: (item) =>
-                ` ${item.label}: ${formatMoney(Number(item.parsed))} · ` +
+                ` ${item.label}: ${this.money()(Number(item.parsed))} · ` +
                 `${this.share(Number(item.parsed))}`,
             },
           },

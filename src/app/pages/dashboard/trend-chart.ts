@@ -3,9 +3,9 @@ import { ChartConfiguration } from 'chart.js';
 import { ChartComponent } from '../../shared/ui/chart';
 import { PaletteService } from '../../core/palette.service';
 import { ThemeService } from '../../core/theme.service';
-import { formatMoney } from '../../core/format/money';
+import { BASE_CURRENCY, formatMoney } from '../../core/format/money';
 import { bucketLabel } from '../../core/format/period';
-import { SummarySeriesResponse } from '../../core/models';
+import { Currency, SummarySeriesResponse } from '../../core/models';
 
 /**
  * Evolución de ingresos y egresos.
@@ -44,6 +44,16 @@ export class TrendChartComponent {
 
   readonly series = input.required<SummarySeriesResponse>();
 
+  /**
+   * Moneda de la serie, para rotular sus importes.
+   * La línea ya viene de una sola: acotarla es cosa de quien pide el resumen, y aquí solo
+   * hace falta saber con qué símbolo se leen sus números.
+   */
+  readonly currency = input<Currency>(BASE_CURRENCY);
+
+  /** Da formato a un importe de la serie con la moneda que se está mirando. */
+  private readonly money = computed(() => (amount: number) => formatMoney(amount, this.currency()));
+
   protected readonly labels = computed(() =>
     this.series().buckets.map((bucket) =>
       bucketLabel(bucket.periodStart, this.series().granularity),
@@ -54,7 +64,8 @@ export class TrendChartComponent {
     const buckets = this.series().buckets;
     const income = buckets.reduce((total, bucket) => total + bucket.income, 0);
     const expense = buckets.reduce((total, bucket) => total + bucket.expense, 0);
-    return `Evolución de ${buckets.length} tramos. Ingresos ${formatMoney(income)}, egresos ${formatMoney(expense)}.`;
+    const money = this.money();
+    return `Evolución de ${buckets.length} tramos. Ingresos ${money(income)}, egresos ${money(expense)}.`;
   });
 
   protected readonly config = computed<ChartConfiguration>(() => {
@@ -115,7 +126,7 @@ export class TrendChartComponent {
               color: palette.inkMuted,
               font: { size: 11 },
               maxTicksLimit: 5,
-              callback: (value) => formatMoney(Number(value)),
+              callback: (value) => this.money()(Number(value)),
             },
           },
         },
@@ -134,7 +145,7 @@ export class TrendChartComponent {
           },
           tooltip: {
             callbacks: {
-              label: (item) => ` ${item.dataset.label}: ${formatMoney(Number(item.parsed.y))}`,
+              label: (item) => ` ${item.dataset.label}: ${this.money()(Number(item.parsed.y))}`,
             },
           },
         },

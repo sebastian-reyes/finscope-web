@@ -74,16 +74,37 @@
 
       <div class="fs-new__field">
         <label class="fs-label" for="newBudgetAmount">Presupuesto del mes</label>
-        <input
-          id="newBudgetAmount"
-          class="fs-field fs-num"
-          type="number"
-          inputmode="decimal"
-          min="0.01"
-          step="0.01"
-          placeholder="400.00"
-          formControlName="amount"
-        />
+        <div class="fs-new__amount">
+          <input
+            id="newBudgetAmount"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="400.00"
+            formControlName="amount"
+          />
+          <!--
+            La moneda forma parte de lo que identifica al plan: una categoria admite uno por
+            moneda y mes, asi que presupuestar en dolares no pisa lo que ya hubiera en soles.
+          -->
+          <div class="fs-money-switch" role="group" aria-label="Moneda del presupuesto">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="newCurrency() === option"
+                [attr.aria-pressed]="newCurrency() === option"
+                [attr.aria-label]="currencyName(option)"
+                [disabled]="saving()"
+                (click)="newCurrency.set(option)"
+              >
+                {{ currencySign(option) }}
+              </button>
+            }
+          </div>
+        </div>
       </div>
 
       <button
@@ -113,24 +134,37 @@
     <p class="fs-section" id="totalTitle">
       <i class="bi bi-clipboard-check" aria-hidden="true"></i>El mes entero
     </p>
-    <p class="fs-total__figure">
-      <span class="fs-num fs-total__spent">{{ money(totals().spent) }}</span>
-      <span class="fs-total__of">de {{ money(totals().amount) }} presupuestados</span>
-    </p>
-    <p class="fs-total__reading" [class.is-over]="totals().remaining < 0">
-      @if (totals().remaining < 0) {
-        Llevas {{ money(-totals().remaining) }} por encima del plan del mes.
-      } @else {
-        Te quedan {{ money(totals().remaining) }} del plan del mes.
-      }
-      @if (overspent().length) {
-        <span class="fs-total__over">
-          {{ overspent().length }}
-          {{ overspent().length === 1 ? 'categoría se pasó' : 'categorías se pasaron' }}
-          de su límite.
-        </span>
-      }
-    </p>
+    <!--
+      Un total por moneda, sin una cifra que los resuma: un plan en soles y otro en dolares
+      son dos cantidades distintas y su suma no existe mientras nadie las convierta.
+    -->
+    @for (total of totals(); track total.currency) {
+      <div class="fs-total__block">
+        @if (hasSeveralCurrencies()) {
+          <p class="fs-total__currency">{{ currencyName(total.currency) }}</p>
+        }
+        <p class="fs-total__figure">
+          <span class="fs-num fs-total__spent">{{ money(total.spent, total.currency) }}</span>
+          <span class="fs-total__of">
+            de {{ money(total.amount, total.currency) }} presupuestados
+          </span>
+        </p>
+        <p class="fs-total__reading" [class.is-over]="total.remaining < 0">
+          @if (total.remaining < 0) {
+            Llevas {{ money(-total.remaining, total.currency) }} por encima del plan del mes.
+          } @else {
+            Te quedan {{ money(total.remaining, total.currency) }} del plan del mes.
+          }
+        </p>
+      </div>
+    }
+    @if (overspent().length) {
+      <p class="fs-total__over">
+        {{ overspent().length }}
+        {{ overspent().length === 1 ? 'categoría se pasó' : 'categorías se pasaron' }}
+        de su límite.
+      </p>
+    }
   </section>
 
   <ul class="fs-buds">
@@ -164,8 +198,9 @@
               </button>
             </div>
             <p class="fs-note">
-              Llevas {{ money(budget.spent) }} gastados en esta categoría. Bajar el presupuesto por
-              debajo de esa cifra no borra nada: solo hace que la barra se lea como pasada.
+              Llevas {{ money(budget.spent, budget.currency) }} gastados en esta categoría. Bajar el
+              presupuesto por debajo de esa cifra no borra nada: solo hace que la barra se lea como
+              pasada.
             </p>
           </form>
         } @else if (confirmingId() === budget.id) {

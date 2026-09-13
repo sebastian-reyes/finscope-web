@@ -38,7 +38,11 @@ interface DayGroup {
                 <p class="fs-item__note text-truncate">{{ transaction.description }}</p>
               }
             </div>
-            <fs-amount [amount]="transaction.amount" [code]="transaction.transactionType.code" />
+            <fs-amount
+              [amount]="transaction.amount"
+              [currency]="transaction.currency"
+              [code]="transaction.transactionType.code"
+            />
           </li>
         }
       </ul>
