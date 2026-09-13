@@ -235,7 +235,7 @@ function fold(value: string): string {
       border: none;
       background: none;
       color: var(--fs-ink);
-      font-size: 0.9375rem;
+      font-size: var(--fs-text-field);
     }
 
     .fs-tags__input:focus {

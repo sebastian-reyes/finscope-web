@@ -157,7 +157,7 @@
   border-radius: var(--fs-radius-control);
   background-color: var(--fs-surface-sunken);
   color: var(--fs-ink);
-  font-size: var(--fs-text-base);
+  font-size: var(--fs-text-field);
   line-height: 1.4;
   transition:
     border-color 0.15s ease,
@@ -191,7 +191,7 @@
 .fs-field--sm {
   min-height: 2rem;
   padding: 0.25rem 0.55rem;
-  font-size: var(--fs-text-sm);
+  font-size: var(--fs-text-field-sm);
 }
 
 // Rótulo del campo: pequeño, apagado y sin peso, porque el dato manda sobre su nombre.
