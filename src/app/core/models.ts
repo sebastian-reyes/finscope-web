@@ -309,6 +309,12 @@ export interface RecurringTransactionResponse {
   startYear: number;
   /** Un fijo pausado no vence ni compromete presupuesto, pero conserva su historial. */
   active: boolean;
+  /**
+   * Tags de la plantilla, en orden alfabético.
+   * Son el contexto que la categoría no puede dar —esa es una sola y reparte el gasto, y
+   * los tags se solapan— y se copian al movimiento cada vez que se confirma un mes.
+   */
+  tags: string[];
 }
 
 /**
@@ -345,6 +351,12 @@ export interface SaveRecurringTransactionRequest {
   everyMonths?: number;
   startMonth: number;
   startYear: number;
+  /**
+   * Tags que llevará el movimiento cada vez que se confirme un mes.
+   * En la modificación, si vienen reemplazan por completo los de la plantilla y una lista
+   * vacía la deja sin ninguno; si no vienen, no se tocan.
+   */
+  tags?: string[];
 }
 
 /**

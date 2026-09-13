@@ -28,10 +28,13 @@
     -->
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <!--
-      Seguro para iOS antiguos: desde 16.4 basta con `display: standalone` del manifiesto
-      para que se abra sin barra de direcciones, pero en versiones previas esta era la
-      única forma de pedirlo.
+      Que se abra sin barra de direcciones al instalarla. El nombre sin prefijo es el
+      estándar y es el que hay que poner: Chrome avisa en consola de que el de Apple está
+      obsoleto. El de Apple se queda al lado, y no en su lugar, porque en iOS anterior a
+      16.4 es la única forma de pedirlo —desde esa versión basta con `display: standalone`
+      del manifiesto—. Los dos dicen lo mismo, así que tenerlos juntos no se contradice.
     -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="FinScope" />
     <link rel="manifest" href="manifest.webmanifest" />

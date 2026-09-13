@@ -97,6 +97,7 @@ const RECURRING: RecurringOccurrenceResponse[] = [
     year: 2026,
     dueDate: '2026-08-12',
     status: 'PENDING',
+    tags: ['casa'],
   },
 ];
 
