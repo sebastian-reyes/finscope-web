@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ThemeService } from '../../core/theme.service';
 import { describeError } from '../../core/api-error';
@@ -26,7 +26,7 @@ const MAX_PASSWORD = 72;
  */
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, LogoComponent, SegmentedDirective],
+  imports: [ReactiveFormsModule, RouterLink, LogoComponent, SegmentedDirective],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

@@ -133,6 +133,10 @@
           <p class="fs-auth__error">La contraseña tiene al menos {{ minPassword }} caracteres.</p>
         } @else if (isRegister()) {
           <p class="fs-auth__hint">Al menos {{ minPassword }} caracteres.</p>
+        } @else {
+          <p class="fs-auth__hint fs-auth__forgot">
+            <a routerLink="/forgot-password">¿Olvidaste tu contraseña?</a>
+          </p>
         }
       </div>
 

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, finalize, shareReplay, tap } from 'rxjs';
 import {
   AuthResponse,
+  ChangeEmailRequest,
   LoginRequest,
   RegisterRequest,
   UpdateUserRequest,
@@ -103,6 +104,79 @@ export class AuthService {
     return this.http
       .patch<UserResponse>(`${this.api}/auth/me`, request)
       .pipe(tap((user) => this.storeUser(user)));
+  }
+
+  /**
+   * Pide que vuelvan a mandar el correo de verificación a la dirección de la cuenta.
+   * La API responde en cuanto encola el mensaje, no cuando llega: que el correo tarde no es
+   * algo que el usuario pueda arreglar esperando en la pantalla.
+   *
+   * @return la petición, que completa sin valor
+   */
+  sendEmailVerification(): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/verify-email`, {});
+  }
+
+  /**
+   * Consume el enlace de verificación recibido por correo.
+   *
+   * @param token valor que viaja en la dirección del enlace
+   * @return la petición, que completa sin valor
+   */
+  confirmEmailVerification(token: string): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/verify-email/confirm`, { token });
+  }
+
+  /**
+   * Pide mover la cuenta a otra dirección. El correo no cambia hasta confirmarlo desde ella.
+   *
+   * @param request dirección nueva y contraseña en curso
+   * @return la petición, que completa sin valor
+   */
+  requestEmailChange(request: ChangeEmailRequest): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/change-email`, request);
+  }
+
+  /**
+   * Consume el enlace mandado a la dirección nueva y aplica el cambio.
+   *
+   * @param token valor que viaja en la dirección del enlace
+   * @return la petición, que completa sin valor
+   */
+  confirmEmailChange(token: string): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/change-email/confirm`, { token });
+  }
+
+  /**
+   * Pide el enlace con el que establecer una contraseña nueva.
+   * Responde igual exista o no una cuenta con ese correo, así que la pantalla no puede
+   * —ni debe— decir cuál de los dos casos es.
+   *
+   * @param email correo de la cuenta que quiere recuperarse
+   * @return la petición, que completa sin valor
+   */
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http.post<void>(`${this.api}/auth/forgot-password`, { email });
+  }
+
+  /**
+   * Establece la contraseña con el enlace recibido por correo.
+   * Cierra además todas las sesiones abiertas, la de este navegador incluida, así que la
+   * sesión local se limpia aquí: dejarla puesta enseñaría una aplicación que ya no responde.
+   *
+   * @param token    valor que viaja en la dirección del enlace
+   * @param password contraseña nueva
+   * @return la petición, que completa sin valor
+   */
+  resetPassword(token: string, password: string): Observable<void> {
+    return this.http
+      .post<void>(`${this.api}/auth/reset-password`, { token, password })
+      .pipe(tap(() => this.clearSession()));
+  }
+
+  /** Vuelve a leer el usuario de la API y deja al día la copia de la sesión. */
+  refreshUser(): Observable<UserResponse> {
+    return this.me().pipe(tap((user) => this.storeUser(user)));
   }
 
   /** Revoca el token de refresco en el servidor y limpia la sesión local pase lo que pase. */

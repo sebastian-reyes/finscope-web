@@ -32,8 +32,10 @@ interface ColorSlot {
  * transacción. Nada de eso le sirve a quien usa la aplicación, y el token además no debería
  * estar en pantalla. Queda lo que es del usuario y lo que puede cambiar.
  *
- * El correo se enseña pero no se toca: es la credencial con la que se entra, y cambiarlo
- * obligaría a rehacer la identidad local y a reemitir las credenciales.
+ * El correo ya no es un dato de solo lectura, pero sigue sin cambiarse de un tirón: es la
+ * credencial con la que se entra, así que se pide la contraseña y la dirección nueva no
+ * sustituye a la vieja hasta que se confirma el enlace que llega a ella. Una letra de más al
+ * teclear se queda en un enlace que caduca y no en una cuenta a la que ya no se puede entrar.
  */
 @Component({
   selector: 'app-account',
@@ -54,6 +56,38 @@ export class AccountPage {
 
   /** Nombre tal y como se está escribiendo, que solo se guarda al confirmarlo. */
   protected readonly name = signal(this.auth.user()?.displayName ?? '');
+
+  /** Si el formulario de cambio de correo está desplegado. */
+  protected readonly changingEmail = signal(false);
+
+  /** Dirección nueva y contraseña en curso, que es el permiso para cambiarla. */
+  protected readonly newEmail = signal('');
+  protected readonly password = signal('');
+  protected readonly showPassword = signal(false);
+
+  /** Envios en curso, cada uno con su botón. */
+  protected readonly sendingVerification = signal(false);
+  protected readonly sendingChange = signal(false);
+
+  /** La dirección a la que se acaba de mandar el enlace, mientras no se recargue. */
+  protected readonly pendingEmail = signal<string | null>(null);
+
+  /** Si el correo de la cuenta está ya comprobado. */
+  protected readonly verified = computed(() => this.user()?.emailVerified === true);
+
+  /**
+   * Si la dirección escrita sirve para pedir el cambio.
+   * Se comprueba aquí lo mínimo --- que tenga forma de correo, que no sea la de ahora y que
+   * haya contraseña --- para no gastar un viaje a la API en algo que se ve desde el campo.
+   */
+  protected readonly canSubmitEmail = computed(() => {
+    const email = this.newEmail().trim();
+    return (
+      /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) &&
+      email.toLowerCase() !== (this.user()?.email ?? '').toLowerCase() &&
+      this.password().length > 0
+    );
+  });
 
   /** Los colores en curso, para marcar cuál de los predefinidos está puesto. */
   protected readonly colors = this.palette.colors;
@@ -92,10 +126,10 @@ export class AccountPage {
   );
 
   constructor() {
-    // La sesión guarda el usuario de cuando se entró, y el nombre puede haber cambiado
-    // desde otro dispositivo: se vuelve a preguntar, y solo se pisa lo escrito si nadie
-    // estaba escribiendo.
-    this.auth.me().subscribe({
+    // La sesión guarda el usuario de cuando se entró, y el nombre --- o el estado del correo,
+    // que puede haberse verificado desde el móvil --- pueden haber cambiado desde entonces: se
+    // vuelve a preguntar y se deja al día la copia, pisando lo escrito solo si nadie escribía.
+    this.auth.refreshUser().subscribe({
       next: (user) => {
         if (!this.changed()) {
           this.name.set(user.displayName ?? '');
@@ -148,6 +182,65 @@ export class AccountPage {
   /** Devuelve el campo a lo que hay guardado. */
   protected discard(): void {
     this.name.set(this.user()?.displayName ?? '');
+  }
+
+  /** Vuelve a mandar el correo de verificación a la dirección de la cuenta. */
+  protected resendVerification(): void {
+    if (this.sendingVerification()) {
+      return;
+    }
+    this.sendingVerification.set(true);
+    this.auth.sendEmailVerification().subscribe({
+      next: () => {
+        this.sendingVerification.set(false);
+        this.toasts.success('Te hemos mandado el enlace. Mira tu correo.');
+      },
+      error: (error) => {
+        this.toasts.error(describeError(error));
+        this.sendingVerification.set(false);
+      },
+    });
+  }
+
+  /** Despliega o recoge el formulario del correo, dejándolo siempre en blanco. */
+  protected toggleEmailForm(): void {
+    this.changingEmail.set(!this.changingEmail());
+    this.newEmail.set('');
+    this.password.set('');
+    this.showPassword.set(false);
+  }
+
+  /**
+   * Recoge el envío del formulario del correo.
+   *
+   * @param event envío del formulario
+   */
+  protected onEmailSubmit(event: Event): void {
+    event.preventDefault();
+    this.requestEmailChange();
+  }
+
+  /**
+   * Pide el cambio de correo. No cambia nada todavía: manda el enlace a la dirección nueva.
+   */
+  protected requestEmailChange(): void {
+    if (this.sendingChange() || !this.canSubmitEmail()) {
+      return;
+    }
+    this.sendingChange.set(true);
+    const email = this.newEmail().trim();
+    this.auth.requestEmailChange({ email, password: this.password() }).subscribe({
+      next: () => {
+        this.sendingChange.set(false);
+        this.changingEmail.set(false);
+        this.password.set('');
+        this.pendingEmail.set(email);
+      },
+      error: (error) => {
+        this.toasts.error(describeError(error));
+        this.sendingChange.set(false);
+      },
+    });
   }
 
   protected save(): void {

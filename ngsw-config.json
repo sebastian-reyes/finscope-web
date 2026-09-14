@@ -35,9 +35,9 @@
     {
       "name": "catalogos",
       "urls": [
-        "https://finscope-api-ok2a.onrender.com/categories**",
-        "https://finscope-api-ok2a.onrender.com/tags**",
-        "https://finscope-api-ok2a.onrender.com/transaction-types**"
+        "https://api.fin-scope.app/categories**",
+        "https://api.fin-scope.app/tags**",
+        "https://api.fin-scope.app/transaction-types**"
       ],
       "cacheConfig": {
         "strategy": "freshness",
@@ -49,11 +49,11 @@
     {
       "name": "datos",
       "urls": [
-        "https://finscope-api-ok2a.onrender.com/auth/me",
-        "https://finscope-api-ok2a.onrender.com/transactions**",
-        "https://finscope-api-ok2a.onrender.com/transactions/**",
-        "https://finscope-api-ok2a.onrender.com/budgets**",
-        "https://finscope-api-ok2a.onrender.com/recurring-transactions**"
+        "https://api.fin-scope.app/auth/me",
+        "https://api.fin-scope.app/transactions**",
+        "https://api.fin-scope.app/transactions/**",
+        "https://api.fin-scope.app/budgets**",
+        "https://api.fin-scope.app/recurring-transactions**"
       ],
       "cacheConfig": {
         "strategy": "freshness",

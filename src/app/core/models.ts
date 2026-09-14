@@ -1,5 +1,5 @@
 /**
- * Tipos que reflejan los esquemas del contrato OpenAPI de FinScope (v6.0.0).
+ * Tipos que reflejan los esquemas del contrato OpenAPI de FinScope (v6.7.0).
  * Se mantienen a mano y no generados para que el proyecto siga siendo sencillo de leer;
  * si el contrato cambia, este archivo es el único punto a tocar.
  */
@@ -7,6 +7,12 @@
 export interface UserResponse {
   id: number;
   email: string;
+  /**
+   * Si se ha demostrado que la cuenta recibe correo en esa dirección.
+   * No condiciona el acceso: lo que se pierde sin verificar es poder recuperar la
+   * contraseña, porque el enlace iría a una dirección que nadie ha comprobado.
+   */
+  emailVerified: boolean;
   displayName?: string;
 }
 
@@ -32,6 +38,26 @@ export interface UpdateUserRequest {
 
 export interface LoginRequest {
   email: string;
+  password: string;
+}
+
+/** Enlace de un solo uso recibido por correo. Es la credencial de lo que se pide con él. */
+export interface AccountTokenRequest {
+  token: string;
+}
+
+/** Dirección nueva a la que mover la cuenta, con la contraseña en curso como permiso. */
+export interface ChangeEmailRequest {
+  email: string;
+  password: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
   password: string;
 }
 

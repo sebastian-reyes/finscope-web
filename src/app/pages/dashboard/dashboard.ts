@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
+import { AuthService } from '../../core/auth.service';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
@@ -61,6 +62,7 @@ const HIGHLIGHT_MS = 1800;
 })
 export class DashboardPage {
   private readonly api = inject(FinscopeService);
+  private readonly auth = inject(AuthService);
   private readonly rates = inject(ExchangeRateService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
@@ -100,6 +102,17 @@ export class DashboardPage {
   protected readonly tags = this.editor.catalogue;
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+
+  /**
+   * Si hay que recordar que el correo sigue sin verificar.
+   * El aviso vive en el inicio y no solo en la pantalla de cuenta porque a esa no se entra
+   * nunca: quien no sepa que le falta este paso se enteraría el día que pierda la contraseña,
+   * que es el único día en que ya no tiene arreglo.
+   */
+  protected readonly emailUnverified = computed(() => {
+    const user = this.auth.user();
+    return user !== null && !user.emailVerified;
+  });
 
   /** Movimiento recién registrado, que se señala un momento entre los últimos. */
   protected readonly highlightId = signal<number | null>(null);

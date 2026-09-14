@@ -291,3 +291,20 @@
     justify-content: center;
   }
 }
+
+// El enlace de recuperar la contraseña ocupa el hueco de la ayuda del campo, y se alinea a
+// la derecha para no confundirse con ella: no describe el campo, sale de él.
+.fs-auth__forgot {
+  text-align: right;
+}
+
+.fs-auth__forgot a {
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+}
+
+.fs-auth__forgot a:hover,
+.fs-auth__forgot a:focus-visible {
+  color: var(--fs-brand);
+  text-decoration: underline;
+}

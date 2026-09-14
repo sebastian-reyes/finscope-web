@@ -17,7 +17,7 @@ describe('authInterceptor', () => {
   const renewed: AuthResponse = {
     accessToken: 'nuevo',
     refreshToken: 'refresco-2',
-    user: { id: 1, email: 'test@finscope.dev', displayName: 'Test' },
+    user: { id: 1, email: 'test@finscope.dev', emailVerified: true, displayName: 'Test' },
   } as AuthResponse;
 
   beforeEach(() => {

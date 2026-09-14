@@ -8,6 +8,30 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/login/login').then((m) => m.LoginPage),
   },
   {
+    // Sin sesion y sin guardia de invitado: se llega aqui justamente cuando no se puede
+    // entrar, pero tambien desde una sesion abierta en otra pestana.
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./pages/forgot-password/forgot-password').then((m) => m.ForgotPasswordPage),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPasswordPage),
+  },
+  {
+    // Las dos confirmaciones son la misma pantalla con otras frases, y por eso se separan
+    // aqui y no en dos componentes: lo unico que cambia es el enlace que consumen.
+    path: 'verify-email',
+    data: { kind: 'verify' },
+    loadComponent: () => import('./pages/confirm-link/confirm-link').then((m) => m.ConfirmLinkPage),
+  },
+  {
+    path: 'change-email',
+    data: { kind: 'change' },
+    loadComponent: () => import('./pages/confirm-link/confirm-link').then((m) => m.ConfirmLinkPage),
+  },
+  {
     path: 'dashboard',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.DashboardPage),

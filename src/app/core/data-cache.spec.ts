@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import ngswConfig from '../../../ngsw-config.json';
+import { API_ORIGIN } from '../../environments/api-origin';
 import { clearCachedApiData } from './data-cache';
 
 /** Los nombres que Angular le pone a sus cachés, tal y como los arma `ngsw-worker`. */
@@ -78,6 +79,17 @@ describe('ngsw-config.json', () => {
 
     expect(origins.size).toBe(1);
     expect([...origins][0]).toMatch(/^https:\/\//);
+  });
+
+  it('apunta al mismo servidor que el entorno de producción', () => {
+    // La comprobación de arriba solo mira este archivo contra sí mismo, así que un cambio de
+    // servidor hecho a medias --- aquí sí, en `environment.ts` no --- la pasaba tan tranquilo.
+    // Esta es la otra mitad, y la que de verdad empareja los dos archivos.
+    //
+    // El origen se lee de `api-origin.ts` y no de `environment.ts` porque a este último las
+    // pruebas lo sustituyen por el de desarrollo, que apunta a ningún sitio: la comparación
+    // no diría nada. Aquel no se sustituye, y es de donde sale el que usa la aplicación.
+    expect(new URL(urls[0]).origin).toBe(API_ORIGIN);
   });
 
   it('pregunta siempre a la red antes que a la copia', () => {
