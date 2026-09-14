@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "finscope-web · Arquitectura de la aplicación",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "navegacion",
+        "label": "Abrir una pantalla",
+        "focus": [
+          "user",
+          "router",
+          "guards",
+          "pages",
+          "shared"
+        ],
+        "note": "Toda ruta se carga bajo demanda y pasa antes por el guard que resuelve la sesión."
+      },
+      {
+        "id": "peticion",
+        "label": "Camino de una petición",
+        "focus": [
+          "pages",
+          "services",
+          "interceptor",
+          "sw",
+          "api"
+        ],
+        "note": "Del componente a la API: el interceptor firma y un 401 renueva y repite una vez."
+      },
+      {
+        "id": "pwa",
+        "label": "Sin conexión e instalada",
+        "focus": [
+          "sw",
+          "update",
+          "api"
+        ],
+        "note": "Armazón y datos cacheados preguntando primero a la red, y aviso de versión nueva."
+      },
+      {
+        "id": "aspecto",
+        "label": "Tema y colores",
+        "focus": [
+          "services",
+          "palette",
+          "storage"
+        ],
+        "note": "Dos colores del usuario tiñen toda la interfaz y se recuerdan a nombre de su cuenta."
+      }
+    ],
+    "viewBox": [
+      1320,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "Usuario",
+      "sublabel": "navegador o app instalada",
+      "pos": [
+        40,
+        50
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "router",
+      "type": "frontend",
+      "label": "Router",
+      "sublabel": "app.routes.ts",
+      "tag": "todo con loadComponent",
+      "pos": [
+        300,
+        50
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "guards",
+      "type": "security",
+      "label": "authGuard",
+      "sublabel": "y guestGuard",
+      "tag": "resuelven la sesión",
+      "pos": [
+        560,
+        50
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "pages",
+      "type": "frontend",
+      "label": "Páginas",
+      "sublabel": "pages/ · 12 componentes",
+      "tag": "estado en señales",
+      "pos": [
+        820,
+        50
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "shared",
+      "type": "frontend",
+      "label": "shared/ui",
+      "sublabel": "componentes propios",
+      "tag": "sin librería de UI",
+      "pos": [
+        1080,
+        50
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "api",
+      "type": "external",
+      "label": "finscope-api",
+      "sublabel": "api.fin-scope.app",
+      "tag": "contrato 6.7.0",
+      "pos": [
+        40,
+        240
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "sw",
+      "type": "frontend",
+      "label": "Service Worker",
+      "sublabel": "ngsw-config.json",
+      "tag": "freshness, no performance",
+      "pos": [
+        300,
+        240
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "interceptor",
+      "type": "security",
+      "label": "authInterceptor",
+      "sublabel": "firma cada petición",
+      "tag": "renueva y repite ante 401",
+      "pos": [
+        560,
+        240
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "services",
+      "type": "frontend",
+      "label": "core/",
+      "sublabel": "servicios inyectables",
+      "tag": "providedIn: root",
+      "pos": [
+        820,
+        240
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "palette",
+      "type": "frontend",
+      "label": "Tema y paleta",
+      "sublabel": "variables CSS",
+      "tag": "contraste WCAG",
+      "pos": [
+        1080,
+        240
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "update",
+      "type": "frontend",
+      "label": "AppUpdateService",
+      "sublabel": "vigila despliegues",
+      "tag": "recarga solo al pulsar",
+      "pos": [
+        300,
+        430
+      ],
+      "size": [
+        180,
+        68
+      ]
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "localStorage",
+      "sublabel": "tokens y preferencias",
+      "tag": "una clave por usuario",
+      "pos": [
+        820,
+        430
+      ],
+      "size": [
+        180,
+        68
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Rutas y pantallas · Angular 22, sin zone.js",
+      "wraps": [
+        "router",
+        "guards",
+        "pages",
+        "shared"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "core/ · servicios de raíz",
+      "wraps": [
+        "interceptor",
+        "services",
+        "palette",
+        "storage"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Fuera de la pestaña",
+      "wraps": [
+        "sw",
+        "update"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "abre",
+      "from": "user",
+      "to": "router",
+      "label": "abre una ruta",
+      "variant": "emphasis"
+    },
+    {
+      "id": "guarda",
+      "from": "router",
+      "to": "guards",
+      "label": "canActivate"
+    },
+    {
+      "id": "carga",
+      "from": "guards",
+      "to": "pages",
+      "label": "carga diferida",
+      "variant": "security"
+    },
+    {
+      "id": "compone",
+      "from": "pages",
+      "to": "shared",
+      "label": "compone"
+    },
+    {
+      "id": "consulta",
+      "from": "pages",
+      "to": "services",
+      "label": "señales y Observables",
+      "labelDy": 24
+    },
+    {
+      "id": "http",
+      "from": "services",
+      "to": "interceptor",
+      "label": "HttpClient"
+    },
+    {
+      "id": "bearer",
+      "from": "interceptor",
+      "to": "sw",
+      "label": "Bearer",
+      "variant": "security"
+    },
+    {
+      "id": "red",
+      "from": "sw",
+      "to": "api",
+      "label": "red primero",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tine",
+      "from": "services",
+      "to": "palette",
+      "label": "dos colores"
+    },
+    {
+      "id": "guarda-local",
+      "from": "services",
+      "to": "storage",
+      "label": "recuerda por cuenta",
+      "labelDy": 24
+    },
+    {
+      "id": "version",
+      "from": "sw",
+      "to": "update",
+      "label": "hay versión nueva",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Angular sin adornos",
+      "items": [
+        "Señales y componentes standalone, sin zone.js",
+        "Todas las rutas se cargan bajo demanda",
+        "Dos dependencias: chart.js y air-datepicker"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Contra la API",
+      "items": [
+        "Los modelos siguen el contrato OpenAPI 6.7.0",
+        "El interceptor firma y renueva una sola vez",
+        "Cada error trae el código de negocio de la API"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Instalable",
+      "items": [
+        "PWA: se instala desde el navegador, sin tienda",
+        "Armazón y datos preguntan primero a la red",
+        "Sin conexión, la aplicación lo dice con todas las letras"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Aspecto",
+      "items": [
+        "Claro, oscuro o el del sistema",
+        "Dos colores del usuario tiñen toda la interfaz",
+        "El verde y el rojo del dinero no se tocan nunca"
+      ]
+    }
+  ]
+}
