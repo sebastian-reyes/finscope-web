@@ -23,12 +23,59 @@
   color: var(--fs-ink-muted);
 }
 
-// El correo se lee, no se escribe: va como texto y no como un campo desactivado, que
-// invitaría a intentar cambiarlo.
-.fs-static {
+// El correo se lee de un vistazo y se cambia aparte: va como texto con su distintivo al lado
+// y no como un campo, porque cambiarlo no es teclear encima sino un trámite de dos pasos.
+.fs-email {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   font-size: 0.9375rem;
   color: var(--fs-ink);
+}
+
+.fs-email__address {
+  overflow-wrap: anywhere;
+}
+
+// El distintivo dice el estado sin gritarlo: sin verificar no es un fallo --- la cuenta
+// funciona igual ---, así que sale en gris y no en rojo. Lo que hay que hacer va debajo,
+// en palabras y con su botón.
+.fs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fs-badge--ok {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income-ink);
+}
+
+.fs-email__action {
+  margin-top: 0.6rem;
+}
+
+.fs-email__pending {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+}
+
+.fs-email__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--fs-line);
 }
 
 .fs-hint {

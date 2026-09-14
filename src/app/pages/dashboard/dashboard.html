@@ -24,6 +24,19 @@
   </button>
 </header>
 
+@if (emailUnverified()) {
+  <div class="fs-alert fs-alert--warn" role="status">
+    <i class="bi bi-envelope-exclamation" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">Te falta confirmar tu correo</p>
+      <p>
+        Sin ese paso no podrías recuperar tu contraseña si la olvidaras.
+        <a routerLink="/account">Hazlo desde tu cuenta</a>, es un momento.
+      </p>
+    </div>
+  </div>
+}
+
 @if (error()) {
   <div class="fs-alert" role="alert">{{ error() }}</div>
 }

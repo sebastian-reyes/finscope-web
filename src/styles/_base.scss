@@ -75,8 +75,10 @@
   --fs-expense: #{t.$fs-expense};
   --fs-expense-tint: #{t.$fs-expense-tint};
   // El rojo de un aviso se lee sobre su propio tinte, y ahí el color del signo no tiene
-  // contraste suficiente para un párrafo entero.
+  // contraste suficiente para un párrafo entero. Al verde le pasa lo mismo cuando hace de
+  // distintivo --- «Verificado» sobre su tinte --- y por eso lleva su propia tinta.
   --fs-expense-ink: #{color.adjust(t.$fs-expense, $lightness: -14%)};
+  --fs-income-ink: #{color.adjust(t.$fs-income, $lightness: -14%)};
 
   // --- Forma y relieve -------------------------------------------------------------------
   --fs-radius: #{t.$fs-radius};
@@ -171,6 +173,7 @@
   --fs-expense: #{t.$fs-expense-dark};
   --fs-expense-tint: #2e1e1c;
   --fs-expense-ink: #f0a49c;
+  --fs-income-ink: #8fd9b6;
 
   --fs-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.35);
   --fs-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -486,6 +489,122 @@ body:has(.fs-topbar) {
   100% {
     background-position: 0 50%;
   }
+}
+
+// --- Puerta de entrada -------------------------------------------------------------------
+// Las pantallas a las que se llega sin sesión o desde un enlace del correo: recuperar la
+// contraseña, elegir una nueva y confirmar un correo. Comparten forma porque son el mismo
+// momento —una tarjeta sola en medio de la nada, con una sola cosa que hacer— y porque a
+// todas se llega desde fuera de la aplicación, sin barra de navegación que las encuadre.
+// El acceso no las usa: aquel tiene además su pared de marca y vive en su propia hoja.
+
+.fs-gate {
+  max-width: 26rem;
+  margin: 2rem auto;
+  padding: 1.75rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius-lg;
+  background-color: var(--fs-surface);
+  box-shadow: var(--fs-shadow-raised);
+  text-align: center;
+}
+
+.fs-gate__mark {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0 auto 1rem;
+}
+
+.fs-gate__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.375rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.fs-gate__hint {
+  margin: 0 0 1.5rem;
+  font-size: var(--fs-text-base);
+  line-height: 1.55;
+  color: var(--fs-ink-muted);
+}
+
+// Los campos se alinean a la izquierda aunque la tarjeta esté centrada: un rótulo centrado
+// sobre su campo se lee peor, porque deja de estar donde empieza lo que se escribe.
+.fs-gate__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+}
+
+.fs-gate__form .fs-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.fs-gate__foot {
+  margin: 1.25rem 0 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// El desenlace de un enlace del correo: salga bien o mal, lo que se ve es un símbolo grande
+// y una frase. No hay nada más que hacer en la pantalla, así que no hay nada más en ella.
+.fs-gate__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  font-size: 1.5rem;
+}
+
+.fs-gate__icon--ok {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income);
+}
+
+.fs-gate__icon--bad {
+  background-color: var(--fs-expense-tint);
+  color: var(--fs-expense);
+}
+
+// El botón de ver la contraseña, sobre el campo. Lo comparten elegir una contraseña nueva y
+// el cambio de correo, que la pide para dar permiso: escribir a ciegas algo que no se puede
+// comprobar en ningún sitio es la forma más fácil de fallar dos veces seguidas.
+.fs-reveal {
+  position: relative;
+}
+
+.fs-reveal .fs-field {
+  padding-right: 2.75rem;
+}
+
+.fs-reveal__btn {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: t.$fs-radius-sm;
+  background: none;
+  color: var(--fs-ink-faint);
+  cursor: pointer;
+}
+
+.fs-reveal__btn:hover {
+  color: var(--fs-ink);
 }
 
 // --- Fichas de categoría y de tag --------------------------------------------------------

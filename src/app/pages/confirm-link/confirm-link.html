@@ -1,0 +1,46 @@
+<section class="fs-gate">
+  <fs-logo class="fs-gate__mark" />
+
+  @if (loading()) {
+    <span class="fs-gate__icon" aria-hidden="true">
+      <span class="fs-spinner"></span>
+    </span>
+    <h1 class="fs-gate__title">{{ wording.working }}</h1>
+    <p class="fs-gate__hint">Un momento.</p>
+  } @else if (done()) {
+    <span class="fs-gate__icon fs-gate__icon--ok" aria-hidden="true">
+      <i class="bi bi-check-lg"></i>
+    </span>
+    <h1 class="fs-gate__title">{{ wording.title }}</h1>
+    <p class="fs-gate__hint">{{ wording.hint }}</p>
+    <a class="fs-btn fs-btn--solid" [routerLink]="destination()">
+      {{ isLoggedIn() ? 'Ir a mi cuenta' : 'Entrar en FinScope' }}
+    </a>
+  } @else if (invalidLink()) {
+    <span class="fs-gate__icon fs-gate__icon--bad" aria-hidden="true">
+      <i class="bi bi-link-45deg"></i>
+    </span>
+    <h1 class="fs-gate__title">Este enlace ya no vale</h1>
+    <p class="fs-gate__hint">
+      @if (kind === 'verify') {
+        Puede que haya caducado, que ya lo hayas usado o que tu correo esté confirmado desde hace
+        rato. Desde tu cuenta puedes pedir otro.
+      } @else {
+        Puede que haya caducado, que ya lo hayas usado o que esa dirección se haya registrado
+        mientras tanto. Vuelve a pedir el cambio desde tu cuenta.
+      }
+    </p>
+    <a class="fs-btn fs-btn--solid" [routerLink]="destination()">
+      {{ isLoggedIn() ? 'Ir a mi cuenta' : 'Entrar en FinScope' }}
+    </a>
+  } @else {
+    <span class="fs-gate__icon fs-gate__icon--bad" aria-hidden="true">
+      <i class="bi bi-exclamation-triangle"></i>
+    </span>
+    <h1 class="fs-gate__title">No se ha podido</h1>
+    <p class="fs-gate__hint">{{ error() }}</p>
+    <a class="fs-btn fs-btn--solid" [routerLink]="destination()">
+      {{ isLoggedIn() ? 'Ir a mi cuenta' : 'Entrar en FinScope' }}
+    </a>
+  }
+</section>

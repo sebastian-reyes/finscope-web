@@ -8,6 +8,7 @@ import { UserResponse } from '../../core/models';
 const USER: UserResponse = {
   id: 7,
   email: 'sebastian@example.com',
+  emailVerified: true,
   displayName: 'Sebastian',
 };
 
@@ -41,6 +42,43 @@ describe('AccountPage', () => {
   /** Esos mismos botones, para poder pulsarlos. */
   function buttons(): HTMLButtonElement[] {
     return Array.from(host().querySelectorAll<HTMLButtonElement>('.fs-form__actions button'));
+  }
+
+  /** El botón del bloque del correo cuyo texto empieza por lo indicado. */
+  function emailButton(text: string): HTMLButtonElement {
+    return Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+      button.textContent!.trim().startsWith(text),
+    )!;
+  }
+
+  /** Escribe en un campo del formulario del correo. */
+  function fill(selector: string, value: string): void {
+    const field = host().querySelector<HTMLInputElement>(selector)!;
+    field.value = value;
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  /** Envía el formulario del correo, que es el segundo de la pantalla. */
+  function submitEmail(): void {
+    host().querySelectorAll('form')[1].dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+  }
+
+  /** Rehace la pantalla partiendo del usuario indicado. */
+  async function rebuild(user: UserResponse): Promise<void> {
+    http.verify();
+    TestBed.resetTestingModule();
+    localStorage.setItem('finscope.user', JSON.stringify(user));
+    await TestBed.configureTestingModule({
+      imports: [AccountPage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(AccountPage);
+    fixture.detectChanges();
+    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(user);
+    fixture.detectChanges();
   }
 
   /** Envía el formulario como lo haría el botón de guardar. */
@@ -211,5 +249,55 @@ describe('AccountPage', () => {
   it('no manda nada al correo: se enseña, pero no se toca', () => {
     expect(host().textContent).toContain(USER.email);
     expect(host().querySelector('input[type="email"]')).toBeNull();
+  });
+  it('marca el correo como verificado y no ofrece mandarlo otra vez', () => {
+    expect(host().textContent).toContain('Verificado');
+    expect(emailButton('Mandarme el enlace')).toBeUndefined();
+  });
+
+  it('pide el enlace de verificación cuando el correo no está comprobado', async () => {
+    await rebuild({ ...USER, emailVerified: false });
+
+    expect(host().textContent).toContain('Sin verificar');
+
+    emailButton('Mandarme el enlace').click();
+    fixture.detectChanges();
+
+    const request = http.expectOne({ method: 'POST', url: '/auth/verify-email' });
+    request.flush(null, { status: 202, statusText: 'Accepted' });
+    fixture.detectChanges();
+  });
+
+  it('no ofrece mandar el enlace con la dirección que la cuenta ya tiene', () => {
+    emailButton('Cambiar mi correo').click();
+    fixture.detectChanges();
+
+    fill('#newEmail', USER.email);
+    fill('#currentPassword', 'una-contrasena');
+
+    expect(emailButton('Mandar el enlace').disabled).toBe(true);
+  });
+
+  it('pide el cambio con la contraseña y deja el correo de la cuenta como estaba', () => {
+    emailButton('Cambiar mi correo').click();
+    fixture.detectChanges();
+
+    fill('#newEmail', '  nuevo@example.com  ');
+    fill('#currentPassword', 'una-contrasena');
+    submitEmail();
+
+    const request = http.expectOne({ method: 'POST', url: '/auth/change-email' });
+    expect(request.request.body).toEqual({
+      email: 'nuevo@example.com',
+      password: 'una-contrasena',
+    });
+    request.flush(null, { status: 202, statusText: 'Accepted' });
+    fixture.detectChanges();
+
+    // Lo que se enseña arriba sigue siendo el correo de siempre: el cambio no ha ocurrido
+    // todavía, y decir lo contrario haría creer que ya se entra con el nuevo.
+    expect(host().textContent).toContain(USER.email);
+    expect(host().textContent).toContain('Confirma tu correo nuevo');
+    expect(host().textContent).toContain('nuevo@example.com');
   });
 });

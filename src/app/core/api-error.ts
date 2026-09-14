@@ -23,3 +23,18 @@ export function describeError(error: unknown): string {
   }
   return `Error ${error.status} al llamar a la API.`;
 }
+
+/**
+ * Devuelve el código estable del error, si la API llegó a contestar uno.
+ * Sirve para distinguir un caso concreto del resto sin leer el mensaje, que está pensado
+ * para mostrarse y no para compararse.
+ *
+ * @param error fallo recibido
+ * @return el código, o nulo si no hay cuerpo de error
+ */
+export function errorCode(error: unknown): string | null {
+  if (!(error instanceof HttpErrorResponse)) {
+    return null;
+  }
+  return (error.error as ErrorResponse | null)?.code ?? null;
+}
