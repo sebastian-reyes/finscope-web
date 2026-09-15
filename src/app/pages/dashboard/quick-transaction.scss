@@ -162,22 +162,30 @@
   }
 }
 
-// El pie se va al fondo de la tarjeta en lugar de quedarse pegado al último campo.
+// El alto que sobra, hecho elemento. Empuja al pie hasta el fondo de la tarjeta —igual que
+// hacía el margen automático que había aquí antes— y además se puede medir, que es lo que
+// deja al formulario saber si los detalles caben en él.
 //
 // Las dos columnas de la pantalla nunca miden lo mismo —el reparto por tags es más alto que
-// el anillo, y basta cambiar de vista para que la diferencia aparezca—, así que a esta le
-// sobra papel por abajo tarde o temprano. Con los botones anclados al fondo, ese sobrante
-// queda entre el formulario y su pie y se lee como el aire de un diálogo; sueltos, quedaba
-// un rectángulo en blanco debajo de todo, que se lee como que algo falta.
+// el anillo, y un balance por moneda estira la izquierda de golpe—, así que a esta le sobra
+// papel por abajo tarde o temprano. Con el pie anclado al fondo, ese sobrante queda entre el
+// formulario y sus botones y se lee como el aire de un diálogo; suelto, quedaba un
+// rectángulo en blanco debajo de todo, que se lee como que algo falta.
 //
-// El margen automático no hace nada cuando no hay alto de sobra, así que en móvil, donde la
-// tarjeta mide lo que mide su contenido, el pie sigue justo detrás del último campo.
+// El margen negativo descuenta el hueco de rejilla que este elemento añadiría al no medir
+// nada: en móvil, donde la tarjeta mide lo que mide su contenido, el pie tiene que seguir
+// justo detrás del último campo y a la distancia de siempre.
+.fs-quick__slack {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: -1rem;
+}
+
 .fs-quick__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: auto;
   padding-top: 0.25rem;
 }
 

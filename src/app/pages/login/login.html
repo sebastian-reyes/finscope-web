@@ -133,8 +133,14 @@
           <p class="fs-auth__error">La contraseña tiene al menos {{ minPassword }} caracteres.</p>
         } @else if (isRegister()) {
           <p class="fs-auth__hint">Al menos {{ minPassword }} caracteres.</p>
-        } @else {
-          <p class="fs-auth__hint fs-auth__forgot">
+        }
+        <!--
+          El enlace de recuperar va aparte de la ayuda del campo y no en la misma cadena: era
+          la rama que solo salía si no había nada más que decir, así que se escondía justo
+          cuando el campo enseñaba su error, que es cuando hace falta.
+        -->
+        @if (!isRegister()) {
+          <p class="fs-auth__forgot">
             <a routerLink="/forgot-password">¿Olvidaste tu contraseña?</a>
           </p>
         }

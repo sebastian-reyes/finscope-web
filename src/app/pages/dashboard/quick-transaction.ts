@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -37,6 +39,17 @@ import {
 } from '../../core/models';
 
 /**
+ * Lo que se da por que ocupan los detalles mientras no se hayan podido medir —solo se miden
+ * estando abiertos—. Se estima de más a propósito: quedarse corto abriría un bloque que no
+ * cabe y estiraría el formulario, que es justo lo que este automatismo viene a evitar.
+ */
+const DETAILS_ROOM_GUESS = 128;
+
+/** Holgura con la que se abre y por debajo de la cual se vuelve a plegar, en píxeles. */
+const OPEN_MARGIN = 8;
+const CLOSE_MARGIN = 4;
+
+/**
  * Registro de un movimiento.
  *
  * Es la acción por la que se abre la aplicación, así que el camino corto es el que se ve:
@@ -45,6 +58,12 @@ import {
  * son opcionales de verdad —si no se escribe ninguno la petición sale sin `tags`— y admiten
  * varios, igual que en el editor; la fecha y la descripción viven plegadas, porque la
  * mayoría de las veces la fecha correcta es ahora.
+ *
+ * Plegadas, eso sí, solo mientras no haya sitio: en escritorio la tarjeta se estira para
+ * igualar a la columna de al lado —con un balance por moneda esa columna crece de golpe— y
+ * lo que sobra se quedaba en blanco justo encima de «Más detalles». Si en ese hueco caben,
+ * se abren solos: el papel vacío se llena con lo que había detrás del clic, y como el bloque
+ * ocupa hueco que ya estaba de sobra, nada de lo demás se mueve.
  */
 @Component({
   selector: 'fs-quick-transaction',
@@ -58,6 +77,7 @@ export class QuickTransactionComponent {
   private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Catálogo global de tipos, del que sale el identificador que espera la API. */
   readonly types = input.required<TransactionTypeResponse[]>();
@@ -87,10 +107,22 @@ export class QuickTransactionComponent {
   protected readonly categoryId = signal<number | null>(null);
   /** Se enseña el aviso de categoría solo tras intentar guardar sin ninguna. */
   protected readonly categoryMissing = signal(false);
-  protected readonly showDetails = signal(false);
+  /**
+   * Lo que ha decidido el usuario sobre los detalles, o nulo mientras no toque el botón.
+   * Nulo no es «cerrado»: es «decide tú», y decide el sitio que sobre.
+   */
+  private readonly detailsChoice = signal<boolean | null>(null);
+  /** Si en el hueco sobrante caben los detalles enteros. */
+  private readonly detailsFit = signal(false);
+  protected readonly showDetails = computed(() => this.detailsChoice() ?? this.detailsFit());
   protected readonly saving = signal(false);
 
   private readonly amountField = viewChild<ElementRef<HTMLInputElement>>('amountField');
+  private readonly slackGap = viewChild<ElementRef<HTMLElement>>('slackGap');
+  private readonly extraBlock = viewChild<ElementRef<HTMLElement>>('extraBlock');
+
+  /** Lo que ocupa el bloque de detalles con su hueco, en cuanto se haya podido medir. */
+  private detailsRoom = DETAILS_ROOM_GUESS;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
@@ -162,6 +194,73 @@ export class QuickTransactionComponent {
       // vista dejaría al usuario escribiendo en un campo que no ve.
       field?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     });
+
+    // El hueco sobrante se vigila con un observador y no se calcula: depende del alto de la
+    // otra columna, que cambia con los datos del mes, con la moneda del reparto y con el
+    // ancho de la ventana. Se observa el hueco en persona —su alto *es* lo que sobra—, así
+    // que abrir o cerrar los detalles vuelve a disparar la medida y el resultado se asienta
+    // solo: al abrir, lo que sobra baja justo lo que ocupa el bloque, y ahí se queda.
+    afterNextRender(() => {
+      const gap = this.slackGap()?.nativeElement;
+      if (!gap || typeof ResizeObserver === 'undefined') {
+        return;
+      }
+      const observer = new ResizeObserver(() => this.fitDetails());
+      observer.observe(gap);
+      this.destroyRef.onDestroy(() => observer.disconnect());
+      this.fitDetails();
+    });
+  }
+
+  /**
+   * Abre los detalles si caben en lo que sobra y los pliega cuando deja de sobrar nada.
+   *
+   * Las dos holguras no son un adorno: sin ellas, el caso justo —lo que sobra igual a lo que
+   * ocupa el bloque— abriría, quedaría a cero, cerraría y volvería a abrir sin parar. Con
+   * ellas, abrir deja siempre al menos `OPEN_MARGIN` de sobra, que es más de lo que pide
+   * `CLOSE_MARGIN` para plegar, así que el estado al que se llega no se deshace solo.
+   */
+  private fitDetails(): void {
+    const gap = this.slackGap()?.nativeElement;
+    if (!gap) {
+      return;
+    }
+    const slack = gap.offsetHeight;
+
+    // Lo que ocupa el bloque solo se puede medir estando abierto, y se mide por dentro: el
+    // de fuera está animando su alto y durante ese cuarto de segundo mediría de menos.
+    const inner = this.extraBlock()?.nativeElement;
+    if (inner?.scrollHeight) {
+      this.detailsRoom = inner.scrollHeight + this.rowGap(gap.parentElement);
+    }
+
+    // Quien haya tocado el botón manda: ni se le abre lo que plegó ni se le pliega lo que abrió.
+    if (this.detailsChoice() !== null) {
+      return;
+    }
+    if (!this.showDetails()) {
+      if (slack >= this.detailsRoom + OPEN_MARGIN) {
+        this.detailsFit.set(true);
+      }
+    } else if (slack < CLOSE_MARGIN) {
+      this.detailsFit.set(false);
+    }
+  }
+
+  /** El hueco entre campos del formulario, que es lo que el bloque suma además de su alto. */
+  private rowGap(form: HTMLElement | null): number {
+    if (!form) {
+      return 0;
+    }
+    return parseFloat(getComputedStyle(form).rowGap) || 0;
+  }
+
+  /**
+   * Abre o cierra los detalles a mano. A partir de aquí manda la elección del usuario y el
+   * sitio que sobre deja de decidir: plegarlos teniendo hueco es una decisión legítima.
+   */
+  protected toggleDetails(): void {
+    this.detailsChoice.set(!this.showDetails());
   }
 
   protected setKind(kind: TransactionTypeCode): void {
@@ -264,7 +363,9 @@ export class QuickTransactionComponent {
     this.pickedTags.set([]);
     this.categoryId.set(null);
     this.categoryMissing.set(false);
-    this.showDetails.set(false);
+    // Vuelve a decidir el sitio, no se cierra: si el hueco sigue ahí, el movimiento
+    // siguiente se escribe con la fecha a la vista, igual que el que se acaba de guardar.
+    this.detailsChoice.set(null);
     // Encadenar movimientos es lo normal al ponerse al día: el foco vuelve al importe.
     this.amountField()?.nativeElement.focus();
   }
