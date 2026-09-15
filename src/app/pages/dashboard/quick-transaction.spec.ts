@@ -16,6 +16,21 @@ const CATEGORIES: CategoryResponse[] = [
 
 const TAGS: TagResponse[] = [{ id: 1, name: 'gab', transactionCount: 4 }];
 
+/**
+ * Observador de tamaño de mentira: jsdom no trae ninguno y aquí hace falta poder dispararlo
+ * a mano, que es lo que en un navegador haría estirarse la tarjeta.
+ */
+let resize: (() => void) | null = null;
+
+class FakeResizeObserver {
+  constructor(private readonly callback: () => void) {
+    resize = () => this.callback();
+  }
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
 describe('QuickTransactionComponent', () => {
   let fixture: ComponentFixture<QuickTransactionComponent>;
   let http: HttpTestingController;
@@ -38,7 +53,30 @@ describe('QuickTransactionComponent', () => {
     fixture.detectChanges();
   }
 
+  /** Los detalles que viven detrás de «Más detalles», o nulo si están plegados. */
+  function details(): HTMLElement | null {
+    return host().querySelector<HTMLElement>('.fs-quick__extra');
+  }
+
+  /**
+   * Dice cuánto alto sobra y avisa al observador, como haría el navegador al estirarse la
+   * tarjeta. El bloque de detalles, cuando está, mide 90 px.
+   */
+  function slack(height: number): void {
+    const gap = host().querySelector<HTMLElement>('.fs-quick__slack')!;
+    Object.defineProperty(gap, 'offsetHeight', { value: height, configurable: true });
+    const inner = host().querySelector<HTMLElement>('.fs-quick__extra-inner');
+    if (inner) {
+      Object.defineProperty(inner, 'scrollHeight', { value: 90, configurable: true });
+    }
+    resize?.();
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
+    resize = null;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = FakeResizeObserver;
+
     await TestBed.configureTestingModule({
       imports: [QuickTransactionComponent],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -101,5 +139,42 @@ describe('QuickTransactionComponent', () => {
 
     http.expectNone('/transactions');
     expect(host().textContent).toContain('Elige una categoría');
+  });
+
+  it('abre la fecha sola cuando en el hueco que sobra cabe entera', () => {
+    expect(details()).toBeNull();
+
+    slack(200);
+
+    expect(details()).not.toBeNull();
+    expect(host().textContent).toContain('Menos detalles');
+  });
+
+  it('deja la fecha plegada cuando no sobra alto donde ponerla', () => {
+    slack(40);
+
+    expect(details()).toBeNull();
+    expect(host().textContent).toContain('Más detalles');
+  });
+
+  it('vuelve a plegar la fecha cuando el hueco desaparece', () => {
+    slack(200);
+    expect(details()).not.toBeNull();
+
+    slack(0);
+
+    expect(details()).toBeNull();
+  });
+
+  it('respeta lo que decida el usuario por encima del hueco', () => {
+    slack(200);
+    host().querySelector<HTMLButtonElement>('.fs-quick__more')!.click();
+    fixture.detectChanges();
+    expect(details()).toBeNull();
+
+    // El hueco sigue ahí y sigue midiéndose: plegarlo a mano no puede deshacerse solo.
+    slack(200);
+
+    expect(details()).toBeNull();
   });
 });

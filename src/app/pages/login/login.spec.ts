@@ -125,4 +125,27 @@ describe('LoginPage', () => {
 
     expect(host().querySelector<HTMLInputElement>('#password')!.type).toBe('text');
   });
+
+  it('ofrece recuperar la contraseña al entrar, con enlace a su pantalla', () => {
+    const link = host().querySelector<HTMLAnchorElement>('.fs-auth__forgot a')!;
+
+    expect(link.textContent).toContain('¿Olvidaste tu contraseña?');
+    expect(link.getAttribute('href')).toBe('/forgot-password');
+  });
+
+  it('sigue ofreciendo recuperarla cuando el campo enseña su error', () => {
+    fill('#email', 'yo@correo.com');
+    fill('#password', 'corta');
+    submit();
+
+    // Es justo el momento en el que hace falta: antes se escondía detrás del error.
+    expect(host().textContent).toContain('al menos 8 caracteres');
+    expect(host().querySelector('.fs-auth__forgot a')).not.toBeNull();
+  });
+
+  it('no ofrece recuperar la contraseña al crear una cuenta', () => {
+    switchToRegister();
+
+    expect(host().querySelector('.fs-auth__forgot')).toBeNull();
+  });
 });

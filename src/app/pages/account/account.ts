@@ -32,6 +32,10 @@ interface ColorSlot {
  * transacción. Nada de eso le sirve a quien usa la aplicación, y el token además no debería
  * estar en pantalla. Queda lo que es del usuario y lo que puede cambiar.
  *
+ * La contraseña vive aquí como un botón y no como un campo: se cambia con el mismo enlace
+ * que la recupera quien la ha olvidado, que es lo único que ofrece el contrato y, además, lo
+ * que impide que una sesión abierta y sin dueño delante valga para quedarse con la cuenta.
+ *
  * El correo ya no es un dato de solo lectura, pero sigue sin cambiarse de un tirón: es la
  * credencial con la que se entra, así que se pide la contraseña y la dirección nueva no
  * sustituye a la vieja hasta que se confirma el enlace que llega a ella. Una letra de más al
@@ -68,6 +72,10 @@ export class AccountPage {
   /** Envios en curso, cada uno con su botón. */
   protected readonly sendingVerification = signal(false);
   protected readonly sendingChange = signal(false);
+  protected readonly sendingPassword = signal(false);
+
+  /** Si el enlace para elegir contraseña nueva ya ha salido, mientras no se recargue. */
+  protected readonly passwordLinkSent = signal(false);
 
   /** La dirección a la que se acaba de mandar el enlace, mientras no se recargue. */
   protected readonly pendingEmail = signal<string | null>(null);
@@ -198,6 +206,33 @@ export class AccountPage {
       error: (error) => {
         this.toasts.error(describeError(error));
         this.sendingVerification.set(false);
+      },
+    });
+  }
+
+  /**
+   * Manda al correo de la cuenta el enlace con el que elegir una contraseña nueva.
+   *
+   * Es el mismo enlace de «¿olvidaste tu contraseña?», y no una pantalla aparte que pida la
+   * actual. El contrato no tiene un cambio de contraseña con sesión, y tampoco hace falta:
+   * tener la sesión abierta no es saber la contraseña, así que pasar por el buzón es lo que
+   * impide que quien se encuentre esta pantalla delante se quede con la cuenta.
+   */
+  protected sendPasswordLink(): void {
+    const email = this.user()?.email;
+    if (this.sendingPassword() || !email) {
+      return;
+    }
+    this.sendingPassword.set(true);
+    this.auth.requestPasswordReset(email).subscribe({
+      next: () => {
+        this.sendingPassword.set(false);
+        this.passwordLinkSent.set(true);
+        this.toasts.success('Te hemos mandado el enlace. Mira tu correo.');
+      },
+      error: (error) => {
+        this.toasts.error(describeError(error));
+        this.sendingPassword.set(false);
       },
     });
   }

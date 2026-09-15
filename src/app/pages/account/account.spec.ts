@@ -300,4 +300,23 @@ describe('AccountPage', () => {
     expect(host().textContent).toContain('Confirma tu correo nuevo');
     expect(host().textContent).toContain('nuevo@example.com');
   });
+
+  it('manda a su propio correo el enlace con el que cambiar la contraseña', () => {
+    emailButton('Cambiar mi contraseña').click();
+    fixture.detectChanges();
+
+    const request = http.expectOne({ method: 'POST', url: '/auth/forgot-password' });
+    expect(request.request.body).toEqual({ email: USER.email });
+    request.flush(null, { status: 202, statusText: 'Accepted' });
+    fixture.detectChanges();
+
+    expect(host().textContent).toContain('Mira tu correo');
+    // El botón pasa a ofrecer repetirlo, que es lo único que queda por hacer desde aquí.
+    expect(emailButton('Volver a mandarlo')).toBeDefined();
+  });
+
+  it('no pide la contraseña actual para cambiarla: el permiso es recibir el enlace', () => {
+    expect(host().textContent).toContain('Contraseña');
+    expect(host().querySelector('input[type="password"]')).toBeNull();
+  });
 });

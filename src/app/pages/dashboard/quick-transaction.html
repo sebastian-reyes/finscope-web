@@ -131,7 +131,7 @@
     <div class="fs-quick__extra" animate.enter="is-opening" animate.leave="is-closing">
       <!-- La envoltura interior es lo que la animación de alto recorta mientras se abre; sin
            ella, el contenido se comprimiría en lugar de asomar. -->
-      <div class="fs-quick__extra-inner">
+      <div class="fs-quick__extra-inner" #extraBlock>
         <label class="fs-label fs-quick__label" for="quickDate">Fecha</label>
         <fs-date-field
           inputId="quickDate"
@@ -147,12 +147,13 @@
     </div>
   }
 
+  <!-- El alto que sobra cuando la tarjeta se estira para igualar a la columna de al lado.
+       Es un elemento y no el margen automático del pie porque es justo lo que se mide para
+       saber si los detalles caben sin empujar nada. -->
+  <div class="fs-quick__slack" #slackGap aria-hidden="true"></div>
+
   <div class="fs-quick__actions">
-    <button
-      type="button"
-      class="fs-btn fs-btn--ghost fs-quick__more"
-      (click)="showDetails.set(!showDetails())"
-    >
+    <button type="button" class="fs-btn fs-btn--ghost fs-quick__more" (click)="toggleDetails()">
       <i
         class="bi"
         [class.bi-chevron-right]="!showDetails()"
