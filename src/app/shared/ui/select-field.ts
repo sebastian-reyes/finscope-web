@@ -140,7 +140,9 @@ let nextId = 1;
       align-items: center;
       gap: 0.5rem;
       width: 100%;
-      padding: 0.4rem 0.7rem;
+      /* La misma altura que un campo normal, que es con quien comparte formulario. */
+      min-height: var(--fs-field-height);
+      padding: 0.5rem 0.85rem;
       border: 1px solid var(--fs-line);
       border-radius: var(--fs-radius);
       background-color: var(--fs-surface-sunken);
@@ -159,7 +161,7 @@ let nextId = 1;
     .fs-select[aria-expanded='true'],
     .fs-select:focus-visible {
       border-color: var(--fs-brand);
-      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+      box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
     }
 
     .fs-select:disabled {

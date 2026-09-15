@@ -188,7 +188,7 @@ function fold(value: string): string {
 
     .fs-tags:focus-within {
       border-color: var(--fs-brand);
-      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+      box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
     }
 
     .fs-tags.is-disabled {

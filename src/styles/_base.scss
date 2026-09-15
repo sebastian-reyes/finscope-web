@@ -57,7 +57,9 @@
   --fs-brand-rgb: 42, 92, 184;
   /* Lo que se escribe encima del azul macizo. */
   --fs-on-brand: #ffffff;
-  --fs-focus-tint: 0 0 0 3px #{rgba(t.$fs-brand, 0.16)};
+  // El aro del foco: más ancho y más flojo que el de antes —3px al 16%—. Un halo se ve a un
+  // metro de la pantalla; un borde de un píxel, no.
+  --fs-focus-tint: 0 0 0 4px #{rgba(t.$fs-brand, 0.14)};
 
   // --- Acento ----------------------------------------------------------------------------
   // El segundo color de la pareja. Solo lo gastan el icono, el botón de registrar y el panel
@@ -83,9 +85,18 @@
   // --- Forma y relieve -------------------------------------------------------------------
   --fs-radius: #{t.$fs-radius};
   --fs-radius-lg: #{t.$fs-radius-lg};
-  // Los controles llevan un radio propio, más cerrado: con el de las tarjetas, un botón
-  // pequeño se convierte en una pastilla y pierde la lectura de botón.
-  --fs-radius-control: 0.625rem;
+  // Alto de un campo. Es un token y no un número suelto en cada hoja porque hay sitios que
+  // **reservan** el hueco de un campo sin contener ninguno —la fila de periodo de los
+  // movimientos, que cambia de control al cambiar de modo— y, si los dos números se separan,
+  // la tarjeta da un tirón al cambiar de modo. Pasó: subir el campo de 2.5rem a 2.875rem sin
+  // tocar aquel hueco devolvió el temblor que aquel `min-height` venía a quitar.
+  --fs-field-height: 2.875rem;
+  // Los controles llevan un radio propio, más suave que el de antes —0.625rem— y aun así más
+  // cerrado que el de las tarjetas: es el idioma que estrenó la pantalla de acceso y el que
+  // ahora habla toda la aplicación. Lo pequeño conserva el radio de siempre, porque con este
+  // un botón de 2rem se convierte en una pastilla y pierde la lectura de botón.
+  --fs-radius-control: 0.8125rem;
+  --fs-radius-control-sm: 0.625rem;
   --fs-shadow: #{t.$fs-shadow};
   --fs-shadow-raised: #{t.$fs-shadow-raised};
   // El papel de una tarjeta no es plano: recibe algo más de luz por arriba que por abajo.
@@ -498,15 +509,42 @@ body:has(.fs-topbar) {
 // todas se llega desde fuera de la aplicación, sin barra de navegación que las encuadre.
 // El acceso no las usa: aquel tiene además su pared de marca y vive en su propia hoja.
 
+// El ancho se descuenta a sí mismo los márgenes laterales: sin sesión el armazón no pone
+// relleno de página —el acceso lo necesita a cero para partir la ventana en dos—, así que el
+// hueco de los lados lo reserva la tarjeta. El margen automático la centra en las dos
+// direcciones, porque su padre es la columna de alto completo.
 .fs-gate {
-  max-width: 26rem;
-  margin: 2rem auto;
-  padding: 1.75rem;
+  width: min(26rem, 100% - 2rem);
+  // El margen vertical no es decorativo: de centrarla se encarga la columna del armazón, y
+  // esto es lo que le deja aire cuando la ventana es demasiado baja para centrar nada.
+  margin: 2.5rem auto;
+  padding: 2rem;
   border: 1px solid var(--fs-line);
   border-radius: t.$fs-radius-lg;
   background-color: var(--fs-surface);
   box-shadow: var(--fs-shadow-raised);
   text-align: center;
+}
+
+// Los campos de estas pantallas hablan el mismo idioma que los del acceso —altos, de radio
+// suave y con halo al enfocar—, que es lo que evita que la pantalla a la que lleva un correo
+// parezca de otra aplicación. Va acotado a la tarjeta: la capa compartida no se toca.
+.fs-gate .fs-field {
+  min-height: 3rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.875rem;
+}
+
+.fs-gate .fs-field:focus {
+  box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
+}
+
+.fs-gate .fs-btn--solid {
+  min-height: 3rem;
+  border-radius: 0.875rem;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 62%);
+  font-weight: 620;
+  box-shadow: 0 8px 20px rgba(var(--fs-brand-rgb), 0.26);
 }
 
 .fs-gate__mark {
@@ -518,7 +556,8 @@ body:has(.fs-topbar) {
 
 .fs-gate__title {
   margin: 0 0 0.5rem;
-  font-size: 1.375rem;
+  font-size: 1.625rem;
+  line-height: 1.15;
   font-weight: 680;
   letter-spacing: -0.02em;
 }

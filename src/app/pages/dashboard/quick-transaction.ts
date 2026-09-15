@@ -115,6 +115,18 @@ export class QuickTransactionComponent {
   /** Si en el hueco sobrante caben los detalles enteros. */
   private readonly detailsFit = signal(false);
   protected readonly showDetails = computed(() => this.detailsChoice() ?? this.detailsFit());
+
+  /**
+   * Si el botón de plegar los detalles tiene algo que ofrecer.
+   *
+   * Cuando los ha abierto el sitio que sobra —pantalla ancha, tarjeta estirada— plegarlos no
+   * gana nada: el hueco seguiría ahí, vacío, y el botón solo sería un mando que devuelve la
+   * pantalla a como estaba peor. Así que desaparece, y con él la fila entera si tampoco hay
+   * nada más que decir.
+   */
+  protected readonly canToggleDetails = computed(
+    () => this.detailsChoice() !== null || !this.detailsFit(),
+  );
   protected readonly saving = signal(false);
 
   private readonly amountField = viewChild<ElementRef<HTMLInputElement>>('amountField');

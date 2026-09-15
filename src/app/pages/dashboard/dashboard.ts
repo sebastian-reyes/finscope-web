@@ -1,10 +1,11 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
+import { RefreshService } from '../../core/refresh.service';
 import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
@@ -233,6 +234,16 @@ export class DashboardPage {
   constructor() {
     this.editor.refreshCatalogues();
     this.load();
+
+    // Arrastrar hacia abajo recarga esta pantalla. Aquí, además de los datos del mes, se
+    // vuelve a preguntar quién es el usuario: el aviso de «te falta confirmar tu correo» sale
+    // de ahí, y el enlace se pulsa en el buzón, que rara vez es esta misma ventana.
+    inject(DestroyRef).onDestroy(
+      inject(RefreshService).register(() => {
+        this.load();
+        this.auth.refreshUser().subscribe({ error: () => undefined });
+      }, this.loading),
+    );
 
     // Lo registrado desde el botón central de la barra inferior no pasa por el formulario
     // de esta pantalla, pero cambia el balance que se está mirando: sin esto, se guardaría

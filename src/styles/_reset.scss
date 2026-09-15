@@ -43,6 +43,11 @@ html {
   // desbordamiento no debe asomar una barra horizontal. Va en la raíz, que es donde recorta
   // sin convertir a nadie más en una caja con desplazamiento propio.
   overflow-x: clip;
+  // El tirón de arriba es nuestro: `contain` deja fuera el «arrastrar para recargar» que
+  // Chrome pone en una pestaña —que recarga la página entera y, en una PWA, la arranca de
+  // cero— sin quitar el rebote elástico de iOS, que es parte de cómo se siente el sistema.
+  // El gesto lo atiende `fs-pull-refresh`, que recarga solo los datos de la pantalla.
+  overscroll-behavior-y: contain;
   // El sitio de la barra de desplazamiento está reservado siempre, la haya o no. Sin esto, la
   // ventana cambia de ancho cada vez que una pantalla pasa a necesitarla o deja de hacerlo
   // —incluidos los dos frames en que la nueva todavía no ha pintado su contenido—, y todo lo

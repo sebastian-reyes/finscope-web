@@ -66,12 +66,15 @@
   gap: 0.75rem;
 }
 
-// Los tres modos de periodo traen controles de altos distintos —el segmentado mide 2.5625rem
-// y el campo de fecha 2.625rem—, así que la fila cambiaba de alto al saltar de uno a otro y
-// la tarjeta entera daba un tirón. Con el hueco reservado al más alto, cambiar de modo ya no
-// mueve nada de lo que hay debajo.
+// Los tres modos de periodo traen controles de altos distintos —el segmentado mide 2.6rem, el
+// campo de fecha el alto de campo y la frase de «Todo» poco más de una línea—, así que la fila
+// cambiaba de alto al saltar de uno a otro y la tarjeta entera daba un tirón.
+//
+// El hueco se reserva al más alto de los tres, que es el campo, y se pide por su token en vez
+// de copiar el número: así cambiar el alto de los campos no vuelve a descolgar esta fila, que
+// es justo lo que trajo el temblor de vuelta.
 .fs-filters__period {
-  min-height: 2.625rem;
+  min-height: var(--fs-field-height);
 }
 
 .fs-filters__select {
@@ -141,20 +144,24 @@
 // Los totales son los del mismo filtro que la lista: lo que se ve y lo que suma lo que se
 // ve son la misma pregunta, así que van juntos y no en otra pantalla.
 .fs-totals {
-  display: grid;
-  // Como el desglose del balance: los tres importes se reparten las columnas que quepan y
-  // el que sobra baja de línea, en vez de estirar la tarjeta más allá de la pantalla.
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.75rem;
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
+}
+
+// Como el desglose del balance: los importes se reparten el ancho de la tarjeta y el que no
+// cabe baja de línea, en vez de estirarla más allá de la pantalla. Es una capa propia y no la
+// tarjeta entera porque el rótulo de la moneda no puede ser una casilla más: ocupando la fila
+// entera dejaba a `auto-fit` sin columnas vacías que plegar.
+.fs-totals__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
 }
 
 // El rotulo de la moneda solo aparece cuando hay mas de una, y entonces ocupa su propia
 // linea entera: es lo que separa dos tarjetas que por dentro se parecen mucho.
 .fs-totals__currency {
-  grid-column: 1 / -1;
-  margin: 0;
+  margin: 0 0 0.6rem;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;

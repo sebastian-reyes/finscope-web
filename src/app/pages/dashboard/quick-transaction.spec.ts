@@ -147,7 +147,9 @@ describe('QuickTransactionComponent', () => {
     slack(200);
 
     expect(details()).not.toBeNull();
-    expect(host().textContent).toContain('Menos detalles');
+    // Y con ella abierta por el sitio que sobra, el botón de plegarla no pinta nada: el hueco
+    // seguiría ahí, vacío.
+    expect(host().querySelector('.fs-quick__more')).toBeNull();
   });
 
   it('deja la fecha plegada cuando no sobra alto donde ponerla', () => {
@@ -167,14 +169,18 @@ describe('QuickTransactionComponent', () => {
   });
 
   it('respeta lo que decida el usuario por encima del hueco', () => {
-    slack(200);
+    // Sin sitio, la fecha está plegada y el botón sí se ofrece.
+    slack(40);
+    expect(details()).toBeNull();
+
     host().querySelector<HTMLButtonElement>('.fs-quick__more')!.click();
     fixture.detectChanges();
-    expect(details()).toBeNull();
+    expect(details()).not.toBeNull();
 
-    // El hueco sigue ahí y sigue midiéndose: plegarlo a mano no puede deshacerse solo.
-    slack(200);
+    // Y lo que abrió a mano no se lo cierra la medida, por mucho que deje de sobrar alto.
+    slack(0);
 
-    expect(details()).toBeNull();
+    expect(details()).not.toBeNull();
+    expect(host().textContent).toContain('Menos detalles');
   });
 });

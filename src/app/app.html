@@ -52,9 +52,20 @@
       </div>
     </div>
   </header>
+
+  <!--
+    El gesto de recargar vive aquí, en el marco: el dedo no arrastra una pantalla concreta,
+    arrastra la ventana. Qué recargar lo pone cada pantalla en `RefreshService`.
+  -->
+  <fs-pull-refresh />
 }
 
-<main class="fs-page fs-main" [class.fs-safe-bottom]="isLoggedIn()">
+<main
+  class="fs-main"
+  [class.fs-page]="isLoggedIn()"
+  [class.fs-main--auth]="!isLoggedIn()"
+  [class.fs-safe-bottom]="isLoggedIn()"
+>
   <router-outlet [fsSlide]="destinations" />
 </main>
 

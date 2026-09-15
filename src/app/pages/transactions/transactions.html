@@ -240,55 +240,66 @@
     @if (hasSeveralCurrencies()) {
       <p class="fs-totals__currency">{{ currencyName(totals.currency) }}</p>
     }
-    @if (filteredKind(); as kind) {
-      <!--
+
+    <!--
+      Las casillas van en su propia rejilla y el rótulo de la moneda queda fuera. Dentro, el
+      rótulo ocupaba la fila entera —`grid-column: 1 / -1`— y con eso ninguna columna quedaba
+      vacía: `auto-fit` no podía plegar las que sobran, así que las casillas se quedaban en el
+      ancho mínimo, apelotonadas a la izquierda y con media tarjeta en blanco al lado. Con un
+      rótulo largo —«Media por movimiento»— el texto se partía en dos líneas teniendo sitio de
+      sobra para una.
+    -->
+    <div class="fs-totals__grid">
+      @if (filteredKind(); as kind) {
+        <!--
         Con un tipo filtrado, el otro vale cero por definición y el balance repite el mismo
         número con otro rótulo: enseñar las tres casillas es ocupar la tarjeta con dos
         respuestas que ya se saben. Queda el total, que es lo que se ha venido a ver, y la
         media por movimiento, que la lista no cuenta por ningún lado.
       -->
-      <div class="fs-totals__item">
-        <span class="fs-totals__label">
-          @if (kind === 'INCOME') {
-            <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
-          } @else {
-            <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
-          }
-        </span>
-        <fs-amount
-          [amount]="kind === 'INCOME' ? totals.income : totals.expense"
-          [currency]="totals.currency"
-          [code]="kind"
-        />
-      </div>
-      @if (average(totals); as media) {
         <div class="fs-totals__item">
           <span class="fs-totals__label">
-            <i class="bi bi-calculator" aria-hidden="true"></i>Media por movimiento
+            @if (kind === 'INCOME') {
+              <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+            } @else {
+              <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+            }
           </span>
-          <fs-amount [amount]="media" [currency]="totals.currency" />
+          <fs-amount
+            [amount]="kind === 'INCOME' ? totals.income : totals.expense"
+            [currency]="totals.currency"
+            [code]="kind"
+          />
+        </div>
+        @if (average(totals); as media) {
+          <div class="fs-totals__item">
+            <span class="fs-totals__label">
+              <i class="bi bi-calculator" aria-hidden="true"></i>Media por movimiento
+            </span>
+            <fs-amount [amount]="media" [currency]="totals.currency" />
+          </div>
+        }
+      } @else {
+        <div class="fs-totals__item">
+          <span class="fs-totals__label">
+            <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+          </span>
+          <fs-amount [amount]="totals.income" [currency]="totals.currency" code="INCOME" />
+        </div>
+        <div class="fs-totals__item">
+          <span class="fs-totals__label">
+            <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+          </span>
+          <fs-amount [amount]="totals.expense" [currency]="totals.currency" code="EXPENSE" />
+        </div>
+        <div class="fs-totals__item fs-totals__item--net">
+          <span class="fs-totals__label">
+            <i class="bi bi-wallet2" aria-hidden="true"></i>Balance
+          </span>
+          <fs-amount [amount]="totals.net" [currency]="totals.currency" [signed]="true" />
         </div>
       }
-    } @else {
-      <div class="fs-totals__item">
-        <span class="fs-totals__label">
-          <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
-        </span>
-        <fs-amount [amount]="totals.income" [currency]="totals.currency" code="INCOME" />
-      </div>
-      <div class="fs-totals__item">
-        <span class="fs-totals__label">
-          <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
-        </span>
-        <fs-amount [amount]="totals.expense" [currency]="totals.currency" code="EXPENSE" />
-      </div>
-      <div class="fs-totals__item fs-totals__item--net">
-        <span class="fs-totals__label">
-          <i class="bi bi-wallet2" aria-hidden="true"></i>Balance
-        </span>
-        <fs-amount [amount]="totals.net" [currency]="totals.currency" [signed]="true" />
-      </div>
-    }
+    </div>
   </section>
 }
 

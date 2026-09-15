@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -10,9 +10,17 @@ import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
 import { LogoComponent } from './shared/ui/logo';
+import { PullRefreshComponent } from './shared/ui/pull-refresh';
 import { SegmentedDirective } from './shared/ui/segmented';
 import { SlideOutletDirective } from './shared/ui/slide-outlet';
 import { TransactionEditorComponent } from './shared/ui/transaction-editor';
+
+/**
+ * Lo que puede envejecer la copia del usuario antes de volver a preguntarla al recuperar el
+ * foco. Medio minuto: lo justo para no repetir la petición al saltar entre aplicaciones, y
+ * poco para quien vuelve de confirmar su correo.
+ */
+const USER_MAX_AGE = 30_000;
 
 /** Destino de la navegación principal, con el icono que lo representa en la barra. */
 interface NavItem {
@@ -40,6 +48,7 @@ interface NavItem {
     SegmentedDirective,
     SlideOutletDirective,
     TransactionEditorComponent,
+    PullRefreshComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -68,6 +77,9 @@ export class App {
   protected readonly user = this.auth.user;
   protected readonly isLoggedIn = this.auth.isLoggedIn;
   protected readonly loggingOut = signal(false);
+
+  /** Cuándo se preguntó por última vez quién es el usuario. */
+  private lastUserCheck = Date.now();
   protected readonly resolvedTheme = this.theme.resolved;
   protected readonly toasts = this.toastService.toasts;
 
@@ -135,6 +147,26 @@ export class App {
   protected isActive(item: NavItem): boolean {
     const url = this.url().split('?')[0];
     return url === item.path || (item.covers?.includes(url) ?? false);
+  }
+
+  constructor() {
+    // Volver a la aplicación después de haber estado fuera tiene que traer al día quién es el
+    // usuario. El caso que lo pide es el correo: el enlace se pulsa en el buzón —otra
+    // aplicación, casi siempre otra ventana—, y al volver aquí el aviso de «te falta confirmar
+    // tu correo» seguía puesto hasta que algo preguntara de nuevo. Es una sola petición, y
+    // solo si de verdad se estuvo fuera un rato.
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || !this.isLoggedIn()) {
+        return;
+      }
+      if (Date.now() - this.lastUserCheck < USER_MAX_AGE) {
+        return;
+      }
+      this.lastUserCheck = Date.now();
+      this.auth.refreshUser().subscribe({ error: () => undefined });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    inject(DestroyRef).onDestroy(() => document.removeEventListener('visibilitychange', onVisible));
   }
 
   protected dismissToast(id: number): void {
