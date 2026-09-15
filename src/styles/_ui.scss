@@ -29,8 +29,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.95rem;
+  min-height: 2.625rem;
+  padding: 0.5rem 1rem;
   border: 1px solid transparent;
   border-radius: var(--fs-radius-control);
   background-color: transparent;
@@ -60,13 +60,29 @@
 }
 
 // Macizo, para la acción por la que se ha entrado en la pantalla.
+//
+// El brillo de arriba es un degradado de blanco a nada, así que funciona con cualquier color
+// que elija el usuario: le da al relleno la curva de luz que tiene un objeto y no la de un
+// rectángulo pintado. La sombra es de su propio color, no gris: un botón de acción se
+// despega del papel sin necesidad de más color encima.
 .fs-btn--solid {
   background-color: var(--fs-brand);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 62%);
   color: var(--fs-on-brand);
 }
 
 .fs-btn--solid:hover:not(:disabled) {
   background-color: var(--fs-brand-strong);
+}
+
+// La sombra de color solo en los que mandan de verdad. En uno pequeño o en uno de icono
+// —los que viven dentro de una fila o de una cabecera— se leería como un charco.
+.fs-btn--solid:not(.fs-btn--sm):not(.fs-btn--icon) {
+  box-shadow: 0 6px 16px rgba(var(--fs-brand-rgb), 0.22);
+}
+
+.fs-btn--solid:not(.fs-btn--sm):not(.fs-btn--icon):hover:not(:disabled) {
+  box-shadow: 0 10px 22px rgba(var(--fs-brand-rgb), 0.28);
 }
 
 // Con tinte, para lo que acompaña sin mandar.
@@ -103,6 +119,7 @@
 
 .fs-btn--danger {
   background-color: var(--fs-expense);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 62%);
   color: #fff;
 }
 
@@ -124,6 +141,7 @@
 .fs-btn--sm {
   min-height: 2rem;
   padding: 0.3rem 0.7rem;
+  border-radius: var(--fs-radius-control-sm);
   font-size: var(--fs-text-sm);
 }
 
@@ -151,8 +169,10 @@
 .fs-field {
   display: block;
   width: 100%;
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
+  // Alto de dedo y no de casilla: el campo es lo único que se toca en un formulario, así que
+  // es lo último que debería quedarse pequeño. Es la medida que estrenó el acceso.
+  min-height: var(--fs-field-height);
+  padding: 0.6rem 0.85rem;
   border: 1px solid var(--fs-line);
   border-radius: var(--fs-radius-control);
   background-color: var(--fs-surface-sunken);
@@ -191,6 +211,7 @@
 .fs-field--sm {
   min-height: 2rem;
   padding: 0.25rem 0.55rem;
+  border-radius: var(--fs-radius-control-sm);
   font-size: var(--fs-text-field-sm);
 }
 

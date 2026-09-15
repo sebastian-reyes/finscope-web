@@ -53,6 +53,32 @@
   padding-block: 1rem;
 }
 
+// Sin sesión no hay barra, ni ancho de página, ni relleno: las pantallas públicas se pintan
+// de borde a borde y se colocan ellas. Es lo que le permite al acceso partir la ventana en
+// dos de arriba abajo en lugar de flotar dentro de una columna centrada.
+//
+// El selector lleva dos clases a propósito: la regla de arriba y la del monitor grande tienen
+// una sola, así que esta gana pase lo que pase con el orden de las hojas.
+.fs-main.fs-main--auth {
+  display: flex;
+  flex-direction: column;
+  // `safe` y no `center` a secas: centrado a secas, un contenido más alto que la ventana se
+  // desborda por los dos lados y lo que se pierde por arriba no hay forma de alcanzarlo. Con
+  // `safe`, en cuanto no cabe se comporta como si empezara arriba. Donde no se entienda la
+  // palabra se ignora la línea entera, que deja exactamente ese mismo comportamiento.
+  justify-content: safe center;
+  min-height: 100dvh;
+  padding: 0;
+  // Las pantallas que no son el acceso —recuperar, restablecer, confirmar— son una tarjeta
+  // sola en medio de la nada: el fondo lleva el color elegido en un resplandor muy flojo para
+  // que no queden sobre un papel muerto. El acceso lo tapa entero con su pared.
+  background-image: radial-gradient(
+    80% 45% at 50% 0%,
+    rgba(var(--fs-brand-rgb), 0.12),
+    transparent 72%
+  );
+}
+
 // Deja sitio a la barra inferior en móvil: su alto, la zona segura de los iPhone y lo que
 // asoma por encima el botón de registrar, que es un dedo más y era lo que tapaba lo último
 // de cada pantalla —el enlace a todos los movimientos, el pie del catálogo, la paginación—.

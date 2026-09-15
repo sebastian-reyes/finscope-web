@@ -183,6 +183,16 @@ describe('TransactionsPage', () => {
     expect(host().querySelectorAll('.fs-totals').length).toBe(2);
     expect(rendered()).toContain('S/ 120.00');
     expect(rendered()).toContain('$ 484.01');
+
+    // Y el rótulo de la moneda queda fuera de la rejilla de las casillas. Dentro ocupaba la
+    // fila entera, ninguna columna quedaba vacía y `auto-fit` no podía plegar las que sobran:
+    // las casillas se apelotonaban en el ancho mínimo, a la izquierda, y un rótulo largo
+    // —«Media por movimiento»— se partía en dos líneas con media tarjeta en blanco al lado.
+    for (const card of Array.from(host().querySelectorAll('.fs-totals'))) {
+      expect(card.querySelector('.fs-totals__currency')).not.toBeNull();
+      expect(card.querySelector('.fs-totals__grid .fs-totals__currency')).toBeNull();
+      expect(card.querySelectorAll('.fs-totals__grid .fs-totals__item').length).toBeGreaterThan(0);
+    }
   });
 
   it('busca una sola vez cuando se deja de escribir, no en cada tecla', () => {

@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, debounceTime, forkJoin } from 'rxjs';
 import { FinscopeService } from '../../core/finscope.service';
+import { RefreshService } from '../../core/refresh.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
 import {
@@ -334,6 +335,12 @@ export class TransactionsPage {
   });
 
   constructor() {
+    // Arrastrar hacia abajo recarga esta pantalla. El gesto vive en la carcasa —el dedo
+    // arrastra la ventana, no una pantalla concreta—, así que lo que se deja aquí es qué hay
+    // que volver a pedir y cómo saber que ya ha terminado.
+    inject(DestroyRef).onDestroy(
+      inject(RefreshService).register(() => this.reload(), this.loading),
+    );
     // La pantalla de tags enlaza aquí con ?tag= para ver qué movimientos lo llevan. Ese
     // enlace pregunta por el tag y no por el mes, así que se abre el historial entero: si
     // no, un tag que no se usa desde marzo aparecería como si no tuviera nada.

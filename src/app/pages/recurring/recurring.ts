@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
+import { RefreshService } from '../../core/refresh.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
@@ -240,6 +241,12 @@ export class RecurringPage {
   );
 
   constructor() {
+    // Arrastrar hacia abajo recarga esta pantalla. El gesto vive en la carcasa —el dedo
+    // arrastra la ventana, no una pantalla concreta—, así que lo que se deja aquí es qué hay
+    // que volver a pedir y cómo saber que ya ha terminado.
+    inject(DestroyRef).onDestroy(
+      inject(RefreshService).register(() => this.reload(), this.loading),
+    );
     this.reload();
   }
 

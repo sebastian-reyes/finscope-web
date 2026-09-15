@@ -37,7 +37,10 @@
 
   &:focus-within {
     border-color: var(--fs-brand);
-    box-shadow: 0 0 0 0.2rem rgba(42, 92, 184, 0.15);
+    // El azul de fábrica estaba escrito a mano aquí, así que este era el único aro de la
+    // aplicación que no seguía al color elegido: con una paleta ámbar, el campo se enfocaba
+    // en azul.
+    box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
   }
 
   &.is-invalid {
@@ -200,7 +203,11 @@
   }
 }
 
+// Cuando el botón de los detalles no está —los ha abierto el sitio que sobra—, el reparto
+// entre los dos extremos se queda sin su primera mitad y `space-between` dejaría a Guardar
+// pegado a la izquierda. El margen automático lo devuelve a su esquina esté quien esté.
 .fs-quick__submit {
+  margin-left: auto;
   min-width: 9rem;
   min-height: 2.75rem;
   font-weight: 600;

@@ -153,15 +153,17 @@
   <div class="fs-quick__slack" #slackGap aria-hidden="true"></div>
 
   <div class="fs-quick__actions">
-    <button type="button" class="fs-btn fs-btn--ghost fs-quick__more" (click)="toggleDetails()">
-      <i
-        class="bi"
-        [class.bi-chevron-right]="!showDetails()"
-        [class.bi-chevron-down]="showDetails()"
-        aria-hidden="true"
-      ></i>
-      {{ showDetails() ? 'Menos detalles' : 'Más detalles' }}
-    </button>
+    @if (canToggleDetails()) {
+      <button type="button" class="fs-btn fs-btn--ghost fs-quick__more" (click)="toggleDetails()">
+        <i
+          class="bi"
+          [class.bi-chevron-right]="!showDetails()"
+          [class.bi-chevron-down]="showDetails()"
+          aria-hidden="true"
+        ></i>
+        {{ showDetails() ? 'Menos detalles' : 'Más detalles' }}
+      </button>
+    }
 
     <button type="submit" class="fs-btn fs-btn--solid fs-quick__submit" [disabled]="saving()">
       @if (saving()) {

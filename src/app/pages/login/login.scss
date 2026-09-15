@@ -1,53 +1,126 @@
 @use '../../../styles/tokens' as t;
 
-// Acceso a la aplicación. En móvil es solo el formulario, porque es lo único que se viene a
-// hacer; a partir de tablet se le pone al lado un panel de marca que cuenta en tres líneas
-// qué es esto, que es cuando hay sitio para contarlo sin estorbar.
+// Acceso a la aplicación.
+//
+// A pantalla completa y partida en dos, no una tarjeta flotando en medio del papel: sin
+// sesión no hay barra ni ancho de página que respetar, así que la marca ocupa una pared de
+// verdad —de borde a borde y de arriba abajo— y el formulario respira en la otra mitad. La
+// tarjeta centrada de antes dejaba papel muerto alrededor y se leía como una plantilla
+// metida en una página.
+//
+// En móvil sigue siendo solo el formulario, porque es lo único que se viene a hacer; la
+// pared aparece cuando hay ancho para ponerla al lado sin estrujar nada.
 
 .fs-auth {
+  // Crece con su hueco: el armazón le da una columna de alto completo cuando no hay sesión.
+  flex: 1;
   display: grid;
-  grid-template-columns: 1fr;
-  max-width: 60rem;
-  margin: 1rem auto;
-  border: 1px solid var(--fs-line);
-  border-radius: t.$fs-radius-lg;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
   background-color: var(--fs-surface);
-  box-shadow: var(--fs-shadow-raised);
-  overflow: hidden;
 }
 
+// --- La pared de marca --------------------------------------------------------------------
+
 .fs-auth__brand {
+  --fs-wall-pad: clamp(2.5rem, 3.5vw, 4rem);
+  // La columna de lo que se cuenta, del mismo ancho que la del formulario de al lado. Es lo
+  // que hace que las dos mitades se lean como una sola composición: dos bloques del mismo
+  // ancho, cada uno centrado en su mitad. Pegado al borde izquierdo, el muro parecía otro
+  // sitio distinto del formulario.
+  --fs-wall-col: min(25rem, 100%);
+
   display: none;
+  position: relative;
   flex-direction: column;
+  // Todo lo que se cuenta va junto y centrado, no repartido por las esquinas: con la pared a
+  // pantalla completa, anclar el titular arriba y los tres puntos abajo dejaba un agujero en
+  // medio y tres bloques que no se leían como uno. El logotipo sí se queda en su esquina
+  // —sale del flujo—, porque es la marca del sitio y no parte del mensaje.
+  //
+  // `align-items` centra la columna de contenido a lo ancho; el texto de dentro sigue
+  // alineado a la izquierda, con su borde común, igual que los campos del formulario.
+  align-items: center;
   justify-content: center;
-  gap: 1.5rem;
-  padding: 2.5rem;
+  gap: 2rem;
+  padding: var(--fs-wall-pad);
+  overflow: hidden;
   color: #fff;
   // El único sitio donde la marca ocupa una pared entera, y por eso el único donde entran
   // los dos colores en un mismo degradado. Va por variables y no por tokens: aquí es donde
   // más se nota la pareja que haya elegido el usuario.
+  //
+  // Cada extremo se mezcla antes con una tinta profunda. El motivo es que encima va texto
+  // blanco y los colores de marca **no son los mismos en los dos temas**: en oscuro, la rampa
+  // aclara el azul hasta un celeste sobre el que el blanco no se lee. Mezclando, el muro
+  // queda siempre hondo —la pared es fondo, no botón— y conserva el tono elegido, que es lo
+  // único que tiene que reconocerse. `in oklab` para la mezcla, que no ensucia el color, y
+  // `in oklch shorter hue` para el recorrido, que pasa por el círculo de tonos en vez de por
+  // el pardo del punto medio.
+  //
+  // Encima van dos focos: uno de luz arriba a la izquierda, donde arranca el color, y una
+  // poza de sombra abajo a la derecha. Es lo que separa una pared con volumen de una mancha
+  // de color plana, y no cuesta ni una imagen.
   background:
-    radial-gradient(120% 120% at 0% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+    radial-gradient(70% 50% at 10% 4%, rgba(255, 255, 255, 0.16), transparent 60%),
+    radial-gradient(62% 55% at 92% 106%, rgba(0, 0, 0, 0.45), transparent 70%),
     linear-gradient(
       150deg in oklch shorter hue,
-      var(--fs-brand) 0%,
-      var(--fs-brand-strong) 28%,
-      var(--fs-accent) 64%,
+      color-mix(in oklab, var(--fs-brand) 54%, #040d18) 0%,
+      color-mix(in oklab, var(--fs-brand-strong) 46%, #040d18) 28%,
+      color-mix(in oklab, var(--fs-accent) 50%, #03120c) 64%,
       var(--fs-brand-deep) 100%
     );
+}
+
+// Grano. Un degradado grande y liso se ve en bandas —el monitor no tiene pasos suficientes
+// para tanto recorrido de color—, y el ruido las rompe. Es un SVG en línea y no una imagen:
+// pesa doscientos bytes, no viaja por la red y se pinta al tamaño que haga falta.
+.fs-auth__brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.16;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+// Todo lo de la pared va por encima del grano.
+.fs-auth__brand > * {
+  position: relative;
+  z-index: 1;
+}
+
+.fs-auth__pitch {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: var(--fs-wall-col);
 }
 
 .fs-auth__logo {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   margin: 0;
   font-size: 1.25rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 620;
+  letter-spacing: -0.015em;
 }
 
+// En la pared va anclado a su esquina y fuera del flujo, para que el bloque que se cuenta
+// quede centrado de verdad y no descentrado por el alto del logotipo.
+.fs-auth__brand .fs-auth__logo {
+  position: absolute;
+  top: var(--fs-wall-pad);
+  left: var(--fs-wall-pad);
+}
+
+// En móvil no hay pared donde poner la marca, así que la lleva el propio formulario.
 .fs-auth__logo--compact {
+  margin-bottom: 0.75rem;
   color: var(--fs-ink);
 }
 
@@ -75,57 +148,189 @@
 
 .fs-auth__claim {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 2.6vw, 2.75rem);
+  font-weight: 640;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 
 .fs-auth__points {
   list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  font-size: 0.9375rem;
+  gap: 0.7rem;
+  width: var(--fs-wall-col);
+  margin: 0;
+  padding: 0;
+  font-size: var(--fs-text-base);
+  color: rgba(255, 255, 255, 0.88);
 
   li {
     display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
+    align-items: center;
+    gap: 0.7rem;
   }
 
   i {
-    // El icono no se encoge aunque el texto ocupe dos líneas.
+    // El icono no se encoge aunque el texto ocupe dos líneas, y va en su propia pastilla
+    // translúcida: sobre un degradado, un icono suelto se pierde en cuanto pasa por la zona
+    // clara.
     flex: none;
-    margin-top: 0.15rem;
-    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.6rem;
+    background-color: rgba(255, 255, 255, 0.14);
+    font-size: 0.8125rem;
   }
 }
 
+// --- La muestra del producto --------------------------------------------------------------
+// Cristal sobre el degradado: fondo translúcido, borde claro y desenfoque de lo que hay
+// detrás. Es lo que la hace parecer una capa por encima de la pared y no un recorte pegado.
+
+.fs-peek {
+  padding: 1.1rem 1.25rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: t.$fs-radius-lg;
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+
+.fs-peek__label {
+  margin: 0;
+  font-size: var(--fs-text-xs);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.fs-peek__net {
+  margin: 0.15rem 0 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-peek__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.fs-peek__stat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: t.$fs-radius-sm;
+  background-color: rgba(255, 255, 255, 0.1);
+  font-size: var(--fs-text-xs);
+  color: rgba(255, 255, 255, 0.82);
+
+  i {
+    font-size: 0.75rem;
+  }
+
+  b {
+    flex-basis: 100%;
+    font-size: var(--fs-text-base);
+    font-weight: 620;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.fs-peek__budget {
+  margin-top: 0.9rem;
+}
+
+.fs-peek__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  font-size: var(--fs-text-xs);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.fs-peek__bar {
+  display: block;
+  height: 0.4rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    width: 64%;
+    height: 100%;
+    border-radius: inherit;
+    background-color: #fff;
+  }
+}
+
+// Las cifras de arriba no son de nadie, y eso se dice. Una muestra de producto que no avisa
+// de que es una muestra acaba leyéndose como el saldo de quien mira.
+.fs-peek__caption {
+  margin: 0.8rem 0 0;
+  font-size: var(--fs-text-xs);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// --- El formulario ------------------------------------------------------------------------
+
 .fs-auth__form {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.75rem 1.5rem;
+  justify-content: center;
+  padding: 2.5rem 1.25rem 3rem;
+  // En móvil no hay pared, y una pantalla blanca de arriba abajo no cuenta nada: un resplandor
+  // del color elegido asoma por detrás del formulario. Desaparece en escritorio, donde de la
+  // marca ya se encarga la pared.
+  background-image: radial-gradient(
+    120% 55% at 50% -10%,
+    rgba(var(--fs-brand-rgb), 0.14),
+    transparent 70%
+  );
+}
+
+// La columna de lectura. El formulario no se estira con la ventana: pasado cierto ancho, un
+// campo largo es más difícil de recorrer, no más cómodo.
+.fs-auth__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+  max-width: 25rem;
+  margin-inline: auto;
 }
 
 .fs-auth__head {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
 }
 
 .fs-auth__title {
   margin: 0;
-  font-size: 1.375rem;
-  font-weight: 600;
+  font-size: clamp(1.75rem, 1.2vw + 1.4rem, 2.25rem);
+  font-weight: 680;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
 }
 
 .fs-auth__subtitle {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--fs-text-md);
   color: var(--fs-ink-muted);
 }
 
@@ -137,19 +342,21 @@
 
 .fs-auth__modes .fs-seg__btn {
   flex: 1;
-  padding: 0.4rem 0.85rem;
+  justify-content: center;
+  padding: 0.55rem 1rem;
 }
 
 .fs-auth__fields {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .fs-auth__label {
-  margin-bottom: 0.35rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: var(--fs-text-sm);
+  font-weight: 550;
   color: var(--fs-ink-muted);
 }
 
@@ -159,32 +366,52 @@
 }
 
 // El icono vive dentro del campo, no fuera: así se reconoce de un vistazo qué se escribe en
-// cada uno sin leer la etiqueta.
+// cada uno sin leer la etiqueta. El campo es alto —3rem— porque es lo único que se toca en
+// esta pantalla, y el foco se marca con un halo de color y no con un borde de un píxel, que
+// a un metro de la pantalla no se ve.
 .fs-auth__field {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.85rem;
+  gap: 0.65rem;
+  min-height: 3rem;
+  padding: 0.5rem 0.9rem;
   border: 1px solid var(--fs-line);
-  border-radius: t.$fs-radius;
+  border-radius: 0.875rem;
   background-color: var(--fs-surface-sunken);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--fs-line-strong);
+  }
 
   &:focus-within {
     border-color: var(--fs-brand);
-    box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+    background-color: var(--fs-surface);
+    box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
+  }
+
+  // El icono se enciende con el campo: es el aviso de dónde está el cursor que se ve sin
+  // mirar el borde.
+  &:focus-within > i {
+    color: var(--fs-brand);
   }
 
   &.is-invalid {
     border-color: var(--fs-expense);
   }
 
+  &.is-invalid:focus-within {
+    box-shadow: 0 0 0 4px rgba(192, 57, 46, 0.16);
+  }
+
   > i {
     flex: none;
-    color: var(--fs-ink-muted);
-    font-size: 0.95rem;
+    color: var(--fs-ink-faint);
+    font-size: 1rem;
+    transition: color 0.15s ease;
   }
 
   input {
@@ -199,6 +426,10 @@
     &:focus {
       outline: none;
     }
+
+    &::placeholder {
+      color: var(--fs-ink-faint);
+    }
   }
 }
 
@@ -207,13 +438,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: none;
-  color: var(--fs-ink-muted);
+  color: var(--fs-ink-faint);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     background-color: var(--fs-hover);
@@ -222,84 +456,23 @@
 }
 
 .fs-auth__error {
-  margin: 0.35rem 0 0;
-  font-size: 0.8125rem;
+  margin: 0.4rem 0 0;
+  font-size: var(--fs-text-sm);
   color: var(--fs-expense);
 }
 
 .fs-auth__hint {
-  margin: 0.35rem 0 0;
-  font-size: 0.75rem;
+  margin: 0.4rem 0 0;
+  font-size: var(--fs-text-xs);
   color: var(--fs-ink-faint);
 }
 
-.fs-auth__submit {
-  min-height: 2.85rem;
-  margin-top: 0.25rem;
-  font-weight: 600;
-}
-
-.fs-auth__foot {
-  margin: 0;
-  text-align: center;
-  font-size: 0.875rem;
-  color: var(--fs-ink-muted);
-}
-
-.fs-auth__link {
-  padding: 0;
-  border: none;
-  background: none;
-  font-weight: 500;
-  color: var(--fs-brand);
-}
-
-// El interruptor de tema vive aquí porque la barra superior no existe sin sesión, y quien
-// abre la aplicación de noche debería poder bajar el brillo antes de entrar.
-.fs-auth__theme {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border: 1px solid var(--fs-line);
-  border-radius: 50%;
-  background-color: var(--fs-surface);
-  color: var(--fs-ink-muted);
-  z-index: 1;
-}
-
-@media (min-width: 768px) {
-  .fs-auth {
-    grid-template-columns: 1fr 1fr;
-    margin-top: 2.5rem;
-  }
-
-  .fs-auth__brand {
-    display: flex;
-  }
-
-  .fs-auth__logo--compact {
-    display: none;
-  }
-
-  .fs-auth__form {
-    padding: 2.5rem 2.25rem;
-    justify-content: center;
-  }
-}
-
-// El enlace de recuperar la contraseña ocupa el hueco de la ayuda del campo, y se alinea a
-// la derecha para no confundirse con ella: no describe el campo, sale de él.
 // Recuperar la contraseña no es una nota al pie del campo: es la única salida que le queda a
 // quien no puede entrar, así que se lee como lo que es. Iba en el gris más flojo, a 12 px y
 // sin subrayado, con la misma clase que las ayudas, y el resultado era que quien lo
 // necesitaba no lo encontraba.
 .fs-auth__forgot {
-  margin: 0.45rem 0 0;
+  margin: 0.5rem 0 0;
   font-size: var(--fs-text-sm);
   text-align: right;
 }
@@ -313,4 +486,113 @@
 .fs-auth__forgot a:hover,
 .fs-auth__forgot a:focus-visible {
   text-decoration: underline;
+}
+
+// El botón por el que se ha entrado en la pantalla: ancho entero, alto de campo y una sombra
+// de su propio color, que es lo que lo despega del papel sin necesidad de gritar más color.
+// El brillo de arriba es un degradado de blanco a nada, así que funciona con cualquier color
+// que elija el usuario.
+.fs-auth__submit {
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.4rem;
+  border-radius: 0.875rem;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 62%);
+  font-size: var(--fs-text-md);
+  font-weight: 620;
+  box-shadow: 0 8px 20px rgba(var(--fs-brand-rgb), 0.28);
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.2s ease,
+    transform 0.12s ease;
+}
+
+.fs-auth__submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(var(--fs-brand-rgb), 0.34);
+}
+
+.fs-auth__submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(var(--fs-brand-rgb), 0.26);
+}
+
+.fs-auth__foot {
+  margin: 0.25rem 0 0;
+  text-align: center;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-auth__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: inherit;
+  font-weight: 550;
+  color: var(--fs-brand);
+}
+
+.fs-auth__link:hover {
+  text-decoration: underline;
+}
+
+// El interruptor de tema vive aquí porque la barra superior no existe sin sesión, y quien
+// abre la aplicación de noche debería poder bajar el brillo antes de entrar. Va translúcido
+// y con desenfoque para no recortarse como una pegatina sobre lo que tenga detrás.
+.fs-auth__theme {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--fs-surface) 80%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--fs-ink-muted);
+  z-index: 2;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.fs-auth__theme:hover {
+  border-color: var(--fs-line-strong);
+  color: var(--fs-ink);
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  // La proporción no es la mitad y la mitad: la pared aguanta bien el ancho de más y el
+  // formulario no lo quiere, así que se lo queda ella.
+  .fs-auth {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  }
+
+  .fs-auth__brand {
+    display: flex;
+  }
+
+  .fs-auth__logo--compact {
+    display: none;
+  }
+
+  .fs-auth__form {
+    padding: 3rem;
+    // De la marca ya se encarga la pared de al lado.
+    background-image: none;
+  }
+}
+
+// Quien pide menos movimiento no lo quiere tampoco aquí: el botón deja de levantarse y el
+// resto se queda igual de legible.
+@media (prefers-reduced-motion: reduce) {
+  .fs-auth__submit,
+  .fs-auth__submit:hover:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
 }

@@ -249,7 +249,10 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
     }
 
     .fs-date--field {
-      padding: 0.4rem 0.7rem;
+      /* La misma altura y el mismo aro que un campo normal: en un formulario, una fecha más
+         baja que el campo de al lado se lee como un descuido. */
+      min-height: var(--fs-field-height);
+      padding: 0.5rem 0.85rem;
       border: 1px solid var(--fs-line);
       border-radius: var(--fs-radius);
       background-color: var(--fs-surface-sunken);
@@ -260,7 +263,7 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
 
     .fs-date--field:focus-within {
       border-color: var(--fs-brand);
-      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+      box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
     }
 
     /* Sin caja: el campo es el propio rótulo de la pantalla y debe seguir leyéndose como un
@@ -354,7 +357,7 @@ const SHORTCUTS: ReadonlyArray<{ label: string; time: string }> = [
     .fs-time__open[aria-expanded='true'] {
       outline: none;
       border-color: var(--fs-brand);
-      box-shadow: 0 0 0 0.2rem rgba(var(--fs-brand-rgb), 0.15);
+      box-shadow: 0 0 0 4px rgba(var(--fs-brand-rgb), 0.14);
     }
 
     .fs-time__open i {

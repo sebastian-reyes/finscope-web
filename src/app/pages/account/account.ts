@@ -1,5 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { AuthService } from '../../core/auth.service';
+import { RefreshService } from '../../core/refresh.service';
 import { COLOR_PRESETS, PaletteService } from '../../core/palette.service';
 import { ThemePreference, ThemeService } from '../../core/theme.service';
 import { ToastService } from '../../core/toast.service';
@@ -57,6 +65,9 @@ export class AccountPage {
   protected readonly user = this.auth.user;
   protected readonly preference = this.theme.preference;
   protected readonly saving = signal(false);
+
+  /** Si se está volviendo a preguntar quién es el usuario, que es lo que se recarga aquí. */
+  protected readonly refreshing = signal(false);
 
   /** Nombre tal y como se está escribiendo, que solo se guarda al confirmarlo. */
   protected readonly name = signal(this.auth.user()?.displayName ?? '');
@@ -134,16 +145,36 @@ export class AccountPage {
   );
 
   constructor() {
-    // La sesión guarda el usuario de cuando se entró, y el nombre --- o el estado del correo,
-    // que puede haberse verificado desde el móvil --- pueden haber cambiado desde entonces: se
-    // vuelve a preguntar y se deja al día la copia, pisando lo escrito solo si nadie escribía.
+    this.reload();
+
+    // Arrastrar hacia abajo vuelve a preguntar quién es el usuario, que es lo único que esta
+    // pantalla enseña de la API. Es justo lo que hace falta tras confirmar el correo desde el
+    // buzón: el distintivo de «sin verificar» se cae solo en cuanto se recarga.
+    inject(DestroyRef).onDestroy(
+      inject(RefreshService).register(() => this.reload(), this.refreshing),
+    );
+  }
+
+  /**
+   * Vuelve a preguntar quién es el usuario y deja al día la copia de la sesión.
+   *
+   * La sesión guarda el usuario de cuando se entró, y el nombre --- o el estado del correo,
+   * que puede haberse confirmado desde otro sitio --- pueden haber cambiado desde entonces.
+   * Lo escrito solo se pisa si nadie estaba escribiendo.
+   */
+  private reload(): void {
+    this.refreshing.set(true);
     this.auth.refreshUser().subscribe({
       next: (user) => {
+        this.refreshing.set(false);
         if (!this.changed()) {
           this.name.set(user.displayName ?? '');
         }
       },
-      error: (error) => this.toasts.error(describeError(error)),
+      error: (error) => {
+        this.refreshing.set(false);
+        this.toasts.error(describeError(error));
+      },
     });
   }
 
