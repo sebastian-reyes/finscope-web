@@ -44,7 +44,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     router.navigate(['/login'], { queryParams: { expired: true } });
   };
 
-  return next(authorize(request, auth.accessToken, isPublic)).pipe(
+  const sentToken = auth.accessToken;
+
+  return next(authorize(request, sentToken, isPublic)).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401 || isPublic) {
         return throwError(() => error);
@@ -56,13 +58,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         return throwError(() => error);
       }
 
-      return auth.refreshOnce().pipe(
+      return auth.refreshOnce(sentToken).pipe(
         catchError((failure: unknown) => {
           expire();
           return throwError(() => failure);
         }),
-        switchMap((session) =>
-          next(authorize(request, session.accessToken, false)).pipe(
+        switchMap((accessToken) =>
+          next(authorize(request, accessToken, false)).pipe(
             catchError((retried: HttpErrorResponse) => {
               // Un 401 con el token recién estrenado ya no es cosa de la caducidad.
               if (retried.status === 401) {

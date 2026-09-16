@@ -486,19 +486,39 @@ body:has(.fs-topbar) {
 }
 
 // El esqueleto pone el alto quien lo usa: cada pantalla imita el hueco de su contenido.
+//
+// El brillo que lo recorre es una capa que **se mueve**, no un fondo que cambia de posición.
+// La diferencia no es de estilo: animar `background-position` obliga al navegador a repintar
+// el elemento entero en cada fotograma, y eso se paga por cada esqueleto y por cada
+// fotograma —el doble en una pantalla de 120 Hz—. Un `transform` sobre una capa aparte lo
+// resuelve el compositor sin repintar nada.
 .fs-skeleton {
+  position: relative;
+  overflow: hidden;
   border-radius: t.$fs-radius-sm;
-  background: linear-gradient(90deg, var(--fs-hover) 25%, var(--fs-shade) 37%, var(--fs-hover) 63%);
-  background-size: 400% 100%;
+  background-color: var(--fs-hover);
+}
+
+.fs-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--fs-shade), transparent);
+  transform: translateX(-100%);
   animation: fs-shimmer 1.4s ease infinite;
 }
 
 @keyframes fs-shimmer {
-  0% {
-    background-position: 100% 50%;
+  to {
+    transform: translateX(100%);
   }
-  100% {
-    background-position: 0 50%;
+}
+
+// Quien pide menos movimiento se queda con el hueco teñido y quieto, que dice lo mismo: que
+// eso todavía no ha llegado.
+@media (prefers-reduced-motion: reduce) {
+  .fs-skeleton::after {
+    animation: none;
   }
 }
 
