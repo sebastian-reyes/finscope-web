@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, finalize, shareReplay, tap } from 'rxjs';
+import { Observable, defer, finalize, from, lastValueFrom, map, of, shareReplay, tap } from 'rxjs';
 import {
   AuthResponse,
   ChangeEmailRequest,
@@ -15,6 +15,15 @@ import { clearCachedApiData } from './data-cache';
 const ACCESS_TOKEN_KEY = 'finscope.accessToken';
 const REFRESH_TOKEN_KEY = 'finscope.refreshToken';
 const USER_KEY = 'finscope.user';
+
+/** Nombre del candado del navegador bajo el que se renueva la sesión, común a todas las pestañas. */
+const REFRESH_LOCK = 'finscope.refresh';
+
+/**
+ * Margen con el que un token de acceso guardado se da ya por caducado. Reutilizar uno al que
+ * le quedan dos segundos haría que la petición repetida volviera con otro 401.
+ */
+const ACCESS_TOKEN_MIN_LIFETIME_MS = 15_000;
 
 /**
  * Guarda la sesión y habla con los endpoints de /auth.
@@ -34,7 +43,7 @@ export class AuthService {
   private readonly userSignal = signal<UserResponse | null>(readStoredUser());
 
   /** Renovación en curso, mientras la haya, para no consumir el refresco dos veces. */
-  private renewal: Observable<AuthResponse> | null = null;
+  private renewal: Observable<string> | null = null;
 
   readonly user = this.userSignal.asReadonly();
   readonly isLoggedIn = computed(() => this.accessTokenSignal() !== null);
@@ -74,11 +83,27 @@ export class AuthService {
    * delante el par bueno que acababa de traer la primera. Una pantalla lanza media docena de
    * peticiones a la vez, así que esto no es un caso raro sino el normal.
    *
-   * @return la sesión renovada, la misma para todos los que la esperen
+   * Entre pestañas compartir la llamada no basta, porque cada una tiene la suya. Dos pestañas
+   * —o la aplicación instalada y el navegador— que despiertan a la vez gastaban el mismo token,
+   * y la API tomaba la segunda por un robo y cerraba la sesión en todos los dispositivos. Por
+   * eso la renovación va bajo un candado del navegador, y dentro se mira primero si el token
+   * guardado ya no es el que la API rechazó y sigue vigente: entonces otra pestaña renovó
+   * mientras se esperaba el candado, y se usa ese sin gastar el de refresco otra vez. La API
+   * tolera además unos segundos de carrera, que cubren a los navegadores sin candados.
+   *
+   * @param rejectedToken token de acceso con el que la API acaba de responder 401
+   * @return el token de acceso con el que repetir la petición, el mismo para todos
    */
-  refreshOnce(): Observable<AuthResponse> {
+  refreshOnce(rejectedToken: string | null): Observable<string> {
     if (!this.renewal) {
-      this.renewal = this.refresh().pipe(
+      this.renewal = withRefreshLock(() => {
+        const stored = localStorage.getItem(ACCESS_TOKEN_KEY);
+        if (stored && stored !== rejectedToken && isStillValid(stored)) {
+          this.adoptStoredSession(stored);
+          return of(stored);
+        }
+        return this.refresh().pipe(map((auth) => auth.accessToken));
+      }).pipe(
         finalize(() => {
           this.renewal = null;
         }),
@@ -218,12 +243,55 @@ export class AuthService {
     this.userSignal.set(user);
   }
 
+  /**
+   * Toma como propia la sesión que otra pestaña acaba de guardar.
+   *
+   * @param accessToken token de acceso leído del almacenamiento
+   */
+  private adoptStoredSession(accessToken: string): void {
+    this.accessTokenSignal.set(accessToken);
+    this.userSignal.set(readStoredUser());
+  }
+
   private storeSession(auth: AuthResponse): void {
     localStorage.setItem(ACCESS_TOKEN_KEY, auth.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, auth.refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
     this.accessTokenSignal.set(auth.accessToken);
     this.userSignal.set(auth.user);
+  }
+}
+
+/**
+ * Ejecuta la renovación bajo el candado compartido por todas las pestañas del origen.
+ * Donde el navegador no ofrece candados se ejecuta sin él, y la API cubre la carrera.
+ *
+ * @param task renovación a proteger
+ * @return el resultado de la renovación
+ */
+function withRefreshLock<T>(task: () => Observable<T>): Observable<T> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks) {
+    return defer(task);
+  }
+  return from(locks.request(REFRESH_LOCK, () => lastValueFrom(task())));
+}
+
+/**
+ * Indica si a un token de acceso le queda vida suficiente para reutilizarlo.
+ * Solo lee la caducidad del token para no repetir una petición condenada al 401; la firma la
+ * sigue comprobando la API. Un token que no se puede leer se da por caducado.
+ *
+ * @param token token de acceso en formato JWT
+ * @return si caduca más allá del margen
+ */
+function isStillValid(token: string): boolean {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(payload)) as { exp?: number };
+    return typeof exp === 'number' && exp * 1000 - Date.now() > ACCESS_TOKEN_MIN_LIFETIME_MS;
+  } catch {
+    return false;
   }
 }
 

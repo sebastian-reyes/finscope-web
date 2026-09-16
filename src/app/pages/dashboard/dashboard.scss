@@ -1,5 +1,3 @@
-@use '../../../styles/tokens' as t;
-
 // Rejilla de la pantalla. El formulario de registro es alto y el balance es corto: puestos
 // uno al lado del otro en una fila, la tarjeta del balance se estiraba para igualarlo y se
 // quedaba medio vacía. Aquí el formulario ocupa dos filas de la columna derecha y el hueco
@@ -226,14 +224,8 @@
 }
 
 // Esqueletos de carga: ocupan el mismo hueco que el contenido para que nada salte al llegar
-// los datos.
-.fs-skeleton {
-  border-radius: t.$fs-radius-sm;
-  background: linear-gradient(90deg, var(--fs-hover) 25%, var(--fs-shade) 37%, var(--fs-hover) 63%);
-  background-size: 400% 100%;
-  animation: fs-shimmer 1.4s ease infinite;
-}
-
+// los datos. La pieza es la de la capa base —aquí estaba copiada, con su propia animación de
+// nombre igual pisando a la de fuera—; lo único propio de esta pantalla son los altos.
 .fs-skeleton--hero {
   height: 3rem;
   margin-top: 0.5rem;
@@ -246,15 +238,6 @@
 
 .fs-skeleton--chart {
   height: 15rem;
-}
-
-@keyframes fs-shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
-  }
 }
 
 // El conmutador de la cabecera acompaña al rótulo y no compite con él: va un punto más
