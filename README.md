@@ -10,7 +10,7 @@ tiene dueño antes de que acabe el mes.
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Señales](https://img.shields.io/badge/se%C3%B1ales-sin%20zone.js-DD0031)](https://angular.dev/guide/signals)
 [![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?logo=pwa&logoColor=white)](#instalable-en-el-móvil)
-[![Vitest](https://img.shields.io/badge/Vitest-327%20verdes-6E9F18?logo=vitest&logoColor=white)](#pruebas-y-ci)
+[![Vitest](https://img.shields.io/badge/Vitest-336%20verdes-6E9F18?logo=vitest&logoColor=white)](#pruebas-y-ci)
 [![Dependencias](https://img.shields.io/badge/dependencias-2%20y%20contadas-success)](#qué-es-esto)
 
 [Arquitectura](#arquitectura) · [Pantallas](#las-pantallas) · [Arrancar](#arrancar) ·
@@ -51,7 +51,7 @@ Tres decisiones explican casi todo lo demás:
 | --- | --- |
 | **Dos dependencias, y contadas** | `chart.js` para los gráficos y `air-datepicker` para el calendario. Ni Bootstrap ni ninguna librería de componentes: el lenguaje visual es propio y vive en cuatro hojas de [`src/styles/`](src/styles). |
 | **Todo se carga bajo demanda** | Cada ruta es un `loadComponent`. La primera pantalla no paga por las que no se han abierto. |
-| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.8.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
+| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.9.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
 
 ---
 
@@ -99,7 +99,7 @@ Dos piezas que se despliegan por separado: esta aplicación y una
 | **Presupuestos** | Un importe por categoría y mes, con su barra |
 | **Fijos** | Las plantillas y su estado en el mes que se esté mirando |
 | **Tags** | El catálogo de contextos, también con color e icono |
-| **Mi cuenta** | Nombre, correo con su estado y su cambio, tema y los dos colores |
+| **Mi cuenta** | Nombre, correo con su estado y su cambio, avisos al teléfono, tema y los dos colores |
 
 Las cuatro últimas comparten un marco con un conmutador arriba, porque son cuatro caras del
 mismo catálogo y la barra inferior solo tiene cinco huecos.
@@ -285,6 +285,40 @@ credenciales.
 > Sin esa prueba, mudar el servidor a medias no rompe nada visible: la caché sin conexión deja
 > de emparejar **en silencio**.
 
+### Avisos al teléfono
+
+Con la aplicación instalada, FinScope **avisa aunque esté cerrada**: el día antes y el mismo día
+de cada movimiento fijo pendiente, y cuando un presupuesto del mes llega al 90 % o se pasa. Se
+activan en **Mi cuenta → Avisos**, que es también donde se elige qué avisos recibir y se manda
+uno de prueba. Al tocar un aviso se abre la pantalla de fijos o de presupuestos en el mes del
+que habla (`?mes=2026-10`), aunque no sea el actual.
+
+Aquí no se decide cuándo avisar —eso lo hace la API cada hora—: la aplicación pide el permiso,
+entrega la suscripción del navegador y la da de baja. Enseñar el aviso y abrir la pantalla al
+tocarlo lo hace el propio trabajador de servicio de Angular con lo que trae el mensaje, así que
+no hay un manejador del evento `push` escrito a mano.
+
+<details>
+<summary><strong>Lo que hay que saber de los avisos</strong></summary>
+
+<br>
+
+- **En iPhone y iPad solo funcionan con la aplicación instalada** en la pantalla de inicio
+  (iOS 16.4 o posterior). Desde una pestaña de Safari la pantalla lo detecta y explica cómo
+  instalarla en lugar de ofrecer un botón que no haría nada.
+- **El permiso se pide al pulsar el botón y nunca al abrir**: Safari rechaza pedirlo de otro modo,
+  y un permiso pedido sin contexto se suele denegar para siempre. Si se bloquea, la pantalla dice
+  que hay que permitirlo desde los ajustes, porque la página ya no puede volver a preguntar.
+- **La suscripción es del dispositivo.** Al cerrar sesión se da de baja antes de salir; y si en
+  un navegador que ya tenía avisos entra otra cuenta, se registra a su nombre. Así nadie recibe
+  en un teléfono ajeno los avisos de su cuenta.
+- **Qué avisos recibir es de la cuenta** y vale para todos sus dispositivos.
+- **Solo en compilaciones de producción**, como todo el trabajador de servicio. Con `ng serve`
+  la sección dice que el navegador no los admite, y es verdad: sin trabajador no hay avisos.
+- Toda la lógica está en [`core/push.service.ts`](src/app/core/push.service.ts).
+
+</details>
+
 ---
 
 ## Tema y colores
@@ -394,6 +428,7 @@ src/
 │   │   ├── catalogue-styles  color e icono de cada categoría y tag
 │   │   ├── data-cache     vaciar la copia sin conexión
 │   │   ├── app-update     vigilar despliegues
+│   │   ├── push           avisos al teléfono: permiso, suscripción y baja
 │   │   └── format/        dinero, iconos elegibles, colores, paletas, periodos
 │   ├── shared/ui/         17 componentes propios: editor de movimientos,
 │   │                      fichas y sus selectores de color e icono, selector
@@ -421,7 +456,7 @@ npm install
 npm start          # http://localhost:4200
 ```
 
-[`proxy.conf.mjs`](proxy.conf.mjs) reenvía `/auth`, `/budgets`, `/categories`,
+[`proxy.conf.mjs`](proxy.conf.mjs) reenvía `/auth`, `/budgets`, `/categories`, `/push`,
 `/recurring-transactions`, `/tags`, `/transactions` y `/transaction-types` al backend, de modo
 que **comparten origen y no hay CORS de por medio**.
 
@@ -441,7 +476,7 @@ Otros comandos:
 ```bash
 npm run build      # compilación de producción, en dist/
 npm run watch      # compilación de desarrollo en modo vigilancia
-npm test           # las 327 pruebas
+npm test           # las 336 pruebas
 ```
 
 ---
@@ -449,7 +484,7 @@ npm test           # las 327 pruebas
 ## Pruebas y CI
 
 ```bash
-npx ng test --no-watch     # 41 archivos · 327 pruebas
+npx ng test --no-watch     # 43 archivos · 336 pruebas
 ```
 
 > [!CAUTION]

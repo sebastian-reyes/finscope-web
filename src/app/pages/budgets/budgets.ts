@@ -1,11 +1,17 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { FinscopeService } from '../../core/finscope.service';
 import { RefreshService } from '../../core/refresh.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
-import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
+import {
+  currentMonth,
+  monthFromParam,
+  monthLabel,
+  toInputDateTime,
+} from '../../core/format/period';
 import {
   BASE_CURRENCY,
   CURRENCIES,
@@ -72,8 +78,14 @@ export class BudgetsPage {
   /** Presupuesto cuya retirada espera confirmación en su propia fila. */
   protected readonly confirmingId = signal<number | null>(null);
 
-  /** Mes que se está mirando. Se mueve con las flechas de la cabecera, como en el inicio. */
-  protected readonly period = signal(currentMonth());
+  /**
+   * Mes que se está mirando. Se mueve con las flechas de la cabecera, como en el inicio. Abre
+   * en el que diga la dirección (`?mes=2026-10`), que es por donde llega un aviso del
+   * teléfono, y si no dice ninguno, en el mes en curso.
+   */
+  protected readonly period = signal(
+    monthFromParam(inject(ActivatedRoute).snapshot.queryParamMap.get('mes')) ?? currentMonth(),
+  );
 
   /**
    * Los dos formularios de la pantalla.
