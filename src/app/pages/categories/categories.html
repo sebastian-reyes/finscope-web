@@ -63,6 +63,17 @@
         Crear
       </button>
     </form>
+    <div class="fs-style">
+      <span class="fs-label">Icono</span>
+      <fs-chip-icon-picker [name]="newName.value" [(value)]="newIcon" />
+      <span class="fs-label">Color</span>
+      <fs-chip-color-picker
+        kind="category"
+        [name]="newName.value"
+        [icon]="newIcon()"
+        [(value)]="newColor"
+      />
+    </div>
     <p class="fs-note">
       El ámbito solo decide qué categorías te propone el formulario al registrar: no cambia nada de
       lo que ya tienes guardado.
@@ -104,7 +115,7 @@
             @for (category of group.categories; track category.id) {
               <li class="fs-row">
                 @if (editingId() === category.id) {
-                  <form class="fs-edit" [formGroup]="editForm" (ngSubmit)="saveEdit(category.id)">
+                  <form class="fs-edit" [formGroup]="editForm" (ngSubmit)="saveEdit(category)">
                     <input
                       class="fs-field"
                       maxlength="70"
@@ -127,6 +138,15 @@
                         </button>
                       }
                     </div>
+
+                    <fs-chip-icon-picker [name]="editName.value" [(value)]="editIcon" />
+
+                    <fs-chip-color-picker
+                      kind="category"
+                      [name]="editName.value"
+                      [icon]="editIcon()"
+                      [(value)]="editColor"
+                    />
 
                     <div class="fs-edit__actions">
                       <button
@@ -193,7 +213,11 @@
                     [routerLink]="['/transactions']"
                     [queryParams]="{ categoria: category.id }"
                   >
-                    <fs-category-chip [name]="category.name" />
+                    <fs-category-chip
+                      [name]="category.name"
+                      [color]="category.color ?? null"
+                      [icon]="category.icon ?? null"
+                    />
                     @if (category.isSystem) {
                       <span class="fs-row__badge">
                         <i class="bi bi-shield-check" aria-hidden="true"></i>Reserva

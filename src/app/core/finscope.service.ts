@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import {
   BudgetResponse,
   CategoryResponse,
@@ -30,6 +30,7 @@ import {
   UpdateTransactionRequest,
 } from './models';
 import { environment } from '../../environments/environment';
+import { CatalogueStylesService } from './catalogue-styles.service';
 
 /**
  * Acceso a los recursos de negocio de la API.
@@ -43,6 +44,7 @@ import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class FinscopeService {
   private readonly http = inject(HttpClient);
+  private readonly styles = inject(CatalogueStylesService);
 
   /** Origen de la API, vacío en desarrollo. Ver `src/environments`. */
   private readonly api = environment.apiUrl;
@@ -54,22 +56,44 @@ export class FinscopeService {
    * Es lo que alimenta el selector del formulario y el gráfico de reparto del gasto.
    */
   listCategories(): Observable<CategoryResponse[]> {
-    return this.http.get<CategoryResponse[]>(`${this.api}/categories`);
+    return this.http
+      .get<CategoryResponse[]>(`${this.api}/categories`)
+      .pipe(tap((categories) => this.styles.remember('category', categories)));
   }
 
-  createCategory(name: string, appliesTo: CategoryScope): Observable<CategoryResponse> {
-    return this.http.post<CategoryResponse>(`${this.api}/categories`, {
-      name,
-      appliesTo,
-    } satisfies SaveCategoryRequest);
+  /** @param style color e icono elegidos; lo que falte se deduce del nombre */
+  createCategory(
+    name: string,
+    appliesTo: CategoryScope,
+    style: ChipStyleRequest = {},
+  ): Observable<CategoryResponse> {
+    return this.http
+      .post<CategoryResponse>(`${this.api}/categories`, {
+        name,
+        appliesTo,
+        ...present(style),
+      } satisfies SaveCategoryRequest)
+      .pipe(tap((category) => this.styles.rememberOne('category', category)));
   }
 
-  /** El cambio alcanza a todas las transacciones que clasifica, porque la categoría es una. */
-  updateCategory(id: number, name: string, appliesTo: CategoryScope): Observable<CategoryResponse> {
-    return this.http.patch<CategoryResponse>(`${this.api}/categories/${id}`, {
-      name,
-      appliesTo,
-    } satisfies SaveCategoryRequest);
+  /**
+   * El cambio alcanza a todas las transacciones que clasifica, porque la categoría es una.
+   *
+   * @param style color e icono nuevos, `auto` para quitarlos; lo que falte se deja como está
+   */
+  updateCategory(
+    id: number,
+    name: string,
+    appliesTo: CategoryScope,
+    style: ChipStyleRequest = {},
+  ): Observable<CategoryResponse> {
+    return this.http
+      .patch<CategoryResponse>(`${this.api}/categories/${id}`, {
+        name,
+        appliesTo,
+        ...present(style),
+      } satisfies SaveCategoryRequest)
+      .pipe(tap((category) => this.styles.rememberOne('category', category)));
   }
 
   /**
@@ -88,19 +112,38 @@ export class FinscopeService {
    * Incluye los que no usa ninguna transacción: siguen ocupando su nombre.
    */
   listTags(): Observable<TagResponse[]> {
-    return this.http.get<TagResponse[]>(`${this.api}/tags`);
+    return this.http
+      .get<TagResponse[]>(`${this.api}/tags`)
+      .pipe(tap((tags) => this.styles.remember('tag', tags)));
   }
 
-  /** Alta explícita, para preparar el catálogo sin registrar una transacción. */
-  createTag(name: string): Observable<TagResponse> {
-    return this.http.post<TagResponse>(`${this.api}/tags`, { name } satisfies SaveTagRequest);
+  /**
+   * Alta explícita, para preparar el catálogo sin registrar una transacción.
+   *
+   * @param style color e icono elegidos; lo que falte se deduce del nombre
+   */
+  createTag(name: string, style: ChipStyleRequest = {}): Observable<TagResponse> {
+    return this.http
+      .post<TagResponse>(`${this.api}/tags`, {
+        name,
+        ...present(style),
+      } satisfies SaveTagRequest)
+      .pipe(tap((tag) => this.styles.rememberOne('tag', tag)));
   }
 
-  /** Renombra el tag en todas las transacciones que lo llevan, porque el tag es uno solo. */
-  renameTag(id: number, name: string): Observable<TagResponse> {
-    return this.http.patch<TagResponse>(`${this.api}/tags/${id}`, {
-      name,
-    } satisfies SaveTagRequest);
+  /**
+   * Renombra el tag o cambia su color o su icono en todas las transacciones que lo llevan,
+   * porque el tag es uno solo.
+   *
+   * @param style color e icono nuevos, `auto` para quitarlos; lo que falte se deja como está
+   */
+  updateTag(id: number, name: string, style: ChipStyleRequest = {}): Observable<TagResponse> {
+    return this.http
+      .patch<TagResponse>(`${this.api}/tags/${id}`, {
+        name,
+        ...present(style),
+      } satisfies SaveTagRequest)
+      .pipe(tap((tag) => this.styles.rememberOne('tag', tag)));
   }
 
   /** Lo retira de todas sus transacciones, que por lo demás quedan intactas. */
@@ -322,4 +365,21 @@ export function filterParams(filters: TransactionFilters): HttpParams {
     }
   }
   return params;
+}
+
+/** Color e icono que acompañan al alta o la modificación de una categoría o un tag. */
+export interface ChipStyleRequest {
+  color?: string;
+  icon?: string;
+}
+
+/**
+ * Deja fuera del cuerpo lo que no se ha elegido: en un `PATCH`, un campo ausente es «no lo
+ * toques», y mandarlo vacío sería un valor que la API rechaza.
+ */
+function present(style: ChipStyleRequest): ChipStyleRequest {
+  return {
+    ...(style.color ? { color: style.color } : {}),
+    ...(style.icon ? { icon: style.icon } : {}),
+  };
 }

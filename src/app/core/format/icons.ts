@@ -1,10 +1,10 @@
 /**
  * Iconos y colores derivados de un nombre.
  *
- * Ni el icono ni el color existen en la API: se deducen del nombre, de forma que la misma
- * categoría o el mismo tag se ven igual en toda la aplicación sin guardar nada extra y sin
- * pedirle al usuario que elija un icono al crearlos. Como el nombre siempre se muestra
- * completo, esto decora pero nunca informa.
+ * Es lo que se ve mientras el usuario no elija otra cosa: el icono y el color se deducen del
+ * nombre, de forma que la misma categoría o el mismo tag se ven igual en toda la aplicación
+ * sin pedir nada al crearlos. Lo elegido a mano se resuelve en `chip-color.ts` y
+ * `icon-choices.ts`, que caen aquí cuando no hay nada guardado.
  */
 
 /** Palabras reconocibles dentro de un nombre y el icono que les corresponde. */
@@ -38,7 +38,7 @@ export const PALETTE_SIZE = 8;
  * @return la clase del icono, o una etiqueta genérica si no se reconoce nada
  */
 export function iconFor(name: string): string {
-  const normalised = normalise(name);
+  const normalised = normaliseName(name);
   for (const [keywords, icon] of ICONS) {
     if (keywords.some((keyword) => normalised.includes(keyword))) {
       return icon;
@@ -65,11 +65,12 @@ export function paletteVariant(name: string): number {
 
 /**
  * Deja el nombre en minúsculas y sin tildes, que es como se comparan las palabras clave.
+ * La usa también el buscador de iconos.
  *
  * @param name nombre a normalizar
  * @return el nombre comparable
  */
-function normalise(name: string): string {
+export function normaliseName(name: string): string {
   return name
     .toLowerCase()
     .normalize('NFD')

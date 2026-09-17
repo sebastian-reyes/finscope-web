@@ -112,14 +112,14 @@ describe('TagsPage', () => {
   });
 
   it('avisa a cuántos movimientos alcanza el cambio antes de renombrar', () => {
-    press('Renombrar gab');
+    press('Editar gab');
 
     // El tag es uno solo y lo comparten sus movimientos: renombrarlo los alcanza a todos.
     expect(row(0).querySelector('.fs-row__note')!.textContent).toContain('4 movimientos');
   });
 
   it('renombra el tag y recarga el catálogo con el nombre nuevo', () => {
-    press('Renombrar viaje');
+    press('Editar viaje');
     write('.fs-row__field', 'viajes');
 
     submit('.fs-row__edit');
@@ -133,7 +133,7 @@ describe('TagsPage', () => {
   });
 
   it('deja el nombre en pantalla si la API lo rechaza, para poder corregirlo', () => {
-    press('Renombrar viaje');
+    press('Editar viaje');
     write('.fs-row__field', 'gab');
 
     submit('.fs-row__edit');
@@ -179,7 +179,7 @@ describe('TagsPage', () => {
   });
 
   it('no deja abiertos un renombrado y un borrado a la vez', () => {
-    press('Renombrar gab');
+    press('Editar gab');
     // El nombre a medio escribir de una fila no debe quedarse esperando detrás mientras se
     // decide el borrado de otra.
     press('Borrar viaje');

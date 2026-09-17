@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { iconFor, paletteVariant } from '../../core/format/icons';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { chipLook } from './chip-look';
 
 /**
  * Categoría como ficha con su icono.
@@ -8,9 +8,9 @@ import { iconFor, paletteVariant } from '../../core/format/icons';
  * tag: fuente algo mayor, icono siempre presente y, cuando se usa como marca de una fila,
  * el icono va suelto dentro de un cuadro con el color de la categoría.
  *
- * Como en los tags, el color y el icono se deducen del nombre y no se guardan en ningún
- * sitio, de modo que una categoría creada por el usuario se ve igual de bien que las del
- * catálogo inicial.
+ * Como en los tags, el color y el icono pueden elegirse en la pantalla de categorías, y mientras
+ * no se elijan se deducen del nombre, de modo que una categoría creada por el usuario se ve
+ * igual de bien que las del catálogo inicial.
  */
 @Component({
   selector: 'fs-category-chip',
@@ -18,15 +18,23 @@ import { iconFor, paletteVariant } from '../../core/format/icons';
   template: `
     @if (iconOnly()) {
       <span
-        class="fs-cat-icon fs-chip--{{ variant() }}"
+        class="fs-cat-icon fs-chip--{{ look().variant }}"
+        [class.fs-chip--edged]="look().edge"
+        [style.--fs-chip-bg]="look().bg"
+        [style.--fs-chip-ink]="look().ink"
         [attr.aria-label]="name()"
         [attr.title]="name()"
       >
-        <i class="bi {{ icon() }}" aria-hidden="true"></i>
+        <i class="bi {{ look().icon }}" aria-hidden="true"></i>
       </span>
     } @else {
-      <span class="fs-chip fs-cat-chip fs-chip--{{ variant() }}">
-        <i class="bi {{ icon() }}" aria-hidden="true"></i>
+      <span
+        class="fs-chip fs-cat-chip fs-chip--{{ look().variant }}"
+        [class.fs-chip--edged]="look().edge"
+        [style.--fs-chip-bg]="look().bg"
+        [style.--fs-chip-ink]="look().ink"
+      >
+        <i class="bi {{ look().icon }}" aria-hidden="true"></i>
         <span class="text-truncate">{{ name() }}</span>
         @if (count() !== null) {
           <span class="fs-chip__count fs-num">{{ count() }}</span>
@@ -66,6 +74,11 @@ export class CategoryChipComponent {
   /** Dibuja solo el icono, para encabezar una fila sin repetir el nombre a su lado. */
   readonly iconOnly = input(false);
 
-  protected readonly icon = computed(() => iconFor(this.name()));
-  protected readonly variant = computed(() => paletteVariant(this.name()));
+  /** Color a pintar en lugar del guardado: nulo fuerza el automático. Ver la ficha de tag. */
+  readonly color = input<string | null | undefined>(undefined);
+
+  /** Icono a pintar en lugar del guardado, sin `bi-`. Ver la ficha de tag. */
+  readonly icon = input<string | null | undefined>(undefined);
+
+  protected readonly look = chipLook('category', this.name, this.color, this.icon);
 }

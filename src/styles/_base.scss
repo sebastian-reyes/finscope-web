@@ -710,6 +710,13 @@ fs-category-chip {
   }
 }
 
+// Un color libre llega en línea, en el `style` de la ficha, y por eso gana a la variante de
+// arriba sin tener que quitarla. Cuando ese color se funde con el papel —blanco en claro,
+// negro en oscuro— la ficha dejaría de verse: el filo es por dentro para no moverla de sitio.
+.fs-chip--edged {
+  box-shadow: inset 0 0 0 1px var(--fs-line-strong);
+}
+
 // --- Control segmentado ------------------------------------------------------------------
 // Lo usan los filtros, el catálogo y el acceso: son opciones pocas y excluyentes, y se ven
 // todas a la vez en lugar de esconderse en un desplegable que hay que abrir para saber qué

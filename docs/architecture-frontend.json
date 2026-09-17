@@ -47,7 +47,7 @@
           "palette",
           "storage"
         ],
-        "note": "Dos colores del usuario tiñen toda la interfaz y se recuerdan a nombre de su cuenta."
+        "note": "Dos colores del usuario tiñen la interfaz; cada categoría y tag lleva su color e icono."
       }
     ],
     "viewBox": [
@@ -135,7 +135,7 @@
       "type": "external",
       "label": "finscope-api",
       "sublabel": "api.fin-scope.app",
-      "tag": "contrato 6.7.0",
+      "tag": "contrato 6.8.0",
       "pos": [
         40,
         240
@@ -356,7 +356,7 @@
       "dot": "emerald",
       "title": "Contra la API",
       "items": [
-        "Los modelos siguen el contrato OpenAPI 6.7.0",
+        "Los modelos siguen el contrato OpenAPI 6.8.0",
         "El interceptor firma y renueva una sola vez",
         "Cada error trae el código de negocio de la API"
       ]
@@ -374,8 +374,8 @@
       "dot": "amber",
       "title": "Aspecto",
       "items": [
-        "Claro, oscuro o el del sistema",
         "Dos colores del usuario tiñen toda la interfaz",
+        "Categorías y tags con color e icono propios",
         "El verde y el rojo del dinero no se tocan nunca"
       ]
     }

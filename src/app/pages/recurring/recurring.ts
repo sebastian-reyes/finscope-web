@@ -15,6 +15,8 @@ import {
   formatMoney,
 } from '../../core/format/money';
 import { iconFor } from '../../core/format/icons';
+import { CatalogueStylesService } from '../../core/catalogue-styles.service';
+import { chipIcon } from '../../core/format/icon-choices';
 import {
   CategoryResponse,
   Currency,
@@ -116,6 +118,7 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
 })
 export class RecurringPage {
   private readonly api = inject(FinscopeService);
+  private readonly styles = inject(CatalogueStylesService);
   private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
@@ -538,8 +541,13 @@ export class RecurringPage {
     }
   }
 
+  /**
+   * El icono de un fijo es el que se eligió para su categoría; si no se eligió ninguno, se
+   * deduce de la descripción, que dice más que la categoría («Netflix» frente a «Servicios»).
+   */
   protected icon(item: RecurringOccurrenceResponse): string {
-    return iconFor(item.description || item.category);
+    const chosen = this.styles.styleOf('category', item.category).icon;
+    return chosen ? chipIcon(item.category, chosen) : iconFor(item.description || item.category);
   }
 
   /**
