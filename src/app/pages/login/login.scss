@@ -1,4 +1,5 @@
 @use '../../../styles/tokens' as t;
+@use '../../../styles/wall';
 
 // Acceso a la aplicación.
 //
@@ -45,52 +46,11 @@
   gap: 2rem;
   padding: var(--fs-wall-pad);
   overflow: hidden;
-  color: #fff;
-  // El único sitio donde la marca ocupa una pared entera, y por eso el único donde entran
-  // los dos colores en un mismo degradado. Va por variables y no por tokens: aquí es donde
-  // más se nota la pareja que haya elegido el usuario.
-  //
-  // Cada extremo se mezcla antes con una tinta profunda. El motivo es que encima va texto
-  // blanco y los colores de marca **no son los mismos en los dos temas**: en oscuro, la rampa
-  // aclara el azul hasta un celeste sobre el que el blanco no se lee. Mezclando, el muro
-  // queda siempre hondo —la pared es fondo, no botón— y conserva el tono elegido, que es lo
-  // único que tiene que reconocerse. `in oklab` para la mezcla, que no ensucia el color, y
-  // `in oklch shorter hue` para el recorrido, que pasa por el círculo de tonos en vez de por
-  // el pardo del punto medio.
-  //
-  // Encima van dos focos: uno de luz arriba a la izquierda, donde arranca el color, y una
-  // poza de sombra abajo a la derecha. Es lo que separa una pared con volumen de una mancha
-  // de color plana, y no cuesta ni una imagen.
-  background:
-    radial-gradient(70% 50% at 10% 4%, rgba(255, 255, 255, 0.16), transparent 60%),
-    radial-gradient(62% 55% at 92% 106%, rgba(0, 0, 0, 0.45), transparent 70%),
-    linear-gradient(
-      150deg in oklch shorter hue,
-      color-mix(in oklab, var(--fs-brand) 54%, #040d18) 0%,
-      color-mix(in oklab, var(--fs-brand-strong) 46%, #040d18) 28%,
-      color-mix(in oklab, var(--fs-accent) 50%, #03120c) 64%,
-      var(--fs-brand-deep) 100%
-    );
-}
-
-// Grano. Un degradado grande y liso se ve en bandas —el monitor no tiene pasos suficientes
-// para tanto recorrido de color—, y el ruido las rompe. Es un SVG en línea y no una imagen:
-// pesa doscientos bytes, no viaja por la red y se pinta al tamaño que haga falta.
-.fs-auth__brand::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  opacity: 0.16;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-}
-
-// Todo lo de la pared va por encima del grano.
-.fs-auth__brand > * {
-  position: relative;
-  z-index: 1;
+  // Donde la marca ocupa una pared entera, y por eso donde entran los dos colores en un mismo
+  // degradado. El porqué de cada parada está en `_wall.scss`, que la comparte con el recorrido
+  // de bienvenida: es lo siguiente que se ve al crear la cuenta, y tiene que ser la misma.
+  @include wall.background;
+  @include wall.grain;
 }
 
 .fs-auth__pitch {

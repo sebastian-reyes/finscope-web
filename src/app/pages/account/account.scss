@@ -411,3 +411,23 @@
   flex: none;
   gap: 0.35rem;
 }
+
+// Primeros pasos: la explicación a un lado y el botón al otro, que baja debajo si no cabe.
+.fs-tour-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+
+  .fs-hint {
+    flex: 1 1 18rem;
+    margin: 0;
+    max-width: 34rem;
+  }
+
+  .fs-btn {
+    flex: none;
+  }
+}

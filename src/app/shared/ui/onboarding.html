@@ -1,0 +1,89 @@
+<div
+  #dialog
+  class="fs-tour"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="tourTitle"
+  aria-describedby="tourText"
+  [style.--fs-tour-dir]="direction()"
+  (pointerdown)="onPointerDown($event)"
+  (pointerup)="onPointerUp($event)"
+  (pointercancel)="onPointerCancel()"
+>
+  <!--
+    La pared con el dibujo de cada paso. Decorativa entera —las cifras son de ejemplo y lo que
+    enseñan está dicho en el texto de al lado—, así que no se anuncia.
+  -->
+  <div class="fs-tour__stage" aria-hidden="true">
+    <p class="fs-tour__logo"><fs-logo class="fs-tour__mark" />FinScope</p>
+
+    <fs-onboarding-art [slide]="slide().id" />
+  </div>
+
+  @if (!isLast()) {
+    <button type="button" class="fs-tour__skip" (click)="skip()">Omitir</button>
+  }
+
+  <div class="fs-tour__copy">
+    <!--
+      El texto se anuncia al cambiar de paso: el foco se queda en el botón que se ha pulsado,
+      y sin esto quien usa lector de pantalla no se enteraría de que hay algo nuevo que leer.
+    -->
+    <div class="fs-tour__read" aria-live="polite">
+      @for (current of [slide()]; track current.id) {
+        <div class="fs-tour__text">
+          <p class="fs-tour__eyebrow">
+            {{ isFirst() ? greeting() : current.eyebrow }}
+          </p>
+          <h2 class="fs-tour__title" id="tourTitle">{{ current.title }}</h2>
+          <p class="fs-tour__body" id="tourText">{{ current.text }}</p>
+        </div>
+      }
+    </div>
+
+    <div class="fs-tour__foot">
+      <div class="fs-tour__dots">
+        @for (step of slides; track step.id; let i = $index) {
+          <button
+            type="button"
+            class="fs-tour__dot"
+            [class.is-active]="i === index()"
+            [attr.aria-current]="i === index() ? 'step' : null"
+            [attr.aria-label]="'Paso ' + (i + 1) + ' de ' + slides.length + ': ' + step.eyebrow"
+            (click)="go(i)"
+          >
+            <span></span>
+          </button>
+        }
+      </div>
+
+      @if (isLast()) {
+        <div class="fs-tour__actions fs-tour__actions--final">
+          <button #primary type="button" class="fs-btn fs-btn--solid" (click)="record()">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>Registrar mi primer movimiento
+          </button>
+          <button type="button" class="fs-btn fs-btn--ghost" (click)="next()">
+            Explorar por mi cuenta
+          </button>
+        </div>
+      } @else {
+        <div class="fs-tour__actions">
+          @if (!isFirst()) {
+            <button type="button" class="fs-btn fs-btn--ghost" (click)="back()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i>Atrás
+            </button>
+          }
+          <button
+            #primary
+            type="button"
+            class="fs-btn fs-btn--solid fs-tour__next"
+            (click)="next()"
+          >
+            {{ isFirst() ? 'Empezar' : 'Siguiente' }}
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

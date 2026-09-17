@@ -1,0 +1,152 @@
+<!--
+  Un bloque por paso, y no uno solo con clases que cambian: al cambiar de paso el bloque
+  se crea de nuevo y su animación de entrada arranca sola.
+-->
+@switch (slide()) {
+  @case ('welcome') {
+    <div class="fs-art fs-art--welcome">
+      <div class="fs-glass fs-glass--main">
+        <p class="fs-glass__label">Balance de este mes</p>
+        <p class="fs-glass__big">S/ 1,240.50</p>
+        <div class="fs-glass__split">
+          <span class="fs-glass__stat">
+            <i class="bi bi-arrow-up-right"></i>Ingresos<b>S/ 3,180</b>
+          </span>
+          <span class="fs-glass__stat">
+            <i class="bi bi-arrow-down-left"></i>Egresos<b>S/ 1,939</b>
+          </span>
+        </div>
+        <svg class="fs-glass__spark" viewBox="0 0 120 32" preserveAspectRatio="none">
+          <polyline points="0,26 17,22 34,24 51,15 68,18 85,10 102,12 120,4" />
+        </svg>
+      </div>
+      <span class="fs-bubble fs-bubble--1"><i class="bi bi-pie-chart"></i></span>
+      <span class="fs-bubble fs-bubble--2"><i class="bi bi-bullseye"></i></span>
+      <span class="fs-bubble fs-bubble--3"><i class="bi bi-bell"></i></span>
+    </div>
+  }
+  @case ('record') {
+    <div class="fs-art fs-art--record">
+      <div class="fs-glass fs-glass--main">
+        <span class="fs-mock-seg"><span class="is-on">Egreso</span><span>Ingreso</span></span>
+        <p class="fs-glass__big fs-mock-amount">S/ 24.90<span class="fs-mock-caret"></span></p>
+        <span class="fs-mock-chips">
+          <span class="fs-mock-chip is-solid"><i class="bi bi-cup-hot"></i>Comida</span>
+          <span class="fs-mock-chip"><i class="bi bi-tag"></i>almuerzo</span>
+          <span class="fs-mock-chip"><i class="bi bi-currency-dollar"></i>USD</span>
+        </span>
+        <span class="fs-mock-save">Guardar</span>
+      </div>
+      <span class="fs-mock-fab"><i class="bi bi-plus-lg"></i></span>
+    </div>
+  }
+  @case ('insight') {
+    <div class="fs-art fs-art--insight">
+      <div class="fs-glass fs-glass--main fs-donut-card">
+        <span class="fs-donut">
+          <span class="fs-donut__hole">
+            <small>Egresos</small>
+            <b>S/ 1,939</b>
+          </span>
+        </span>
+        <ul class="fs-legend">
+          <li><i class="fs-legend__dot fs-legend__dot--1"></i>Comida<b>38 %</b></li>
+          <li><i class="fs-legend__dot fs-legend__dot--2"></i>Hogar<b>27 %</b></li>
+          <li><i class="fs-legend__dot fs-legend__dot--3"></i>Transporte<b>18 %</b></li>
+          <li><i class="fs-legend__dot fs-legend__dot--4"></i>Otros<b>17 %</b></li>
+        </ul>
+      </div>
+      <span class="fs-mock-chip fs-art__tag fs-art__tag--1"
+        ><i class="bi bi-airplane"></i>viaje</span
+      >
+      <span class="fs-mock-chip fs-art__tag fs-art__tag--2"
+        ><i class="bi bi-people"></i>familia</span
+      >
+    </div>
+  }
+  @case ('budgets') {
+    <div class="fs-art fs-art--budgets">
+      <div class="fs-glass fs-glass--main">
+        <p class="fs-glass__label">Presupuestos de este mes</p>
+        <div class="fs-mock-budget">
+          <span class="fs-mock-budget__row">
+            <span><i class="bi bi-cup-hot"></i>Comida</span><span>S/ 320 de 500</span>
+          </span>
+          <span class="fs-mock-bar"><span style="--fill: 64%"></span></span>
+        </div>
+        <div class="fs-mock-budget">
+          <span class="fs-mock-budget__row">
+            <span><i class="bi bi-house"></i>Hogar</span><span>S/ 380 de 900</span>
+          </span>
+          <span class="fs-mock-bar">
+            <span style="--fill: 42%"></span>
+            <span class="fs-mock-bar__committed" style="--from: 42%; --fill: 38%"></span>
+          </span>
+          <span class="fs-mock-budget__note">S/ 350 del alquiler ya comprometidos</span>
+        </div>
+        <div class="fs-mock-budget">
+          <span class="fs-mock-budget__row">
+            <span><i class="bi bi-controller"></i>Ocio</span><span>S/ 180 de 200</span>
+          </span>
+          <span class="fs-mock-bar is-warn"><span style="--fill: 90%"></span></span>
+        </div>
+      </div>
+    </div>
+  }
+  @case ('recurring') {
+    <div class="fs-art fs-art--recurring">
+      <div class="fs-glass fs-glass--main">
+        <p class="fs-glass__label">Pagos fijos de este mes</p>
+        <span class="fs-mock-fixed">
+          <span class="fs-mock-fixed__icon"><i class="bi bi-house"></i></span>
+          <span class="fs-mock-fixed__text">Alquiler<small>Pagado el 1</small></span>
+          <span class="fs-mock-fixed__done"><i class="bi bi-check-lg"></i></span>
+        </span>
+        <span class="fs-mock-fixed">
+          <span class="fs-mock-fixed__icon"><i class="bi bi-play-btn"></i></span>
+          <span class="fs-mock-fixed__text">Streaming<small>Vence mañana</small></span>
+          <span class="fs-mock-fixed__pay">Pagar</span>
+        </span>
+        <span class="fs-mock-fixed">
+          <span class="fs-mock-fixed__icon"><i class="bi bi-heart-pulse"></i></span>
+          <span class="fs-mock-fixed__text">Gimnasio<small>Vence el 20</small></span>
+          <span class="fs-mock-fixed__pay">Pagar</span>
+        </span>
+      </div>
+      <span class="fs-notice">
+        <fs-logo class="fs-notice__mark" />
+        <span class="fs-notice__text">
+          <b>Mañana vence Streaming</b>
+          <small>S/ 44.90 · Confírmalo cuando lo pagues</small>
+        </span>
+      </span>
+    </div>
+  }
+  @case ('yours') {
+    <div class="fs-art fs-art--yours">
+      <div class="fs-glass fs-glass--main">
+        <p class="fs-glass__label">Tus colores</p>
+        <span class="fs-mock-swatches">
+          @for (swatch of swatches; track swatch.hex; let first = $first) {
+            <span
+              class="fs-mock-swatch"
+              [class.is-on]="first"
+              [style.background-color]="swatch.hex"
+            ></span>
+          }
+        </span>
+        <span class="fs-mock-chips">
+          <span class="fs-mock-chip is-solid"><i class="bi bi-cup-hot"></i>Comida</span>
+          <span class="fs-mock-chip"><i class="bi bi-bus-front"></i>Transporte</span>
+          <span class="fs-mock-chip"><i class="bi bi-film"></i>Ocio</span>
+        </span>
+        <span class="fs-mock-theme">
+          <span><i class="bi bi-sun"></i>Claro</span>
+          <span class="is-on"><i class="bi bi-moon-stars"></i>Oscuro</span>
+        </span>
+      </div>
+      <span class="fs-bubble fs-bubble--1"><i class="bi bi-phone"></i></span>
+      <span class="fs-bubble fs-bubble--3"><i class="bi bi-palette"></i></span>
+    </div>
+  }
+}

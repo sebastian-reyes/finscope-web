@@ -1,0 +1,425 @@
+@use '../../../styles/tokens' as t;
+@use '../../../styles/wall';
+
+// El recorrido de bienvenida.
+//
+// Cuatro formas según el sitio, porque no hay una que valga para todos:
+// - Teléfono en vertical: a pantalla completa, la pared con el dibujo arriba y el texto
+//   abajo, con los botones al alcance del pulgar.
+// - Tableta o ventana estrecha: la misma columna, pero como tarjeta centrada; a pantalla
+//   completa en un monitor la pared sería un cartel.
+// - Escritorio: dibujo y texto lado a lado, que es como se lee algo ancho.
+// - Teléfono en horizontal: también lado a lado y a pantalla completa. En vertical no cabría:
+//   con 360 px de alto la columna deja al dibujo sin sitio.
+
+:host {
+  position: fixed;
+  inset: 0;
+  // Por encima de la hoja de registro y de las barras, y por debajo de los avisos, que tienen
+  // que poder leerse aunque el recorrido esté abierto.
+  z-index: 1060;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background-color: rgba(9, 13, 20, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+// Las clases de entrada y salida las pone la carcasa sobre la etiqueta del componente, y
+// Angular solo espera a la animación de ese mismo elemento —no a la de sus hijos—: por eso el
+// velo es el reloj y dura más que el diálogo de dentro, o la salida se cortaría a medias.
+:host(.is-opening) {
+  animation: fs-tour-veil 0.42s ease both;
+}
+
+:host(.is-closing) {
+  animation: fs-tour-veil 0.26s ease reverse both;
+}
+
+:host(.is-opening) .fs-tour {
+  animation: fs-tour-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:host(.is-closing) .fs-tour {
+  animation: fs-tour-rise 0.24s cubic-bezier(0.5, 0, 0.75, 0) reverse both;
+}
+
+.fs-tour {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink);
+  // El dedo que se desliza en horizontal es de este componente, que lo convierte en un paso;
+  // en vertical sigue siendo del navegador, por si el texto no cabe y hay que desplazarlo.
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+// --- La pared -----------------------------------------------------------------------------
+
+.fs-tour__stage {
+  // El dibujo se mide contra el hueco que le deja el texto, no contra la ventana: en un
+  // teléfono bajo encoge para no montarse encima del título.
+  container-type: size;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--fs-safe-top) + 3.5rem) 1.25rem 1.5rem;
+  overflow: hidden;
+  @include wall.background;
+  @include wall.grain;
+}
+
+// Con la pared delante en el selector: el grano pone a los hijos directos de la pared en
+// `position: relative`, y con el atributo de encapsulado esa regla pesa más que una clase sola.
+.fs-tour__stage .fs-tour__logo {
+  // Fuera del flujo, en su esquina, para que el dibujo quede centrado de verdad.
+  position: absolute;
+  top: calc(var(--fs-safe-top) + 1.05rem);
+  left: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--fs-text-md);
+  font-weight: 620;
+  letter-spacing: -0.015em;
+}
+
+// Sobre la pared el icono va en blanco, como en el acceso: de su color sería azul sobre azul.
+.fs-tour__mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  --fs-brand: #ffffff;
+  --fs-accent: #{rgba(#fff, 0.72)};
+}
+
+.fs-tour__skip {
+  position: absolute;
+  top: calc(var(--fs-safe-top) + 0.75rem);
+  right: 0.75rem;
+  z-index: 2;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: t.$fs-radius-pill;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: var(--fs-text-sm);
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
+// --- El texto -----------------------------------------------------------------------------
+
+.fs-tour__copy {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.fs-tour__read {
+  // Reserva el alto del paso más largo. Sin esto, la pared de arriba cambiaba de tamaño en
+  // cada paso según las líneas del texto, y el dibujo daba un salto al tiempo que entraba.
+  min-height: 11.5rem;
+}
+
+.fs-tour__text {
+  animation: fs-tour-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-tour__eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  // Como todos los rótulos de sección: el segundo color, que es marca y no información.
+  color: var(--fs-accent);
+}
+
+.fs-tour__title {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-text-lg);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.fs-tour__body {
+  margin: 0;
+  font-size: var(--fs-text-base);
+  line-height: 1.55;
+  color: var(--fs-ink-muted);
+  text-wrap: pretty;
+}
+
+.fs-tour__foot {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  // El alto del pie del último paso, que lleva dos botones apilados: reservado desde el
+  // primero, la pared no encoge de golpe al llegar al final.
+  min-height: calc(1.5rem + 1rem + 2 * 2.625rem + 0.5rem);
+}
+
+.fs-tour__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.125rem;
+}
+
+// El punto se ve pequeño pero se pulsa grande: el botón es el hueco entero y el punto va
+// dentro.
+.fs-tour__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+
+  span {
+    display: block;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: t.$fs-radius-pill;
+    background-color: var(--fs-line-strong);
+    transition:
+      width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.2s ease;
+  }
+
+  &.is-active span {
+    width: 1.35rem;
+    background-color: var(--fs-brand);
+  }
+
+  &:focus-visible {
+    outline: none;
+
+    span {
+      box-shadow: var(--fs-focus-tint);
+    }
+  }
+}
+
+.fs-tour__actions {
+  display: flex;
+  gap: 0.75rem;
+
+  .fs-btn {
+    flex: 1 1 0;
+  }
+}
+
+// El último paso lleva dos salidas y la buena va arriba, a lo ancho: «Registrar mi primer
+// movimiento» no cabe al lado de otro botón en un teléfono estrecho.
+.fs-tour__actions--final {
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .fs-btn {
+    flex: none;
+    width: 100%;
+  }
+}
+
+// --- Tableta: tarjeta en columna ----------------------------------------------------------
+
+@media (min-width: t.$fs-bp-sm) and (min-height: 600px) {
+  :host {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .fs-tour {
+    width: min(28rem, 100%);
+    height: min(46rem, 100%);
+    border-radius: t.$fs-radius-lg;
+    box-shadow: var(--fs-shadow-raised);
+  }
+
+  // La tarjeta ya no toca el borde de arriba del teléfono: la zona segura no le afecta.
+  .fs-tour__stage {
+    padding-top: 3.5rem;
+  }
+
+  .fs-tour__stage .fs-tour__logo {
+    top: 1.05rem;
+  }
+
+  .fs-tour__skip {
+    top: 0.75rem;
+  }
+
+  .fs-tour__copy {
+    padding: 1.5rem 1.75rem 1.75rem;
+  }
+
+  :host(.is-opening) .fs-tour {
+    animation-name: fs-tour-lift;
+  }
+
+  :host(.is-closing) .fs-tour {
+    animation-name: fs-tour-lift;
+  }
+}
+
+// --- Lado a lado: escritorio, y teléfono en horizontal ------------------------------------
+
+@mixin side-by-side {
+  .fs-tour {
+    flex-direction: row;
+  }
+
+  .fs-tour__stage {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .fs-tour__copy {
+    flex: 0 0 auto;
+    overflow-y: auto;
+  }
+
+  .fs-tour__read {
+    min-height: 0;
+  }
+
+  // Aquí el texto y la pared no se reparten el alto, así que no hay nada que reservar.
+  .fs-tour__foot {
+    min-height: 0;
+  }
+
+  // Con el texto a su derecha, los botones bajan al pie de la columna y no bailan de altura
+  // según lo que ocupe cada paso.
+  .fs-tour__foot {
+    margin-top: auto;
+  }
+
+  .fs-tour__dots {
+    justify-content: flex-start;
+    margin-left: -0.5rem;
+  }
+
+  // «Omitir» queda sobre el papel y no sobre la pared: pierde el cristal y pasa a ser un
+  // botón discreto, como los demás que no son la acción principal.
+  .fs-tour__skip {
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--fs-ink-muted);
+    backdrop-filter: none;
+
+    &:hover {
+      background-color: var(--fs-hover);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--fs-focus-tint);
+    }
+  }
+}
+
+@media (min-width: t.$fs-bp-md) and (min-height: 600px) {
+  @include side-by-side;
+
+  .fs-tour {
+    width: min(56rem, 100%);
+    height: min(34rem, 100%);
+  }
+
+  .fs-tour__copy {
+    width: 24rem;
+    padding: 3.75rem 2.25rem 2rem;
+  }
+
+  .fs-tour__title {
+    font-size: 1.625rem;
+  }
+}
+
+@media (max-height: 599px) and (orientation: landscape) {
+  @include side-by-side;
+
+  .fs-tour__stage {
+    padding: calc(var(--fs-safe-top) + 3rem) 1rem 1rem calc(1rem + env(safe-area-inset-left, 0px));
+  }
+
+  .fs-tour__copy {
+    width: min(22rem, 50%);
+    gap: 0.75rem;
+    padding: 3rem calc(1.25rem + env(safe-area-inset-right, 0px))
+      calc(0.9rem + env(safe-area-inset-bottom, 0px)) 1.25rem;
+  }
+
+  .fs-tour__skip {
+    right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  }
+
+  .fs-tour__title {
+    font-size: var(--fs-text-md);
+  }
+
+  .fs-tour__body {
+    font-size: var(--fs-text-sm);
+    line-height: 1.5;
+  }
+}
+
+// --- Movimiento ---------------------------------------------------------------------------
+
+@keyframes fs-tour-veil {
+  from {
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+}
+
+@keyframes fs-tour-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fs-tour-lift {
+  from {
+    transform: translateY(1.75rem) scale(0.98);
+    opacity: 0;
+  }
+}
+
+// Entra por el lado hacia el que se avanza: `--fs-tour-dir` vale 1 al ir hacia delante y -1
+// al volver, así que el mismo fotograma sirve para las dos direcciones.
+@keyframes fs-tour-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--fs-tour-dir, 1) * 1.5rem));
+  }
+}
