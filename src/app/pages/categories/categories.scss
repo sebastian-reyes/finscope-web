@@ -20,6 +20,16 @@
   margin-bottom: 0.75rem;
 }
 
+.fs-style {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+}
+
+.fs-style .fs-label:not(:first-child) {
+  margin-top: 0.85rem;
+}
+
 .fs-foot {
   margin: 0 0 1rem;
   text-align: center;

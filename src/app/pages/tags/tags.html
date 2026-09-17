@@ -46,6 +46,17 @@
         Crear
       </button>
     </form>
+    <div class="fs-style">
+      <span class="fs-label">Icono</span>
+      <fs-chip-icon-picker [name]="newName.value" [(value)]="newIcon" />
+      <span class="fs-label">Color</span>
+      <fs-chip-color-picker
+        kind="tag"
+        [name]="newName.value"
+        [icon]="newIcon()"
+        [(value)]="newColor"
+      />
+    </div>
     <p class="fs-note">
       No hace falta darlos de alta aquí: al registrar un movimiento, el tag que escribas se crea
       solo.
@@ -70,7 +81,7 @@
       @for (tag of tags(); track tag.id) {
         <li class="fs-row" [class.is-wide]="editingId() === tag.id || confirmingId() === tag.id">
           @if (editingId() === tag.id) {
-            <form class="fs-row__edit" [formGroup]="editForm" (ngSubmit)="saveEdit(tag.id)">
+            <form class="fs-row__edit" [formGroup]="editForm" (ngSubmit)="saveEdit(tag)">
               <input
                 class="fs-field fs-field--sm fs-row__field"
                 maxlength="70"
@@ -88,10 +99,24 @@
               <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
                 Cancelar
               </button>
-              <p class="fs-note fs-row__note">
-                El nombre cambiará en {{ tag.transactionCount }}
-                {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
-              </p>
+              <fs-chip-icon-picker
+                class="fs-row__style"
+                [name]="editName.value"
+                [(value)]="editIcon"
+              />
+              <fs-chip-color-picker
+                class="fs-row__style"
+                kind="tag"
+                [name]="editName.value"
+                [icon]="editIcon()"
+                [(value)]="editColor"
+              />
+              @if (tag.transactionCount) {
+                <p class="fs-note fs-row__note">
+                  El cambio se verá en {{ tag.transactionCount }}
+                  {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
+                </p>
+              }
             </form>
           } @else if (confirmingId() === tag.id) {
             <div class="fs-row__confirm">
@@ -130,7 +155,11 @@
               [routerLink]="['/transactions']"
               [queryParams]="{ tag: tag.name }"
             >
-              <fs-tag-chip [name]="tag.name" />
+              <fs-tag-chip
+                [name]="tag.name"
+                [color]="tag.color ?? null"
+                [icon]="tag.icon ?? null"
+              />
               @if (tag.transactionCount) {
                 <span class="fs-row__count fs-num">
                   {{ tag.transactionCount }}
@@ -145,7 +174,7 @@
                 class="fs-btn fs-btn--sm fs-btn--ghost"
                 type="button"
                 (click)="startEdit(tag)"
-                [attr.aria-label]="'Renombrar ' + tag.name"
+                [attr.aria-label]="'Editar ' + tag.name"
               >
                 <i class="bi bi-pencil" aria-hidden="true"></i>
               </button>

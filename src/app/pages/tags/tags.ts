@@ -7,6 +7,9 @@ import { ToastService } from '../../core/toast.service';
 import { TagResponse } from '../../core/models';
 import { describeError } from '../../core/api-error';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
+import { ChipColorPickerComponent } from '../../shared/ui/chip-color-picker';
+import { ChipIconPickerComponent } from '../../shared/ui/chip-icon-picker';
+import { styleChange } from '../../core/format/chip-color';
 
 /**
  * Catálogo de tags del usuario.
@@ -22,7 +25,13 @@ import { TagChipComponent } from '../../shared/ui/tag-chip';
  */
 @Component({
   selector: 'app-tags',
-  imports: [ReactiveFormsModule, RouterLink, TagChipComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    TagChipComponent,
+    ChipColorPickerComponent,
+    ChipIconPickerComponent,
+  ],
   templateUrl: './tags.html',
   styleUrl: './tags.scss',
 })
@@ -36,7 +45,7 @@ export class TagsPage {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly showCreate = signal(false);
-  /** Tag que se está renombrando, si hay alguno. */
+  /** Tag que se está editando, si hay alguno. */
   protected readonly editingId = signal<number | null>(null);
   /** Tag cuyo borrado espera confirmación en su propia fila. */
   protected readonly confirmingId = signal<number | null>(null);
@@ -60,6 +69,15 @@ export class TagsPage {
 
   protected readonly newName = this.newForm.controls.name;
   protected readonly editName = this.editForm.controls.name;
+
+  /**
+   * Color e icono elegidos en cada formulario, nulos para el automático. Van en señal y no en
+   * el grupo porque los selectores no son controles de formulario.
+   */
+  protected readonly newColor = signal<string | null>(null);
+  protected readonly editColor = signal<string | null>(null);
+  protected readonly newIcon = signal<string | null>(null);
+  protected readonly editIcon = signal<string | null>(null);
 
   protected readonly used = computed(() => this.tags().filter((tag) => tag.transactionCount > 0));
   protected readonly unused = computed(() =>
@@ -94,6 +112,8 @@ export class TagsPage {
   protected toggleCreate(): void {
     this.showCreate.set(!this.showCreate());
     this.newName.reset('');
+    this.newColor.set(null);
+    this.newIcon.set(null);
   }
 
   protected create(): void {
@@ -102,7 +122,8 @@ export class TagsPage {
       return;
     }
     this.saving.set(true);
-    this.api.createTag(this.newName.value.trim()).subscribe({
+    const style = { color: this.newColor() ?? undefined, icon: this.newIcon() ?? undefined };
+    this.api.createTag(this.newName.value.trim(), style).subscribe({
       next: (tag) => {
         this.toasts.success(`Tag «${tag.name}» creado`);
         this.newName.reset('');
@@ -118,6 +139,8 @@ export class TagsPage {
     this.editingId.set(tag.id);
     this.confirmingId.set(null);
     this.editName.setValue(tag.name);
+    this.editColor.set(tag.color ?? null);
+    this.editIcon.set(tag.icon ?? null);
   }
 
   protected cancelEdit(): void {
@@ -125,18 +148,24 @@ export class TagsPage {
   }
 
   /**
-   * Guarda el nombre nuevo.
+   * Guarda el nombre, el color y el icono.
    * La API rechaza con un conflicto el nombre que ya ocupa otro tag en vez de fusionarlos,
-   * y ese mensaje es el que acaba en el aviso.
+   * y ese mensaje es el que acaba en el aviso. Color e icono solo viajan si han cambiado, y
+   * volver al automático va como `auto`: sin campo, la API deja el que hubiera.
    */
-  protected saveEdit(id: number): void {
+  protected saveEdit(tag: TagResponse): void {
     if (this.editName.invalid || this.saving()) {
       return;
     }
     this.saving.set(true);
-    this.api.renameTag(id, this.editName.value.trim()).subscribe({
+    const id = tag.id;
+    const style = {
+      color: styleChange(tag.color, this.editColor()),
+      icon: styleChange(tag.icon, this.editIcon()),
+    };
+    this.api.updateTag(id, this.editName.value.trim(), style).subscribe({
       next: (tag) => {
-        this.toasts.success(`Renombrado a «${tag.name}»`);
+        this.toasts.success(`Tag «${tag.name}» guardado`);
         this.editingId.set(null);
         this.saving.set(false);
         this.reload();

@@ -10,7 +10,7 @@ tiene dueño antes de que acabe el mes.
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Señales](https://img.shields.io/badge/se%C3%B1ales-sin%20zone.js-DD0031)](https://angular.dev/guide/signals)
 [![PWA](https://img.shields.io/badge/PWA-instalable-5A0FC8?logo=pwa&logoColor=white)](#instalable-en-el-móvil)
-[![Vitest](https://img.shields.io/badge/Vitest-279%20verdes-6E9F18?logo=vitest&logoColor=white)](#pruebas-y-ci)
+[![Vitest](https://img.shields.io/badge/Vitest-327%20verdes-6E9F18?logo=vitest&logoColor=white)](#pruebas-y-ci)
 [![Dependencias](https://img.shields.io/badge/dependencias-2%20y%20contadas-success)](#qué-es-esto)
 
 [Arquitectura](#arquitectura) · [Pantallas](#las-pantallas) · [Arrancar](#arrancar) ·
@@ -51,7 +51,7 @@ Tres decisiones explican casi todo lo demás:
 | --- | --- |
 | **Dos dependencias, y contadas** | `chart.js` para los gráficos y `air-datepicker` para el calendario. Ni Bootstrap ni ninguna librería de componentes: el lenguaje visual es propio y vive en cuatro hojas de [`src/styles/`](src/styles). |
 | **Todo se carga bajo demanda** | Cada ruta es un `loadComponent`. La primera pantalla no paga por las que no se han abierto. |
-| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.7.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
+| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.8.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
 
 ---
 
@@ -95,10 +95,10 @@ Dos piezas que se despliegan por separado: esta aplicación y una
 | **Enlaces del correo** | Pedir el enlace, elegir contraseña nueva y confirmar un correo. Se llega desde el buzón y sin sesión, así que son tarjetas sueltas sin barra de navegación |
 | **Inicio** | El balance del mes, el reparto del gasto, la evolución de los últimos meses, y qué está pasando con presupuestos y fijos |
 | **Movimientos** | El historial agrupado por día, con filtros, orden, paginación y totales del periodo |
-| **Categorías** | El catálogo que reparte el gasto |
+| **Categorías** | El catálogo que reparte el gasto, con el color y el icono de cada una |
 | **Presupuestos** | Un importe por categoría y mes, con su barra |
 | **Fijos** | Las plantillas y su estado en el mes que se esté mirando |
-| **Tags** | El catálogo de contextos |
+| **Tags** | El catálogo de contextos, también con color e icono |
 | **Mi cuenta** | Nombre, correo con su estado y su cambio, tema y los dos colores |
 
 Las cuatro últimas comparten un marco con un conmutador arriba, porque son cuatro caras del
@@ -307,6 +307,54 @@ un amarillo elegido en modo claro se oscurece lo justo en vez de rechazarse.
 > donde estaba lo guardado antes de que las claves llevaran usuario, de modo que nadie pierde su
 > tema oscuro al actualizar.
 
+### Color e icono de cada categoría y cada tag
+
+Además de la paleta de la aplicación, **cada categoría y cada tag puede llevar su propio color y
+su propio icono**, elegidos al crearlos o al editarlos. A diferencia del tema, esto **sí viaja
+en la API**: es un dato del catálogo, no una preferencia del navegador, y tiene que verse igual
+en el móvil y en el ordenador.
+
+| | Opciones |
+| --- | --- |
+| **Color** | **Auto** (sale del nombre, como siempre) · **una de las ocho fichas** de la paleta, que siguen girando con el color principal y cambian con el tema · **un color libre**, con el selector del sistema o en hexadecimal |
+| **Icono** | **Automático** (por palabras del nombre) · uno de unos setenta iconos en nueve grupos, con **buscador en castellano**: «café», «viaje», «ahorro», «uber» |
+
+Debajo del selector va la ficha tal y como se verá, con el nombre que se está escribiendo.
+
+**Un color libre se pinta tal cual, y la letra se elige sola.** No es negro o blanco sin más: es
+el mismo tono del fondo llevado casi al extremo —un ocre muy oscuro sobre amarillo, un azul casi
+blanco sobre marino—, y solo si ninguno de los dos llega al contraste AA de WCAG se recurre a
+negro o blanco puros. Si el color se funde con el papel —blanco en claro, negro en oscuro— la
+ficha gana un filo fino para no desaparecer.
+
+<details>
+<summary><strong>Cómo llega el color a una ficha que solo tiene un nombre</strong></summary>
+
+<br>
+
+Una transacción trae sus tags como **nombres sueltos**, y los presupuestos, los fijos y el
+resumen traen la categoría por nombre. En vez de ensanchar esas respuestas,
+[`core/catalogue-styles.service.ts`](src/app/core/catalogue-styles.service.ts) guarda un mapa de
+nombre a color e icono, y las fichas preguntan ahí.
+
+El mapa se llena cada vez que cualquier pantalla pide el catálogo —así cambiar un color en Tags
+se ve al momento en el resto— y, para las pantallas que nunca lo piden, la primera ficha que se
+pinta con sesión abierta lo pide una vez. Si esa petición falla, las fichas se quedan con lo
+deducido del nombre. Se vacía al cambiar de sesión, igual que la paleta.
+
+La lista de iconos vive en
+[`core/format/icon-choices.ts`](src/app/core/format/icon-choices.ts) y **no es la librería
+entera**: Bootstrap Icons trae unos dos mil, casi todos flechas y variantes que no dicen nada de
+un gasto. Incluye todos los que la aplicación deduce por nombre, de modo que cualquier icono
+automático también puede fijarse, y una prueba comprueba cada nombre contra la fuente
+instalada. Un icono guardado que la lista no conozca se pinta con el deducido, en lugar de dejar
+un hueco en blanco.
+
+Al editar, color e icono **solo viajan si cambiaron**, y volver a automático se manda como
+`auto`: en un `PATCH`, un campo ausente significa «no lo toques».
+
+</details>
+
 <details>
 <summary><strong>La marca: por qué el icono se recoloreó</strong></summary>
 
@@ -343,12 +391,14 @@ src/
 │   │   ├── auth.*         sesión, guards y firma de peticiones
 │   │   ├── finscope.*     las llamadas a la API
 │   │   ├── theme/palette  tema, dos colores y variables CSS
+│   │   ├── catalogue-styles  color e icono de cada categoría y tag
 │   │   ├── data-cache     vaciar la copia sin conexión
 │   │   ├── app-update     vigilar despliegues
-│   │   └── format/        dinero, iconos, colores, paletas, periodos
-│   ├── shared/ui/         15 componentes propios: editor de movimientos,
-│   │                      fichas, selector de categoría, barra de presupuesto,
-│   │                      campos de fecha y tags, gráficos
+│   │   └── format/        dinero, iconos elegibles, colores, paletas, periodos
+│   ├── shared/ui/         17 componentes propios: editor de movimientos,
+│   │                      fichas y sus selectores de color e icono, selector
+│   │                      de categoría, barra de presupuesto, campos de fecha
+│   │                      y tags, gráficos
 │   ├── pages/             una carpeta por pantalla, todas diferidas
 │   ├── app.routes.ts      el mapa de rutas
 │   └── app.config.ts      router, HttpClient con interceptor, service worker
@@ -391,7 +441,7 @@ Otros comandos:
 ```bash
 npm run build      # compilación de producción, en dist/
 npm run watch      # compilación de desarrollo en modo vigilancia
-npm test           # las 279 pruebas
+npm test           # las 327 pruebas
 ```
 
 ---
@@ -399,7 +449,7 @@ npm test           # las 279 pruebas
 ## Pruebas y CI
 
 ```bash
-npx ng test --no-watch     # 35 archivos · 279 pruebas
+npx ng test --no-watch     # 41 archivos · 327 pruebas
 ```
 
 > [!CAUTION]

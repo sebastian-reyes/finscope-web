@@ -91,12 +91,23 @@ export interface CategoryResponse {
   isSystem: boolean;
   /** Cuántas transacciones clasifica. Dentro de una transacción viaja a cero. */
   transactionCount: number;
+  /**
+   * Color elegido para su ficha: `preset-0`…`preset-7` o `#rrggbb`. Ausente si nunca se eligió,
+   * y entonces se deduce del nombre. Ver `core/format/chip-color.ts`.
+   */
+  color?: string | null;
+  /** Icono elegido, sin `bi-`. Ausente si se deduce del nombre. Ver `core/format/icon-choices.ts`. */
+  icon?: string | null;
 }
 
 /** Cuerpo de alta y de actualización de una categoría. */
 export interface SaveCategoryRequest {
   name: string;
   appliesTo?: CategoryScope;
+  /** Color a fijar: `preset-N`, `#rrggbb` o `auto` para quitarlo. Ausente, no se toca. */
+  color?: string;
+  /** Icono a fijar, sin `bi-`, o `auto` para quitarlo. Ausente, no se toca. */
+  icon?: string;
 }
 
 /** Tag del catálogo del usuario. Se comparte entre todas sus transacciones. */
@@ -105,11 +116,22 @@ export interface TagResponse {
   name: string;
   /** Cuántas transacciones lo llevan. Un tag recién creado vale cero. */
   transactionCount: number;
+  /**
+   * Color elegido para su ficha: `preset-0`…`preset-7` o `#rrggbb`. Ausente si nunca se eligió,
+   * y entonces se deduce del nombre. Ver `core/format/chip-color.ts`.
+   */
+  color?: string | null;
+  /** Icono elegido, sin `bi-`. Ausente si se deduce del nombre. Ver `core/format/icon-choices.ts`. */
+  icon?: string | null;
 }
 
-/** Cuerpo de alta y de renombrado de un tag. */
+/** Cuerpo de alta y de modificación de un tag. */
 export interface SaveTagRequest {
   name: string;
+  /** Color a fijar: `preset-N`, `#rrggbb` o `auto` para quitarlo. Ausente, no se toca. */
+  color?: string;
+  /** Icono a fijar, sin `bi-`, o `auto` para quitarlo. Ausente, no se toca. */
+  icon?: string;
 }
 
 /**

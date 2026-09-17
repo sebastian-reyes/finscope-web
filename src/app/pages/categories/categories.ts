@@ -7,6 +7,9 @@ import { ToastService } from '../../core/toast.service';
 import { CategoryResponse, CategoryScope } from '../../core/models';
 import { describeError } from '../../core/api-error';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
+import { ChipColorPickerComponent } from '../../shared/ui/chip-color-picker';
+import { ChipIconPickerComponent } from '../../shared/ui/chip-icon-picker';
+import { styleChange } from '../../core/format/chip-color';
 
 /** Un ámbito con la forma en que se presenta en pantalla. */
 interface Scope {
@@ -66,7 +69,13 @@ interface CategoryGroup extends Scope {
  */
 @Component({
   selector: 'app-categories',
-  imports: [ReactiveFormsModule, RouterLink, CategoryChipComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    CategoryChipComponent,
+    ChipColorPickerComponent,
+    ChipIconPickerComponent,
+  ],
   templateUrl: './categories.html',
   styleUrl: './categories.scss',
 })
@@ -90,6 +99,12 @@ export class CategoriesPage {
   /** Ámbito elegido en el formulario de alta y en el de edición. */
   protected readonly newScope = signal<CategoryScope>('EXPENSE');
   protected readonly editScope = signal<CategoryScope>('EXPENSE');
+
+  /** Color e icono elegidos en cada formulario, nulos para el automático. */
+  protected readonly newColor = signal<string | null>(null);
+  protected readonly editColor = signal<string | null>(null);
+  protected readonly newIcon = signal<string | null>(null);
+  protected readonly editIcon = signal<string | null>(null);
 
   /**
    * Los dos formularios de la pantalla. Solo el nombre va aquí: el ámbito se elige tocando
@@ -165,6 +180,8 @@ export class CategoriesPage {
     this.showCreate.set(true);
     this.newName.reset('');
     this.newScope.set(scope);
+    this.newColor.set(null);
+    this.newIcon.set(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -172,6 +189,8 @@ export class CategoriesPage {
     this.showCreate.set(!this.showCreate());
     this.newName.reset('');
     this.newScope.set('EXPENSE');
+    this.newColor.set(null);
+    this.newIcon.set(null);
   }
 
   /**
@@ -190,7 +209,8 @@ export class CategoriesPage {
       return;
     }
     this.saving.set(true);
-    this.api.createCategory(this.newName.value.trim(), this.newScope()).subscribe({
+    const style = { color: this.newColor() ?? undefined, icon: this.newIcon() ?? undefined };
+    this.api.createCategory(this.newName.value.trim(), this.newScope(), style).subscribe({
       next: (category) => {
         this.toasts.success(`Categoría «${category.name}» creada`);
         this.newName.reset('');
@@ -207,6 +227,8 @@ export class CategoriesPage {
     this.confirmingId.set(null);
     this.editName.setValue(category.name);
     this.editScope.set(category.appliesTo);
+    this.editColor.set(category.color ?? null);
+    this.editIcon.set(category.icon ?? null);
   }
 
   protected cancelEdit(): void {
@@ -214,16 +236,22 @@ export class CategoriesPage {
   }
 
   /**
-   * Guarda el nombre y el ámbito nuevos.
+   * Guarda el nombre, el ámbito, el color y el icono.
    * La API rechaza con un conflicto el nombre que ya ocupa otra categoría en vez de
-   * fusionarlas, y ese mensaje es el que acaba en el aviso.
+   * fusionarlas, y ese mensaje es el que acaba en el aviso. Color e icono solo viajan si han
+   * cambiado, y volver al automático va como `auto`: sin campo, la API deja el que hubiera.
    */
-  protected saveEdit(id: number): void {
+  protected saveEdit(category: CategoryResponse): void {
     if (this.editName.invalid || this.saving()) {
       return;
     }
     this.saving.set(true);
-    this.api.updateCategory(id, this.editName.value.trim(), this.editScope()).subscribe({
+    const name = this.editName.value.trim();
+    const style = {
+      color: styleChange(category.color, this.editColor()),
+      icon: styleChange(category.icon, this.editIcon()),
+    };
+    this.api.updateCategory(category.id, name, this.editScope(), style).subscribe({
       next: (category) => {
         this.toasts.success(`Guardado como «${category.name}»`);
         this.editingId.set(null);

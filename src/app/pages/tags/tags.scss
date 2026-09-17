@@ -134,6 +134,23 @@
   margin: 0;
 }
 
+// Los selectores ocupan cada uno su renglón bajo el nombre: en la misma línea que los
+// botones no caben las diez muestras de color ni en un ordenador.
+.fs-row__style {
+  width: 100%;
+  padding-top: 0.25rem;
+}
+
+.fs-style {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+}
+
+.fs-style .fs-label:not(:first-child) {
+  margin-top: 0.85rem;
+}
+
 // La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;
 // aquí solo se ajusta lo que esta pantalla necesita distinto.
 .fs-section {

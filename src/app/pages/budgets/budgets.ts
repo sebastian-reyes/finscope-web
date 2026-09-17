@@ -13,7 +13,7 @@ import {
   currencySymbol,
   formatMoney,
 } from '../../core/format/money';
-import { iconFor } from '../../core/format/icons';
+import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { BudgetResponse, CategoryResponse, Currency } from '../../core/models';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
 import { DateFieldComponent } from '../../shared/ui/date-field';
@@ -53,6 +53,7 @@ interface BudgetTotals {
   styleUrl: './budgets.scss',
 })
 export class BudgetsPage {
+  private readonly styles = inject(CatalogueStylesService);
   private readonly api = inject(FinscopeService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
@@ -163,7 +164,7 @@ export class BudgetsPage {
     ...this.available().map((category) => ({
       value: String(category.id),
       label: category.name,
-      icon: iconFor(category.name),
+      icon: this.styles.iconOf('category', category.name),
       hint: category.transactionCount ? `${category.transactionCount} movs.` : undefined,
     })),
   ]);

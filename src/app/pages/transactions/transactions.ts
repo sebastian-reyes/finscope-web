@@ -25,7 +25,7 @@ import {
   TransactionTypeCode,
 } from '../../core/models';
 import { CURRENCIES, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
-import { iconFor } from '../../core/format/icons';
+import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { AmountComponent } from '../../shared/ui/amount';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { DateFieldComponent } from '../../shared/ui/date-field';
@@ -84,6 +84,7 @@ interface DayGroup {
 })
 export class TransactionsPage {
   private readonly api = inject(FinscopeService);
+  private readonly styles = inject(CatalogueStylesService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
 
@@ -183,7 +184,7 @@ export class TransactionsPage {
     ...this.categories().map((category) => ({
       value: String(category.id),
       label: category.name,
-      icon: iconFor(category.name),
+      icon: this.styles.iconOf('category', category.name),
       hint: String(category.transactionCount),
     })),
   ]);
@@ -193,7 +194,7 @@ export class TransactionsPage {
     ...this.catalogue().map((tag) => ({
       value: tag.name,
       label: tag.name,
-      icon: iconFor(tag.name),
+      icon: this.styles.iconOf('tag', tag.name),
       hint: String(tag.transactionCount),
     })),
   ]);
