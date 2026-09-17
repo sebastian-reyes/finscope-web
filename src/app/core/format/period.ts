@@ -60,6 +60,24 @@ export function currentMonth(): TransactionFilters {
 }
 
 /**
+ * Lee un mes escrito como `2026-09`, que es como llega en la dirección.
+ *
+ * Existe para los avisos al teléfono: el de un fijo que vence el 1 de octubre sale el 30 de
+ * setiembre, y al tocarlo la pantalla tiene que abrir octubre, no el mes en curso.
+ *
+ * @param value texto de la dirección, o nulo si no viene
+ * @return el mes, o nulo si no viene o no es un mes válido
+ */
+export function monthFromParam(value: string | null | undefined): TransactionFilters | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(value ?? '');
+  if (!match) {
+    return null;
+  }
+  const month = Number(match[2]);
+  return month >= 1 && month <= 12 ? { month, year: Number(match[1]) } : null;
+}
+
+/**
  * Nombre del mes tal y como se rotula en pantalla.
  *
  * @param month mes entre 1 y 12

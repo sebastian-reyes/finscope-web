@@ -8,6 +8,11 @@ import {
   ConfirmRecurringTransactionRequest,
   CopyBudgetsRequest,
   CreateTransactionRequest,
+  NotificationPreferencesResponse,
+  PushConfigResponse,
+  PushTestResponse,
+  SavePushSubscriptionRequest,
+  UpdateNotificationPreferencesRequest,
   Currency,
   RecurringOccurrenceResponse,
   RecurringTransactionResponse,
@@ -149,6 +154,43 @@ export class FinscopeService {
   /** Lo retira de todas sus transacciones, que por lo demás quedan intactas. */
   deleteTag(id: number): Observable<void> {
     return this.http.delete<void>(`${this.api}/tags/${id}`);
+  }
+
+  // Avisos al teléfono: dispositivos suscritos y qué avisos quiere el usuario
+
+  /** Si el servidor tiene claves para mandar avisos, y la pública para suscribirse. */
+  getPushConfig(): Observable<PushConfigResponse> {
+    return this.http.get<PushConfigResponse>(`${this.api}/push/config`);
+  }
+
+  /** Registra este dispositivo. Repetirlo con la misma dirección solo actualiza las claves. */
+  savePushSubscription(subscription: SavePushSubscriptionRequest): Observable<void> {
+    return this.http.post<void>(`${this.api}/push/subscriptions`, subscription);
+  }
+
+  /** Da de baja este dispositivo. No falla si ya no estaba. */
+  deletePushSubscription(endpoint: string): Observable<void> {
+    return this.http.delete<void>(`${this.api}/push/subscriptions`, {
+      params: new HttpParams().set('endpoint', endpoint),
+    });
+  }
+
+  getNotificationPreferences(): Observable<NotificationPreferencesResponse> {
+    return this.http.get<NotificationPreferencesResponse>(`${this.api}/push/preferences`);
+  }
+
+  updateNotificationPreferences(
+    changes: UpdateNotificationPreferencesRequest,
+  ): Observable<NotificationPreferencesResponse> {
+    return this.http.patch<NotificationPreferencesResponse>(
+      `${this.api}/push/preferences`,
+      changes,
+    );
+  }
+
+  /** Manda un aviso de prueba a todos los dispositivos del usuario. */
+  sendTestNotification(): Observable<PushTestResponse> {
+    return this.http.post<PushTestResponse>(`${this.api}/push/test`, {});
   }
 
   // Presupuestos: cuánto se piensa gastar en cada categoría durante un mes

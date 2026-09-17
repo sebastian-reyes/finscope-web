@@ -1,11 +1,12 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
-import { filter, map } from 'rxjs';
+import { filter, map, switchMap } from 'rxjs';
 import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
 import { ConnectionService } from './core/connection.service';
 import { PaletteService } from './core/palette.service';
+import { PushService } from './core/push.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
@@ -55,6 +56,7 @@ interface NavItem {
 })
 export class App {
   private readonly auth = inject(AuthService);
+  private readonly push = inject(PushService);
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
   private readonly toastService = inject(ToastService);
@@ -194,11 +196,19 @@ export class App {
     this.editor.openCreate();
   }
 
+  /**
+   * Cierra la sesión dando de baja antes este dispositivo de los avisos.
+   * Va primero porque la baja necesita la sesión que se está cerrando; si no, la siguiente
+   * persona que usara este navegador recibiría los avisos de la cuenta anterior.
+   */
   protected logout(): void {
     this.loggingOut.set(true);
-    this.auth.logout().subscribe(() => {
-      this.loggingOut.set(false);
-      this.router.navigate(['/login']);
-    });
+    this.push
+      .release()
+      .pipe(switchMap(() => this.auth.logout()))
+      .subscribe(() => {
+        this.loggingOut.set(false);
+        this.router.navigate(['/login']);
+      });
   }
 }

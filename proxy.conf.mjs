@@ -34,6 +34,7 @@ const paths = [
   '/auth',
   '/budgets',
   '/categories',
+  '/push',
   '/recurring-transactions',
   '/tags',
   '/shops',

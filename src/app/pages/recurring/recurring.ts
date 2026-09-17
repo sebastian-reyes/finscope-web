@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, forkJoin } from 'rxjs';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
@@ -6,7 +7,7 @@ import { RefreshService } from '../../core/refresh.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
-import { currentMonth, monthLabel, startOfDay } from '../../core/format/period';
+import { currentMonth, monthFromParam, monthLabel, startOfDay } from '../../core/format/period';
 import {
   BASE_CURRENCY,
   CURRENCIES,
@@ -145,7 +146,13 @@ export class RecurringPage {
   /** Fijo cuya eliminación espera confirmación en su propia fila. */
   protected readonly confirmingId = signal<number | null>(null);
 
-  protected readonly period = signal(currentMonth());
+  /**
+   * Mes que se está mirando. Abre en el que diga la dirección (`?mes=2026-10`), que es por
+   * donde llega un aviso del teléfono, y si no dice ninguno, en el mes en curso.
+   */
+  protected readonly period = signal(
+    monthFromParam(inject(ActivatedRoute).snapshot.queryParamMap.get('mes')) ?? currentMonth(),
+  );
 
   protected readonly rhythms: SelectOption[] = RHYTHMS.map(([value, label]) => ({ value, label }));
 

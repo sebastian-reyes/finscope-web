@@ -516,6 +516,40 @@ export interface SkipRecurringTransactionRequest {
   year: number;
 }
 
+// Avisos al teléfono (Web Push)
+
+/** Si el servidor puede mandar avisos y con qué clave se suscribe el navegador. */
+export interface PushConfigResponse {
+  enabled: boolean;
+  /** Clave pública VAPID en Base64 URL. Solo viene con `enabled`. */
+  publicKey?: string;
+}
+
+/** La suscripción tal y como la entrega el navegador en `PushSubscription.toJSON()`. */
+export interface SavePushSubscriptionRequest {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+/** Qué avisos quiere recibir el usuario. Son de la cuenta y valen para todos sus dispositivos. */
+export interface NotificationPreferencesResponse {
+  /** El día antes y el mismo día de cada movimiento fijo pendiente. */
+  recurringDue: boolean;
+  /** Al llegar al 90 % de un presupuesto del mes y al pasarse. */
+  budgetLimit: boolean;
+}
+
+/** Cambio de preferencias: lo que no venga no se toca. */
+export type UpdateNotificationPreferencesRequest = Partial<NotificationPreferencesResponse>;
+
+export interface PushTestResponse {
+  /** Dispositivos a los que el servicio de push aceptó el aviso. */
+  delivered: number;
+}
+
 /** Cuerpo de error estructurado que devuelve la API en cualquier fallo. */
 export interface ErrorResponse {
   timestamp: string;
