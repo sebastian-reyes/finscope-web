@@ -355,11 +355,13 @@ en el móvil y en el ordenador.
 
 Debajo del selector va la ficha tal y como se verá, con el nombre que se está escribiendo.
 
-**Un color libre se pinta tal cual, y la letra se elige sola.** No es negro o blanco sin más: es
-el mismo tono del fondo llevado casi al extremo —un ocre muy oscuro sobre amarillo, un azul casi
-blanco sobre marino—, y solo si ninguno de los dos llega al contraste AA de WCAG se recurre a
-negro o blanco puros. Si el color se funde con el papel —blanco en claro, negro en oscuro— la
-ficha gana un filo fino para no desaparecer.
+**Un color libre se pinta tal cual, y la letra es el mismo color más oscuro**, igual que en las
+fichas de la paleta: granate sobre rojo, verde botella sobre verde, marrón tostado sobre ámbar.
+Se toma la versión oscura más clara que todavía se lee, para que conserve el color y no parezca
+negra. En un azul o un violeta medios, donde cualquier versión legible más oscura ya sería negra,
+la letra va en el mismo tono pero claro (celeste, lavanda). **Solo el negro lleva letra
+blanca.** Si el color se funde con el papel —blanco en claro, negro en oscuro— la ficha gana un
+filo fino para no desaparecer.
 
 <details>
 <summary><strong>Cómo llega el color a una ficha que solo tiene un nombre</strong></summary>

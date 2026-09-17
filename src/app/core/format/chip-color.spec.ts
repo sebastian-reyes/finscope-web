@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contrast } from './color';
+import { contrast, toOklch } from './color';
 import {
   chipVariant,
   styleChange,
@@ -9,6 +9,12 @@ import {
   presetIndex,
 } from './chip-color';
 import { paletteVariant } from './icons';
+
+/** Distancia entre dos tonos en grados, dando la vuelta al círculo. */
+function hueDistance(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
 
 const LIGHT_PAPERS = ['#f3f5f9', '#fdfdfe'];
 const DARK_PAPERS = ['#11161d', '#1a2029'];
@@ -41,15 +47,46 @@ describe('chipVariant', () => {
 });
 
 describe('freeChipColors', () => {
-  it('pone letra clara sobre negro y oscura sobre blanco', () => {
-    const black = freeChipColors('#000000', LIGHT_PAPERS)!;
-    const white = freeChipColors('#ffffff', LIGHT_PAPERS)!;
-
-    expect(contrast(black.ink, '#ffffff')).toBeLessThan(1.2);
-    expect(contrast(white.ink, '#000000')).toBeLessThan(2);
+  it('solo el negro y los casi negros sin color llevan letra blanca', () => {
+    expect(freeChipColors('#000000', LIGHT_PAPERS)!.ink).toBe('#ffffff');
+    expect(freeChipColors('#1a1a1a', LIGHT_PAPERS)!.ink).toBe('#ffffff');
+    for (const hex of ['#ffffff', '#e8a33d', '#ff0000', '#2a5cb8', '#14532d']) {
+      expect(freeChipColors(hex, LIGHT_PAPERS)!.ink, hex).not.toBe('#ffffff');
+    }
   });
 
-  it('llega siempre a AA, también en los tonos medios', () => {
+  it('la letra es el mismo color más oscuro, como en las fichas de la paleta', () => {
+    for (const hex of [
+      '#e8a33d',
+      '#e11d5e',
+      '#ff0000',
+      '#0891b2',
+      '#1f9e6a',
+      '#ffff00',
+      '#f9a8d4',
+    ]) {
+      const { bg, ink } = freeChipColors(hex, LIGHT_PAPERS)!;
+      const background = toOklch(bg);
+      const letter = toOklch(ink);
+      expect(letter.l, hex).toBeLessThan(background.l);
+      expect(hueDistance(letter.h, background.h), hex).toBeLessThan(6);
+      // Oscura, pero no negra: se sigue viendo de qué color es.
+      expect(letter.l, hex).toBeGreaterThanOrEqual(0.29);
+      expect(letter.c, hex).toBeGreaterThan(0.05);
+    }
+  });
+
+  it('en un azul o un violeta medios, donde lo oscuro sería negro, usa el mismo tono claro', () => {
+    for (const hex of ['#2a5cb8', '#7c3aed', '#1e3a8a']) {
+      const { bg, ink } = freeChipColors(hex, LIGHT_PAPERS)!;
+      const background = toOklch(bg);
+      const letter = toOklch(ink);
+      expect(letter.l, hex).toBeGreaterThan(background.l);
+      expect(hueDistance(letter.h, background.h), hex).toBeLessThan(6);
+    }
+  });
+
+  it('siempre se lee', () => {
     for (const hex of [
       '#777777',
       '#e11d5e',
@@ -58,9 +95,12 @@ describe('freeChipColors', () => {
       '#7c3aed',
       '#1f9e6a',
       '#ffff00',
+      '#2a5cb8',
+      '#3f2a1d',
+      '#ffffff',
     ]) {
       const { bg, ink } = freeChipColors(hex, LIGHT_PAPERS)!;
-      expect(contrast(bg, ink), hex).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(bg, ink), hex).toBeGreaterThanOrEqual(3);
     }
   });
 
