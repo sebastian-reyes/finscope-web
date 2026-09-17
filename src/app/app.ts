@@ -5,12 +5,14 @@ import { filter, map, switchMap } from 'rxjs';
 import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
 import { ConnectionService } from './core/connection.service';
+import { OnboardingService } from './core/onboarding.service';
 import { PaletteService } from './core/palette.service';
 import { PushService } from './core/push.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
 import { LogoComponent } from './shared/ui/logo';
+import { OnboardingComponent, OnboardingExit } from './shared/ui/onboarding';
 import { PullRefreshComponent } from './shared/ui/pull-refresh';
 import { SegmentedDirective } from './shared/ui/segmented';
 import { SlideOutletDirective } from './shared/ui/slide-outlet';
@@ -50,6 +52,7 @@ interface NavItem {
     SlideOutletDirective,
     TransactionEditorComponent,
     PullRefreshComponent,
+    OnboardingComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
@@ -68,6 +71,9 @@ export class App {
 
   /** La hoja de registro, que se abre desde el botón central y se dibuja aquí. */
   protected readonly editor = inject(TransactionEditorService);
+
+  /** El recorrido de bienvenida, que se abre solo tras crear la cuenta. */
+  protected readonly onboarding = inject(OnboardingService);
 
   /** El vigilante de despliegues, que es quien enciende el aviso de versión nueva. */
   protected readonly update = inject(AppUpdateService);
@@ -194,6 +200,19 @@ export class App {
    */
   protected openEditor(): void {
     this.editor.openCreate();
+  }
+
+  /**
+   * Cierra el recorrido de bienvenida y, si se pidió desde su último paso, abre la hoja de
+   * registro: es la forma de que lo primero que se haga después de verlo sea apuntar algo.
+   *
+   * @param exit cómo se ha salido del recorrido
+   */
+  protected closeOnboarding(exit: OnboardingExit): void {
+    this.onboarding.finish();
+    if (exit === 'record') {
+      this.editor.openCreate();
+    }
   }
 
   /**

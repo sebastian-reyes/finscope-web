@@ -102,6 +102,19 @@
   </nav>
 }
 
+<!--
+  El recorrido va antes que la hoja en el documento y por encima de ella en capas: si su último
+  paso abre la hoja, el recorrido tiene que poder terminar de irse sin taparla de golpe.
+-->
+@if (onboarding.isOpen()) {
+  <fs-onboarding
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    [name]="user()?.displayName"
+    (closed)="closeOnboarding($event)"
+  />
+}
+
 @if (editor.isOpen()) {
   <fs-transaction-editor
     animate.enter="is-opening"

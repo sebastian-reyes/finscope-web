@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LoginPage } from './login';
+import { OnboardingService } from '../../core/onboarding.service';
 
 describe('LoginPage', () => {
   let fixture: ComponentFixture<LoginPage>;
@@ -48,6 +49,7 @@ describe('LoginPage', () => {
 
   afterEach(() => {
     http.verify();
+    localStorage.clear();
   });
 
   it('no llama a la API con un correo mal escrito', () => {
@@ -117,6 +119,27 @@ describe('LoginPage', () => {
     request.flush({});
   });
 
+  it('abre el recorrido de bienvenida al crear la cuenta', () => {
+    switchToRegister();
+    fill('#email', 'yo@correo.com');
+    fill('#password', 'una-contrasena');
+
+    submit();
+    http.expectOne('/auth/register').flush(session(21));
+
+    expect(TestBed.inject(OnboardingService).isOpen()).toBe(true);
+  });
+
+  it('no abre el recorrido al entrar en una cuenta que ya existía', () => {
+    fill('#email', 'yo@correo.com');
+    fill('#password', 'una-contrasena');
+
+    submit();
+    http.expectOne('/auth/login').flush(session(21));
+
+    expect(TestBed.inject(OnboardingService).isOpen()).toBe(false);
+  });
+
   it('deja ver la contraseña escrita', () => {
     expect(host().querySelector<HTMLInputElement>('#password')!.type).toBe('password');
 
@@ -149,3 +172,12 @@ describe('LoginPage', () => {
     expect(host().querySelector('.fs-auth__forgot')).toBeNull();
   });
 });
+
+/** La respuesta de la API al entrar o registrarse, con un usuario de verdad dentro. */
+function session(id: number) {
+  return {
+    accessToken: 'acceso',
+    refreshToken: 'refresco',
+    user: { id, email: 'yo@correo.com', emailVerified: false },
+  };
+}

@@ -12,6 +12,7 @@ import { AuthService } from '../../core/auth.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { PushService } from '../../core/push.service';
 import { NotificationPreferencesResponse } from '../../core/models';
+import { OnboardingService } from '../../core/onboarding.service';
 import { RefreshService } from '../../core/refresh.service';
 import { COLOR_PRESETS, PaletteService } from '../../core/palette.service';
 import { ThemePreference, ThemeService } from '../../core/theme.service';
@@ -68,6 +69,7 @@ export class AccountPage {
   private readonly toasts = inject(ToastService);
   private readonly api = inject(FinscopeService);
   private readonly push = inject(PushService);
+  private readonly onboarding = inject(OnboardingService);
 
   protected readonly user = this.auth.user;
 
@@ -239,6 +241,11 @@ export class AccountPage {
   protected resetColors(): void {
     this.palette.reset();
     this.toasts.success('Colores restablecidos');
+  }
+
+  /** Vuelve a abrir el recorrido de bienvenida, que solo se abre solo al crear la cuenta. */
+  protected replayOnboarding(): void {
+    this.onboarding.replay();
   }
 
   /** Pide el permiso del teléfono y suscribe este dispositivo. */

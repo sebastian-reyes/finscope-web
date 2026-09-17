@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { OnboardingService } from '../../core/onboarding.service';
 import { ThemeService } from '../../core/theme.service';
 import { describeError } from '../../core/api-error';
 import { LogoComponent } from '../../shared/ui/logo';
@@ -32,6 +33,7 @@ const MAX_PASSWORD = 72;
 })
 export class LoginPage {
   private readonly auth = inject(AuthService);
+  private readonly onboarding = inject(OnboardingService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly theme = inject(ThemeService);
@@ -100,7 +102,8 @@ export class LoginPage {
     this.expired.set(false);
 
     const { email, password, displayName } = this.form.getRawValue();
-    const request$ = this.isRegister()
+    const registering = this.isRegister();
+    const request$ = registering
       ? this.auth.register({
           email: email.trim(),
           password,
@@ -109,7 +112,14 @@ export class LoginPage {
       : this.auth.login({ email: email.trim(), password });
 
     request$.subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: () => {
+        // Solo el alta abre el recorrido: quien entra a una cuenta que ya existía ya sabe
+        // dónde está todo, y enseñárselo otra vez sería un estorbo.
+        if (registering) {
+          this.onboarding.markNewAccount();
+        }
+        this.router.navigate(['/dashboard']);
+      },
       error: (error) => {
         this.error.set(describeError(error));
         this.loading.set(false);

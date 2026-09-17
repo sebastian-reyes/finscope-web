@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { OnboardingService } from '../../core/onboarding.service';
 import { RefreshService } from '../../core/refresh.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 
@@ -145,6 +146,9 @@ const HIDDEN = 48;
 export class PullRefreshComponent {
   private readonly refresh = inject(RefreshService);
   private readonly editor = inject(TransactionEditorService);
+  // El recorrido tapa la pantalla y se pasa deslizando: un dedo que baja sobre él no puede
+  // acabar recargando la de detrás.
+  private readonly onboarding = inject(OnboardingService);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Lo que ha bajado el indicador, ya amortiguado. */
@@ -287,7 +291,12 @@ export class PullRefreshComponent {
 
   /** Si ahora mismo el gesto tiene algo que hacer. */
   private armed(): boolean {
-    return this.refresh.available() && !this.running() && !this.editor.isOpen();
+    return (
+      this.refresh.available() &&
+      !this.running() &&
+      !this.editor.isOpen() &&
+      !this.onboarding.isOpen()
+    );
   }
 
   /**

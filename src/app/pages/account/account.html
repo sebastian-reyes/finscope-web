@@ -477,3 +477,21 @@
     }
   </div>
 </section>
+
+<!--
+  El recorrido solo se abre solo al crear la cuenta. Quien lo omitió con prisa, o quiere
+  enseñarle la aplicación a otra persona, lo encuentra aquí.
+-->
+<section class="fs-panel fs-block" aria-labelledby="recorridoTitle">
+  <p class="fs-section" id="recorridoTitle">Primeros pasos</p>
+
+  <div class="fs-tour-row">
+    <p class="fs-hint">
+      Un repaso de un minuto por lo que puedes hacer en FinScope: registrar, entender en qué se va
+      tu dinero, presupuestos, pagos fijos y avisos.
+    </p>
+    <button type="button" class="fs-btn fs-btn--soft" (click)="replayOnboarding()">
+      <i class="bi bi-play-circle" aria-hidden="true"></i>Ver el recorrido
+    </button>
+  </div>
+</section>
