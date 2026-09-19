@@ -23,6 +23,7 @@ import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { BudgetResponse, CategoryResponse, Currency } from '../../core/models';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
 import { DateFieldComponent } from '../../shared/ui/date-field';
+import { SegmentedDirective } from '../../shared/ui/segmented';
 import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
 
 /** Totales del mes: el plan entero contra lo que de verdad se lleva gastado. */
@@ -54,7 +55,13 @@ interface BudgetTotals {
  */
 @Component({
   selector: 'app-budgets',
-  imports: [ReactiveFormsModule, BudgetBarComponent, DateFieldComponent, SelectFieldComponent],
+  imports: [
+    ReactiveFormsModule,
+    BudgetBarComponent,
+    DateFieldComponent,
+    SegmentedDirective,
+    SelectFieldComponent,
+  ],
   templateUrl: './budgets.html',
   styleUrl: './budgets.scss',
 })

@@ -729,6 +729,7 @@ fs-category-chip {
 // Es mas pequeno y mas callado que el segmentado de las pantallas: ahi la eleccion es el
 // asunto principal, y aqui acompana a un importe que es quien manda.
 .fs-money-switch {
+  position: relative;
   display: inline-flex;
   flex: none;
   gap: 0.15rem;
@@ -737,7 +738,46 @@ fs-category-chip {
   background-color: var(--fs-shade);
 }
 
+// La misma pastilla deslizante de los filtros, con las medidas que publica
+// `SegmentedDirective`. El fondo lo llevaba puesto el botón activo, así que al cambiar de
+// moneda se apagaba en uno y se encendía en el otro: dos cosas a la vez y ningún recorrido
+// entre ellas. Moviéndose se ve que soles y dólares son las dos caras de la misma elección.
+//
+// La vertical se coloca con la medida de la opción y **no** centrando en el carril con un
+// `top: 50%`. Centrar en el carril da lo mismo solo mientras el carril mida exactamente lo
+// que mide la opción más su relleno; aquí el carril es un elemento flexible alineado por la
+// línea base del monto, que es un dato de 2 rem al lado de un símbolo de 0,875, y en cuanto
+// algo —una tipografía sustituta mientras carga la de verdad, un zoom del navegador— hace
+// que el carril mida un pelo más que su contenido, la pastilla se queda centrada en él y la
+// opción no. Anclada a `--fs-seg-y`, la pastilla y la opción salen de la misma medida y no
+// pueden separarse. Es lo que ya hacía la barra inferior del móvil.
+.fs-money-switch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--fs-seg-w, 0);
+  height: var(--fs-seg-h, 0);
+  transform: translate(var(--fs-seg-x, 0), var(--fs-seg-y, 0));
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-surface);
+  box-shadow: var(--fs-shadow);
+  pointer-events: none;
+}
+
+// Como en los filtros: la transición se enciende tras la primera medida, para que al abrir la
+// pantalla la pastilla salga ya puesta y no entre deslizándose desde el borde.
+.fs-money-switch.is-ready::before {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .fs-money-switch__btn {
+  // Por encima de la pastilla, que va detrás de todos.
+  position: relative;
+  z-index: 1;
   min-width: 2.1rem;
   padding: 0.15rem 0.4rem;
   border: none;
@@ -746,18 +786,21 @@ fs-category-chip {
   font-size: var(--fs-text-sm);
   font-weight: 600;
   color: var(--fs-ink-muted);
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .fs-money-switch__btn.is-active {
-  background-color: var(--fs-surface);
   color: var(--fs-ink);
-  box-shadow: var(--fs-shadow);
 }
 
 .fs-money-switch__btn:disabled {
+  opacity: 0.6;
+}
+
+// Mientras se guarda, el control entero se apaga. La pastilla tiene que apagarse con él: antes
+// el fondo era del botón y se atenuaba de balde, y ahora que es un elemento aparte se quedaría
+// encendida sobre unos símbolos ya grises.
+.fs-money-switch:has(:disabled)::before {
   opacity: 0.6;
 }
 

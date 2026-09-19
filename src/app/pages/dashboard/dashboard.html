@@ -100,19 +100,26 @@
     }
   </section>
 
-  <section class="fs-panel fs-card fs-dash__quick" aria-labelledby="quickTitle">
-    <h2 class="fs-card__title" id="quickTitle">
-      <i class="bi bi-plus-circle" aria-hidden="true"></i>Registrar movimiento
-    </h2>
-    <fs-quick-transaction
-      [types]="types()"
-      [categories]="categories()"
-      [tags]="tags()"
-      [focusRequest]="focusRequest()"
-      (saved)="onSaved($event)"
-      (catalogueChanged)="onCatalogueChanged()"
-    />
-  </section>
+  <!--
+    Solo en pantalla ancha. En móvil registrar es el botón central de la barra inferior, y el
+    formulario ni se construye: lo releva la hoja, que hace lo mismo desde cualquier pantalla.
+  -->
+  @if (isWide()) {
+    <section class="fs-panel fs-card fs-dash__quick" aria-labelledby="quickTitle">
+      <h2 class="fs-card__title" id="quickTitle">
+        <i class="bi bi-plus-circle" aria-hidden="true"></i>Registrar movimiento
+      </h2>
+      <fs-quick-transaction
+        [types]="types()"
+        [categories]="categories()"
+        [tags]="tags()"
+        [focusRequest]="focusRequest()"
+        [settling]="loading()"
+        (saved)="onSaved($event)"
+        (catalogueChanged)="onCatalogueChanged()"
+      />
+    </section>
+  }
 
   <section class="fs-panel fs-card fs-dash__spending" aria-labelledby="spendingTitle">
     <div class="fs-card__head">

@@ -6,6 +6,9 @@
 //
 // La evolución baja a lo ancho a propósito: es una serie de días y se lee mucho mejor
 // estirada que encajonada en media pantalla.
+//
+// Nada de esto es cosa del móvil: ahí el formulario no se dibuja —lo releva el botón central
+// de la barra inferior— y la pantalla es una sola columna de tarjetas apiladas.
 .fs-dash {
   display: grid;
   gap: 1rem;

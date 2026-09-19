@@ -111,6 +111,29 @@ export function bucketLabel(periodStart: string, granularity: SummaryGranularity
 }
 
 /**
+ * Etiqueta corta del mismo tramo, para el eje de un gráfico estrecho.
+ *
+ * Bajo una línea no hace falta repetir el mes treinta veces: la tarjeta ya dice de qué mes
+ * se habla y el mes se repite en todos los tramos menos, como mucho, en el primero. Lo que
+ * cambia de un punto al siguiente —el día— es lo único que el eje tiene que decir, y
+ * decirlo en dos caracteres es lo que permite escribirlo en horizontal en vez de torcerlo
+ * cuarenta y cinco grados. El rótulo completo no se pierde: lo sigue enseñando el globo al
+ * tocar el punto.
+ *
+ * La semana y el mes se quedan como están: son pocos tramos y su nombre sí distingue uno
+ * de otro.
+ *
+ * @param periodStart instante inicial del tramo
+ * @param granularity tamaño del tramo
+ * @return la etiqueta corta del eje
+ */
+export function bucketTick(periodStart: string, granularity: SummaryGranularity): string {
+  return granularity === 'DAY'
+    ? String(new Date(periodStart).getDate())
+    : bucketLabel(periodStart, granularity);
+}
+
+/**
  * Agrupa una fecha en el encabezado bajo el que se lista: hoy, ayer o el día concreto.
  *
  * @param date fecha de la transacción

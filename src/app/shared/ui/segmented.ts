@@ -3,6 +3,10 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, input } from '
 /**
  * Pastilla que se desliza por un control segmentado.
  *
+ * La usan los tres controles de este tipo que hay: los filtros, el selector de moneda y la
+ * barra inferior del móvil. Son la misma idea —opciones pocas y excluyentes, todas a la
+ * vista— y por tanto el mismo gesto.
+ *
  * Sin esto, el fondo salta de una opción a otra y la vista pierde de dónde venía. La
  * pastilla se mueve, y ese movimiento es lo que cuenta que las opciones son las caras de la
  * misma decisión y no botones sueltos.
@@ -13,6 +17,8 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, input } from '
  * larga. Aquí se leen la posición y el ancho de la opción activa y se publican como
  * variables CSS; de animarlas se encarga la hoja de estilos.
  *
+ * Se mide con decimales, que en un control pequeño no es una sutileza: ver `measure`.
+ *
  * La clase activa la pone quien use el control —un `class.is-active`, un `routerLinkActive`
  * o lo que sea—, así que la posición se sigue con un observador del DOM en vez de con una
  * entrada: la directiva no necesita saber quién manda.
@@ -22,7 +28,7 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, input } from '
  * donde solo tiñe el icono y deja el rótulo fuera.
  */
 @Directive({
-  selector: '.fs-seg, [fsSegmented]',
+  selector: '.fs-seg, .fs-money-switch, [fsSegmented]',
 })
 export class SegmentedDirective implements AfterViewInit, OnDestroy {
   /**
@@ -68,20 +74,16 @@ export class SegmentedDirective implements AfterViewInit, OnDestroy {
     const active = track.querySelector<HTMLElement>('.is-active');
     const inner = this.fsSegmented();
     const target = (inner && active?.querySelector<HTMLElement>(inner)) || active;
-    if (!target) {
+    const box = target && this.measure(target, track);
+    if (!box) {
       track.style.setProperty('--fs-seg-w', '0px');
       return;
     }
 
-    // Las medidas se toman desde el borde interior del control, que es exactamente el origen
-    // del `left: 0` de la pastilla: descontarle además el grosor del borde la dejaba corrida
-    // un píxel. La vertical se publica igual, para quien no pueda centrarla desde la hoja de
-    // estilos porque la pastilla no ocupa todo el alto del control.
-    const { x, y } = this.offsetWithin(target, track);
-    track.style.setProperty('--fs-seg-x', `${x}px`);
-    track.style.setProperty('--fs-seg-y', `${y}px`);
-    track.style.setProperty('--fs-seg-w', `${target.offsetWidth}px`);
-    track.style.setProperty('--fs-seg-h', `${target.offsetHeight}px`);
+    track.style.setProperty('--fs-seg-x', px(box.x));
+    track.style.setProperty('--fs-seg-y', px(box.y));
+    track.style.setProperty('--fs-seg-w', px(box.width));
+    track.style.setProperty('--fs-seg-h', px(box.height));
 
     // La primera colocación no se anima: la pastilla debe salir ya puesta bajo la opción
     // activa, no deslizarse desde la esquina cada vez que se abre la pantalla.
@@ -91,27 +93,72 @@ export class SegmentedDirective implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Distancia de un elemento al control, subiendo por la cadena de padres posicionados.
+   * Dónde cae la opción activa dentro del control, y cuánto mide.
    *
-   * `offsetLeft` se mide contra el primer ancestro posicionado, que no tiene por qué ser el
-   * control: en la barra inferior cada pestaña está posicionada para quedar por encima de la
-   * pastilla, así que el icono se medía contra su pestaña y daba lo mismo en todas —la
-   * pastilla se quedaba clavada en la primera y a la altura equivocada—. Sumando el camino
-   * entero da igual cuántos padres posicionados haya de por medio.
+   * **Con decimales, y esa es la razón de que esto no use `offsetLeft` ni `offsetWidth`.**
+   * Esas cuatro propiedades devuelven enteros redondeados: en el selector de moneda la opción
+   * mide 33,594 px y empieza en 2,391, pero salían 34 y 2, así que la pastilla se dibujaba
+   * 0,4 px a la izquierda y 0,4 px más ancha de lo que debía. En los filtros no se notaba
+   * —son pastillas grandes—, pero en el selector de moneda el relleno del carril es de 2,4 px
+   * y perder 0,4 en un lado se ve: la pastilla queda pegada al filo izquierdo y con papel
+   * sobrante en el derecho.
+   *
+   * Las medidas se toman desde el borde interior del control, que es el origen del `left: 0`
+   * de la pastilla; de ahí que al restar los rectángulos haya que descontar además el grosor
+   * del borde, que los separa. La vertical se publica igual, para quien no pueda centrarla
+   * desde la hoja de estilos porque la pastilla no ocupa todo el alto del control.
    *
    * @param target elemento que se está midiendo
    * @param track  control desde el que se mide
-   * @return la distancia horizontal y vertical
+   * @return su hueco en las unidades de la hoja de estilos, o nulo si no hay nada que medir
    */
-  private offsetWithin(target: HTMLElement, track: HTMLElement): { x: number; y: number } {
-    let x = 0;
-    let y = 0;
-    let node: HTMLElement | null = target;
-    while (node && node !== track) {
-      x += node.offsetLeft;
-      y += node.offsetTop;
-      node = node.offsetParent as HTMLElement | null;
+  private measure(
+    target: HTMLElement,
+    track: HTMLElement,
+  ): { x: number; y: number; width: number; height: number } | null {
+    const trackStyles = getComputedStyle(track);
+    const trackRect = track.getBoundingClientRect();
+    // `getComputedStyle` da el ancho usado con decimales y **sin** que le afecte ninguna
+    // escala heredada; el rectángulo sí la lleva. Su cociente es, por tanto, la escala exacta
+    // a la que se está dibujando el control.
+    const layoutWidth = parseFloat(trackStyles.width);
+    if (!layoutWidth || !trackRect.width) {
+      return null;
     }
-    return { x, y };
+
+    // La hoja de registro entra desde `scale(0.98)`, y la directiva mide por primera vez
+    // mientras esa animación corre. Sin deshacer la escala, lo medido valdría un 2 % menos
+    // que las unidades en las que se escribe la pastilla, y ahí se quedaría: encoger la hoja
+    // no cambia su tamaño de maquetación, así que el observador de tamaño no vuelve a avisar.
+    const scale = trackRect.width / layoutWidth;
+    const targetStyles = getComputedStyle(target);
+    const targetRect = target.getBoundingClientRect();
+    const width = parseFloat(targetStyles.width);
+    const height = parseFloat(targetStyles.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      return null;
+    }
+
+    return {
+      x: (targetRect.left - trackRect.left) / scale - parseFloat(trackStyles.borderLeftWidth),
+      y: (targetRect.top - trackRect.top) / scale - parseFloat(trackStyles.borderTopWidth),
+      width,
+      height,
+    };
   }
+}
+
+/**
+ * Escribe una medida en píxeles con tres decimales.
+ *
+ * Los decimales importan —redondear a entero es justo el fallo que esto vino a arreglar—,
+ * pero no todos: la milésima de píxel está mucho más allá de lo que dibuja ninguna pantalla,
+ * y sin cortar, deshacer la escala de la hoja dejaba cosas como `4.000000000000001px`
+ * escritas en el atributo `style`.
+ *
+ * @param value medida en píxeles
+ * @return la medida lista para una propiedad personalizada
+ */
+function px(value: number): string {
+  return `${Math.round(value * 1000) / 1000}px`;
 }

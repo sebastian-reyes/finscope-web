@@ -39,6 +39,7 @@ import {
 } from '../../core/models';
 import { CategoryPickerComponent } from './category-picker';
 import { DateFieldComponent } from './date-field';
+import { SegmentedDirective } from './segmented';
 import { TagsFieldComponent } from './tags-field';
 
 /**
@@ -55,7 +56,13 @@ import { TagsFieldComponent } from './tags-field';
  */
 @Component({
   selector: 'fs-transaction-editor',
-  imports: [ReactiveFormsModule, CategoryPickerComponent, DateFieldComponent, TagsFieldComponent],
+  imports: [
+    ReactiveFormsModule,
+    CategoryPickerComponent,
+    DateFieldComponent,
+    SegmentedDirective,
+    TagsFieldComponent,
+  ],
   templateUrl: './transaction-editor.html',
   styleUrl: './transaction-editor.scss',
   host: {

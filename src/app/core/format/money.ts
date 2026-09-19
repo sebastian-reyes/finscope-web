@@ -47,6 +47,9 @@ const decimalFormat = new Intl.NumberFormat(CURRENCY_LOCALE, {
   maximumFractionDigits: 2,
 });
 
+/** El mismo número sin céntimos, para los rótulos donde solo se lee la magnitud. */
+const roundFormat = new Intl.NumberFormat(CURRENCY_LOCALE, { maximumFractionDigits: 0 });
+
 /**
  * Devuelve el símbolo de una moneda.
  *
@@ -83,6 +86,25 @@ export function formatAmount(amount: number): string {
  */
 export function formatMoney(amount: number, currency: Currency = BASE_CURRENCY): string {
   return `${currencySymbol(currency)} ${formatAmount(amount)}`;
+}
+
+/**
+ * Da formato a un importe para el eje de un gráfico: con símbolo y sin céntimos.
+ *
+ * Los céntimos sobran en un eje. Nadie lee «S/ 3,000.00» para saber cuánto vale esa raya:
+ * lee el orden de magnitud, y el importe exacto lo da el globo al tocar el punto. A cambio,
+ * en un teléfono el rótulo pasa de unos 68 píxeles a unos 48, y esos veinte son ancho que
+ * gana la línea, que es justo lo que allí falta.
+ *
+ * El símbolo sí se queda, y no por adorno: es lo único del gráfico que dice de qué moneda
+ * habla la línea, y un importe sin moneda no significa nada.
+ *
+ * @param amount   importe a formatear
+ * @param currency moneda del importe
+ * @return el importe redondeado, precedido por el símbolo de su moneda
+ */
+export function formatAxisMoney(amount: number, currency: Currency = BASE_CURRENCY): string {
+  return `${currencySymbol(currency)} ${roundFormat.format(amount)}`;
 }
 
 /**

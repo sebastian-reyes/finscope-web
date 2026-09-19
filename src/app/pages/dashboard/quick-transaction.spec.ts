@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuickTransactionComponent } from './quick-transaction';
 import { CategoryResponse, TagResponse, TransactionTypeResponse } from '../../core/models';
 
@@ -59,10 +59,12 @@ describe('QuickTransactionComponent', () => {
   }
 
   /**
-   * Dice cuánto alto sobra y avisa al observador, como haría el navegador al estirarse la
-   * tarjeta. El bloque de detalles, cuando está, mide 90 px.
+   * Dice cuánto alto sobra, sin dar tiempo a que la medida se asiente.
+   * Es el fotograma suelto de una ráfaga: el formulario no debería hacerle caso todavía.
+   *
+   * @param height alto que sobra en ese instante
    */
-  function slack(height: number): void {
+  function measure(height: number): void {
     const gap = host().querySelector<HTMLElement>('.fs-quick__slack')!;
     Object.defineProperty(gap, 'offsetHeight', { value: height, configurable: true });
     const inner = host().querySelector<HTMLElement>('.fs-quick__extra-inner');
@@ -73,7 +75,20 @@ describe('QuickTransactionComponent', () => {
     fixture.detectChanges();
   }
 
+  /**
+   * Dice cuánto alto sobra y deja que la medida se quede quieta, como cuando la pantalla ya
+   * ha terminado de recolocarse. El bloque de detalles, cuando está, mide 90 px.
+   *
+   * @param height alto que sobra al terminar
+   */
+  function slack(height: number): void {
+    measure(height);
+    vi.advanceTimersByTime(300);
+    fixture.detectChanges();
+  }
+
   beforeEach(async () => {
+    vi.useFakeTimers();
     resize = null;
     (globalThis as { ResizeObserver?: unknown }).ResizeObserver = FakeResizeObserver;
 
@@ -98,6 +113,7 @@ describe('QuickTransactionComponent', () => {
 
   afterEach(() => {
     http.verify();
+    vi.useRealTimers();
   });
 
   it('registra el movimiento con todos los tags escritos, no solo con el primero', () => {
@@ -182,5 +198,39 @@ describe('QuickTransactionComponent', () => {
 
     expect(details()).not.toBeNull();
     expect(host().textContent).toContain('Menos detalles');
+  });
+
+  it('no abre la fecha por un alto de paso, el que se ve mientras la pantalla se recoloca', () => {
+    // Sin sitio, plegada. Es el estado del que parte el usuario.
+    slack(40);
+    expect(details()).toBeNull();
+
+    // Al cambiar de moneda el reparto, la columna de al lado se rehace y el navegador pasa
+    // por altos que no son ni el de antes ni el de después. Este es uno de ellos.
+    measure(200);
+    measure(40);
+    vi.advanceTimersByTime(300);
+    fixture.detectChanges();
+
+    // Del fotograma de paso no se entera nadie: la fecha ni asomó.
+    expect(details()).toBeNull();
+  });
+
+  it('no decide nada mientras la pantalla recarga: al lado hay un esqueleto, no datos', () => {
+    slack(40);
+    expect(details()).toBeNull();
+
+    fixture.componentRef.setInput('settling', true);
+    fixture.detectChanges();
+
+    // El hueco del esqueleto daría de sobra para la fecha, pero no es el alto de verdad.
+    slack(200);
+    expect(details()).toBeNull();
+
+    // Y en cuanto llegan los datos, se decide con lo que miden ellos.
+    fixture.componentRef.setInput('settling', false);
+    fixture.detectChanges();
+    slack(200);
+    expect(details()).not.toBeNull();
   });
 });

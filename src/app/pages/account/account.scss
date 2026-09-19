@@ -1,6 +1,14 @@
 // La cabecera, el rótulo de sección y el panel salen de la capa base; aquí vive solo lo
 // propio de esta pantalla.
 
+// En móvil las dos envolturas no existen: se disuelven y sus secciones vuelven a ser hijas
+// de la página, apiladas en el orden del documento. Todo el reparto en columnas es cosa del
+// escritorio, que es donde sobraba el ancho.
+.fs-account,
+.fs-account__col {
+  display: contents;
+}
+
 .fs-block {
   padding: 1.25rem;
   margin-bottom: 1rem;
@@ -14,6 +22,35 @@
   // El formulario no se estira a lo ancho de un monitor: un nombre y un correo se leen
   // mejor en una columna estrecha que repartidos por media pantalla.
   max-width: 28rem;
+}
+
+// Dos columnas desde el mismo ancho en el que la navegación sube a la barra de arriba.
+//
+// Son dos pilas independientes y no las casillas de una rejilla: una rejilla alinea las filas
+// entre columnas, y aquí las tarjetas no miden lo mismo —«Tus datos» es larga y «Aspecto»
+// son tres botones—, así que la de al lado se habría quedado con un claro debajo esperando a
+// que la otra terminase.
+@media (min-width: 992px) {
+  .fs-account {
+    display: grid;
+    // `minmax(0, 1fr)` y no `1fr`: con el mínimo automático, un correo largo que no parte
+    // ensancharía su columna y con ella la página.
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .fs-account__col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  // La columna ya es la medida de lectura —poco más de treinta caracteres de ancho—, así que
+  // el tope propio del formulario sobra: con él puesto, el campo seguía acabando a media
+  // tarjeta y quedaba el mismo papel en blanco que esto viene a quitar, solo que más estrecho.
+  .fs-form {
+    max-width: none;
+  }
 }
 
 .fs-label {
@@ -391,24 +428,11 @@
   pointer-events: none;
 }
 
-.fs-slot--footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--fs-line);
-}
-
-.fs-slot--footer .fs-hint {
-  margin-top: 0;
-  max-width: 34rem;
-}
-
+// Restablecer cierra la sección por su cuenta, sin línea que lo separe de las muestras: solo
+// aparece cuando hay algo que deshacer, así que ya se lee como lo último y no necesita que
+// nada lo anuncie.
 .fs-reset {
-  flex: none;
+  margin-top: 1.5rem;
   gap: 0.35rem;
 }
 

@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ActivatedRoute, Params, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from './dashboard';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import {
@@ -108,6 +109,12 @@ const RECURRING: RecurringOccurrenceResponse[] = [
 /** Qué parte de la pantalla se contesta con un error en lugar de con sus datos. */
 type Broken = 'summary' | 'budgets' | 'recurring';
 
+/**
+ * Con qué parámetros se entra a la pantalla. Se lee al construirla, así que quien lo cambie
+ * tiene que hacerlo antes: de ahí que viva fuera y se ponga en un `beforeAll`.
+ */
+let query: Params = {};
+
 describe('DashboardPage', () => {
   let fixture: ComponentFixture<DashboardPage>;
   let http: HttpTestingController;
@@ -190,6 +197,11 @@ describe('DashboardPage', () => {
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
 
+    // La ruta de verdad, con los parámetros con los que se ha entrado: `queryParamMap` se
+    // deriva de `queryParams` la primera vez que alguien lo mira, y eso pasa dentro del
+    // constructor de la pantalla.
+    TestBed.inject(ActivatedRoute).queryParams = of(query);
+
     fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
   });
@@ -197,6 +209,38 @@ describe('DashboardPage', () => {
   afterEach(() => {
     http.verify();
     vi.useRealTimers();
+  });
+
+  it('no dibuja el formulario de registro en estrecho: ahí registrar es el botón central', () => {
+    settle();
+
+    // `matchMedia` de jsdom contesta que no a todo, que es justo la pantalla estrecha: la
+    // tarjeta no está, y con ella tampoco el formulario, que ni llega a construirse.
+    expect(host().querySelector('.fs-dash__quick')).toBeNull();
+    expect(host().querySelector('fs-quick-transaction')).toBeNull();
+    // Y lo que sí se sigue viendo es todo lo demás, que es a lo que se viene a esta pantalla.
+    expect(card('balance')).toContain('1,800.00');
+  });
+
+  describe('entrando con «registrar» en la dirección', () => {
+    beforeAll(() => {
+      query = { registrar: '1' };
+    });
+
+    afterAll(() => {
+      query = {};
+    });
+
+    it('abre la hoja, porque donde no hay formulario no hay importe que enfocar', () => {
+      // Dos rondas de catálogos: los pide la pantalla al construirse y los vuelve a pedir la
+      // hoja al abrirse, porque los primeros todavía no habían llegado.
+      http.match('/transaction-types').forEach((request) => request.flush(TYPES));
+      http.match('/categories').forEach((request) => request.flush(CATEGORIES));
+      http.match('/tags').forEach((request) => request.flush(TAGS));
+      settlePeriod();
+
+      expect(TestBed.inject(TransactionEditorService).isOpen()).toBe(true);
+    });
   });
 
   it('enseña el balance del mes en curso, que es el que abre la pantalla', () => {

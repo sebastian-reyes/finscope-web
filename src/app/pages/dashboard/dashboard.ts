@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
@@ -8,6 +8,7 @@ import { FinscopeService } from '../../core/finscope.service';
 import { RefreshService } from '../../core/refresh.service';
 import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
+import { mediaQuery } from '../../core/viewport';
 import { describeError } from '../../core/api-error';
 import { BASE_CURRENCY, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
@@ -36,6 +37,16 @@ const RECENT_SIZE = 6;
 
 /** Cuánto se queda resaltado el movimiento que se acaba de registrar. */
 const HIGHLIGHT_MS = 1800;
+
+/**
+ * Desde dónde hay sitio para el formulario de registro dentro de la pantalla.
+ *
+ * Es el mismo ancho en el que la barra inferior deja su puesto a la de arriba, y por tanto
+ * el ancho a partir del cual desaparece el botón central: por debajo de él, registrar se
+ * hace en la hoja que abre ese botón, que está hecha para el pulgar; por encima no hay
+ * botón, así que el formulario tiene que estar en la pantalla.
+ */
+const WIDE = '(min-width: 992px)';
 
 /**
  * Pantalla de inicio.
@@ -165,6 +176,16 @@ export class DashboardPage {
   );
 
   /**
+   * Si hay sitio en la pantalla para el formulario de registro.
+   *
+   * Por debajo de este ancho, registrar se hace en la hoja que abre el botón central de la
+   * barra inferior: es el mismo formulario, hecho para el pulgar y sin gastar media pantalla
+   * de desplazamiento cada vez que se entra a mirar el balance. Por encima no hay botón
+   * central, así que el formulario vive aquí.
+   */
+  protected readonly isWide = mediaQuery(WIDE);
+
+  /**
    * Totales de cada moneda del periodo, que es lo que enseña el balance.
    * Vienen de `byCurrency`, el único desglose al que no afecta la moneda elegida: de él sale
    * también qué monedas ofrecer.
@@ -253,6 +274,16 @@ export class DashboardPage {
         this.highlight(change.id);
       }
       this.load();
+    });
+
+    // «Registra un movimiento» de un catálogo vacío llega aquí con `?registrar=1` para que
+    // el foco caiga en el importe. Donde no se dibuja el formulario no hay nada que enfocar,
+    // así que lo que se abre es la hoja: el enlace tiene que llevar a registrar en los dos
+    // sitios, no solo en el ancho.
+    effect(() => {
+      if (this.focusRequest() !== null && !this.isWide()) {
+        this.editor.openCreate();
+      }
     });
   }
 

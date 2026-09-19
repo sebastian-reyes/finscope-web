@@ -16,6 +16,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
+import { SegmentedDirective } from '../../shared/ui/segmented';
 import { TagsFieldComponent } from '../../shared/ui/tags-field';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
@@ -50,6 +51,21 @@ const OPEN_MARGIN = 8;
 const CLOSE_MARGIN = 4;
 
 /**
+ * Cuánto tiene que quedarse quieto el hueco antes de hacerle caso, en milisegundos.
+ *
+ * El observador avisa de cada medida intermedia, no solo de la última. Cambiar de moneda en
+ * el reparto rehace la columna de al lado, y mientras se rehace el navegador pasa por altos
+ * que no son ninguno de los dos estados de verdad: en uno de esos fotogramas cabían los
+ * detalles, se abrían, y al fotograma siguiente ya no cabían y se cerraban. Eso es lo que se
+ * veía como un parpadeo de medio segundo.
+ *
+ * Esperar a que la medida se esté quieta cuesta un octavo de segundo en abrir cuando sí toca
+ * —que nadie nota, porque el bloque entra animado— y a cambio ninguna decisión se toma sobre
+ * un alto de paso.
+ */
+const SETTLE_MS = 120;
+
+/**
  * Registro de un movimiento.
  *
  * Es la acción por la que se abre la aplicación, así que el camino corto es el que se ve:
@@ -68,7 +84,13 @@ const CLOSE_MARGIN = 4;
 @Component({
   selector: 'fs-quick-transaction',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, CategoryPickerComponent, DateFieldComponent, TagsFieldComponent],
+  imports: [
+    ReactiveFormsModule,
+    CategoryPickerComponent,
+    DateFieldComponent,
+    SegmentedDirective,
+    TagsFieldComponent,
+  ],
   templateUrl: './quick-transaction.html',
   styleUrl: './quick-transaction.scss',
 })
@@ -89,6 +111,17 @@ export class QuickTransactionComponent {
    * Es un número y no un booleano porque hay que poder pedirlo dos veces seguidas.
    */
   readonly focusRequest = input<number | null>(null);
+
+  /**
+   * Si lo que rodea al formulario todavía está cambiando de alto.
+   *
+   * Mientras la pantalla recarga, la columna de al lado son esqueletos: mide lo que mide un
+   * hueco de carga, que no es lo que va a medir cuando lleguen los datos. Abrir o plegar por
+   * ese alto es decidir con una respuesta provisional, así que el automatismo se está quieto
+   * hasta que haya algo de verdad que medir. Lo que ya estuviera abierto se queda abierto:
+   * cerrarlo y volver a abrirlo es justo el parpadeo que se quiere evitar.
+   */
+  readonly settling = input(false);
 
   /**
    * Avisa de que hay un movimiento nuevo para que el dashboard se recalcule.
@@ -135,6 +168,9 @@ export class QuickTransactionComponent {
 
   /** Lo que ocupa el bloque de detalles con su hueco, en cuanto se haya podido medir. */
   private detailsRoom = DETAILS_ROOM_GUESS;
+
+  /** La medida pendiente de confirmar, mientras el hueco no se esté quieto. */
+  private fitTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
@@ -212,16 +248,42 @@ export class QuickTransactionComponent {
     // ancho de la ventana. Se observa el hueco en persona —su alto *es* lo que sobra—, así
     // que abrir o cerrar los detalles vuelve a disparar la medida y el resultado se asienta
     // solo: al abrir, lo que sobra baja justo lo que ocupa el bloque, y ahí se queda.
+    //
+    // Lo que no se hace es creerse la primera medida: se espera a que el hueco se quede
+    // quieto. Ver `SETTLE_MS`.
     afterNextRender(() => {
       const gap = this.slackGap()?.nativeElement;
       if (!gap || typeof ResizeObserver === 'undefined') {
         return;
       }
-      const observer = new ResizeObserver(() => this.fitDetails());
+      const observer = new ResizeObserver(() => this.scheduleFit());
       observer.observe(gap);
-      this.destroyRef.onDestroy(() => observer.disconnect());
-      this.fitDetails();
+      this.destroyRef.onDestroy(() => {
+        observer.disconnect();
+        this.cancelFit();
+      });
+      this.scheduleFit();
     });
+  }
+
+  /**
+   * Aplaza la decisión hasta que el hueco lleve `SETTLE_MS` sin moverse.
+   * Cada medida nueva vuelve a empezar la espera, de modo que de una ráfaga de reflujos solo
+   * se atiende al alto en el que la ráfaga termina.
+   */
+  private scheduleFit(): void {
+    this.cancelFit();
+    this.fitTimer = setTimeout(() => {
+      this.fitTimer = null;
+      this.fitDetails();
+    }, SETTLE_MS);
+  }
+
+  private cancelFit(): void {
+    if (this.fitTimer !== null) {
+      clearTimeout(this.fitTimer);
+      this.fitTimer = null;
+    }
   }
 
   /**
@@ -235,6 +297,11 @@ export class QuickTransactionComponent {
   private fitDetails(): void {
     const gap = this.slackGap()?.nativeElement;
     if (!gap) {
+      return;
+    }
+    // Con la pantalla recargando, el alto de al lado es el de un esqueleto y no el de los
+    // datos: no hay nada que medir todavía.
+    if (this.settling()) {
       return;
     }
     const slack = gap.offsetHeight;

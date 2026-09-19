@@ -28,6 +28,7 @@ import {
 } from '../../core/models';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
+import { SegmentedDirective } from '../../shared/ui/segmented';
 import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
 import { TagsFieldComponent } from '../../shared/ui/tags-field';
@@ -110,6 +111,7 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
     ReactiveFormsModule,
     CategoryPickerComponent,
     DateFieldComponent,
+    SegmentedDirective,
     SelectFieldComponent,
     TagsFieldComponent,
     TagChipComponent,

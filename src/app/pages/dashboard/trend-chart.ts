@@ -3,9 +3,23 @@ import { ChartConfiguration } from 'chart.js';
 import { ChartComponent } from '../../shared/ui/chart';
 import { PaletteService } from '../../core/palette.service';
 import { ThemeService } from '../../core/theme.service';
-import { BASE_CURRENCY, formatMoney } from '../../core/format/money';
-import { bucketLabel } from '../../core/format/period';
+import { BASE_CURRENCY, formatAxisMoney, formatMoney } from '../../core/format/money';
+import { bucketLabel, bucketTick } from '../../core/format/period';
 import { Currency, SummarySeriesResponse } from '../../core/models';
+
+/**
+ * A partir de cuántos tramos la serie se dibuja sin marcar cada punto.
+ *
+ * Un mes por días son treinta puntos, y en un teléfono el hueco de la línea da para unos
+ * trescientos píxeles: diez por punto, cuando cada marca mide cinco de radio más dos de
+ * borde. Las marcas se tocaban entre sí y la línea se leía como un collar de cuentas, que
+ * es lo que tapaba la forma —que es lo único que se le pide a una evolución—. Por debajo de
+ * este número sí caben, y ahí sí ayudan a ver dónde está el dato.
+ *
+ * Quitarlas no quita nada: el globo sigue saliendo al tocar cualquier punto de la vertical,
+ * porque la interacción va por índice y no por acierto sobre la marca.
+ */
+const DENSE_BUCKETS = 12;
 
 /**
  * Evolución de ingresos y egresos.
@@ -14,6 +28,9 @@ import { Currency, SummarySeriesResponse } from '../../core/models';
  * eje, que es lo que convierte un gráfico financiero en un adorno engañoso. La API solo
  * devuelve los tramos con movimiento, así que un salto en la línea significa que ahí no
  * pasó nada y no que falte el dato.
+ *
+ * Todo lo que el eje puede no decir, no lo dice: es un gráfico que tiene que caber en un
+ * teléfono, y cada píxel que se lleva un rótulo se lo quita a la línea.
  */
 @Component({
   selector: 'fs-trend-chart',
@@ -60,6 +77,16 @@ export class TrendChartComponent {
     ),
   );
 
+  /**
+   * Los mismos tramos rotulados para el eje, que es donde no cabe el rótulo entero.
+   * El completo no se pierde: `labels` sigue siendo lo que lee el globo.
+   */
+  protected readonly ticks = computed(() =>
+    this.series().buckets.map((bucket) =>
+      bucketTick(bucket.periodStart, this.series().granularity),
+    ),
+  );
+
   protected readonly description = computed(() => {
     const buckets = this.series().buckets;
     const income = buckets.reduce((total, bucket) => total + bucket.income, 0);
@@ -71,6 +98,8 @@ export class TrendChartComponent {
   protected readonly config = computed<ChartConfiguration>(() => {
     const palette = this.palette.chart();
     const buckets = this.series().buckets;
+    const ticks = this.ticks();
+    const pointRadius = buckets.length > DENSE_BUCKETS ? 0 : 3;
     return {
       type: 'line',
       data: {
@@ -84,7 +113,7 @@ export class TrendChartComponent {
             fill: true,
             tension: 0.3,
             borderWidth: 2,
-            pointRadius: 3,
+            pointRadius,
             pointHoverRadius: 5,
             pointBackgroundColor: palette.income,
             pointBorderColor: palette.surface,
@@ -100,7 +129,7 @@ export class TrendChartComponent {
             borderWidth: 2,
             // El trazo discontinuo distingue las dos series aunque no se vea el color.
             borderDash: [5, 4],
-            pointRadius: 3,
+            pointRadius,
             pointHoverRadius: 5,
             pointBackgroundColor: palette.expense,
             pointBorderColor: palette.surface,
@@ -116,7 +145,16 @@ export class TrendChartComponent {
           x: {
             grid: { display: false },
             border: { color: palette.grid },
-            ticks: { color: palette.inkMuted, font: { size: 11 } },
+            ticks: {
+              color: palette.inkMuted,
+              font: { size: 11 },
+              // Horizontal o nada. Torcidos cuarenta y cinco grados se llevaban unos
+              // cincuenta píxeles de alto —de los doscientos cuarenta que mide la tarjeta—
+              // y aun así había que leerlos de lado.
+              maxRotation: 0,
+              // En una escala de categorías, el valor que llega es el índice del tramo.
+              callback: (_value, index) => ticks[index],
+            },
           },
           y: {
             beginAtZero: true,
@@ -125,8 +163,10 @@ export class TrendChartComponent {
             ticks: {
               color: palette.inkMuted,
               font: { size: 11 },
-              maxTicksLimit: 5,
-              callback: (value) => this.money()(Number(value)),
+              // Cuatro rayas bastan para leer la altura de la línea, y cada una que sobra
+              // es una línea de rejilla cruzando el dibujo.
+              maxTicksLimit: 4,
+              callback: (value) => formatAxisMoney(Number(value), this.currency()),
             },
           },
         },

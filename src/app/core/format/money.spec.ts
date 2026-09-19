@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_CURRENCY, currencySymbol, formatAmount, formatMoney, toBaseCurrency } from './money';
+import {
+  BASE_CURRENCY,
+  currencySymbol,
+  formatAmount,
+  formatAxisMoney,
+  formatMoney,
+  toBaseCurrency,
+} from './money';
 
 describe('formatMoney', () => {
   it('escribe los soles con su símbolo', () => {
@@ -48,5 +55,17 @@ describe('toBaseCurrency', () => {
     // Un movimiento en la moneda base no lleva tipo de cambio: no se convierte a sí misma.
     expect(toBaseCurrency(120.5, null)).toBe(120.5);
     expect(toBaseCurrency(120.5)).toBe(120.5);
+  });
+});
+
+describe('formatAxisMoney', () => {
+  it('quita los céntimos, que en un eje solo ocupan sitio', () => {
+    expect(formatAxisMoney(3000, 'PEN')).toBe('S/ 3,000');
+    expect(formatAxisMoney(1234.56, 'PEN')).toBe('S/ 1,235');
+  });
+
+  it('conserva el símbolo: es lo único del gráfico que dice de qué moneda habla', () => {
+    expect(formatAxisMoney(500, 'USD')).toBe('$ 500');
+    expect(formatAxisMoney(0)).toBe('S/ 0');
   });
 });

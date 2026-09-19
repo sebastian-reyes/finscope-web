@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { monthFromParam } from './period';
+import { bucketTick, monthFromParam } from './period';
 
 describe('monthFromParam', () => {
   it('lee el mes que trae la dirección de un aviso', () => {
@@ -13,5 +13,17 @@ describe('monthFromParam', () => {
     expect(monthFromParam('2026-13')).toBeNull();
     expect(monthFromParam('2026-9')).toBeNull();
     expect(monthFromParam('setiembre')).toBeNull();
+  });
+});
+
+describe('bucketTick', () => {
+  it('bajo la línea deja solo el día: el mes se repite en los treinta tramos', () => {
+    expect(bucketTick('2026-09-01T00:00:00', 'DAY')).toBe('1');
+    expect(bucketTick('2026-09-28T00:00:00', 'DAY')).toBe('28');
+  });
+
+  it('la semana y el mes se quedan como están, que son pocos y sí se distinguen', () => {
+    expect(bucketTick('2026-09-07T00:00:00', 'WEEK')).toContain('sem.');
+    expect(bucketTick('2026-09-01T00:00:00', 'MONTH')).toContain('26');
   });
 });
