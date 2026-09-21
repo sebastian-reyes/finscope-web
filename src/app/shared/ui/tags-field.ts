@@ -165,6 +165,17 @@ function fold(value: string): string {
             <fs-tag-chip [name]="tag.name" />
           </button>
         }
+
+        @if (hidden() > 0) {
+          <button
+            type="button"
+            class="fs-tags__more"
+            [disabled]="disabled()"
+            (click)="expanded.set(true)"
+          >
+            Ver {{ hidden() }} más
+          </button>
+        }
       </div>
     }
   `,
@@ -343,6 +354,26 @@ function fold(value: string): string {
     .fs-tags__suggestion:disabled {
       opacity: 0.4;
     }
+
+    /* El «ver más» se viste igual que el del selector de categorías: es el mismo gesto sobre
+       la misma clase de fila, y verlo distinto haría dudar de si hace lo mismo. */
+    .fs-tags__more {
+      padding: 0.25rem 0.7rem;
+      border: 1px dashed var(--fs-line);
+      border-radius: 999px;
+      background: none;
+      font-size: 0.8125rem;
+      color: var(--fs-ink-muted);
+    }
+
+    .fs-tags__more:hover {
+      border-style: solid;
+      color: var(--fs-ink);
+    }
+
+    .fs-tags__more:disabled {
+      opacity: 0.4;
+    }
   `,
 })
 export class TagsFieldComponent implements OnDestroy {
@@ -370,6 +401,9 @@ export class TagsFieldComponent implements OnDestroy {
 
   /** Opción marcada, la que se añade al pulsar intro. */
   protected readonly active = signal(0);
+
+  /** Si la fila de abajo enseña el catálogo entero o solo el primer puñado. */
+  protected readonly expanded = signal(false);
 
   /** Esquina y ancho del desplegable, en coordenadas de la ventana. */
   protected readonly spot = signal<Spot>({ top: 0, left: 0 });
@@ -416,20 +450,32 @@ export class TagsFieldComponent implements OnDestroy {
   protected readonly total = computed(() => this.matches().length + (this.creatable() ? 1 : 0));
 
   /**
-   * Los tags que más usa y que este movimiento todavía no lleva.
+   * Los tags que este movimiento todavía no lleva, los más usados primero.
    * Se ordenan por uso y no alfabéticamente porque aquí no se busca un tag concreto, se
-   * repite el de siempre; el resto sigue estando al alcance escribiendo.
+   * repite el de siempre.
    */
-  protected readonly suggestions = computed(() => {
+  private readonly offerable = computed(() => {
     const picked = new Set(this.tags().map((tag) => tag.toLowerCase()));
     return [...this.catalogue()]
       .filter((tag) => !picked.has(tag.name.toLowerCase()))
       .sort(
         (left, right) =>
           right.transactionCount - left.transactionCount || left.name.localeCompare(right.name),
-      )
-      .slice(0, SUGGESTION_COUNT);
+      );
   });
+
+  /** Los que se ofrecen de un toque: el primer puñado, o todos si se ha pedido verlos. */
+  protected readonly suggestions = computed(() =>
+    this.expanded() ? this.offerable() : this.offerable().slice(0, SUGGESTION_COUNT),
+  );
+
+  /**
+   * Cuántos quedan fuera de la fila.
+   * Que estén al alcance escribiendo no basta: quien no recuerda cómo llamó al tag no sabe
+   * qué escribir, y acaba poniéndolo a mano después, en el catálogo. El botón los saca sin
+   * tener que adivinar la primera letra.
+   */
+  protected readonly hidden = computed(() => this.offerable().length - this.suggestions().length);
 
   constructor() {
     // El desplegable se coloca cada vez que cambia lo que enseña: al escribir crece y mengua,

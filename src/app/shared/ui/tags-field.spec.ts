@@ -35,6 +35,15 @@ describe('TagsFieldComponent', () => {
     ).map((option) => option.textContent!.replace(/\s+/g, ' ').trim());
   }
 
+  /** Los tags que la fila de abajo ofrece de un toque. */
+  function suggestions(): HTMLElement[] {
+    return Array.from(host().querySelectorAll<HTMLElement>('.fs-tags__suggestion'));
+  }
+
+  function more(): HTMLButtonElement | null {
+    return host().querySelector<HTMLButtonElement>('.fs-tags__more');
+  }
+
   function type(value: string): void {
     input().value = value;
     input().dispatchEvent(new Event('input'));
@@ -107,6 +116,25 @@ describe('TagsFieldComponent', () => {
     press(',');
 
     expect(fixture.componentInstance.tags()).toEqual(['alim']);
+  });
+
+  it('deja ver el resto del catálogo cuando la fila de sugerencias no lo enseña entero', () => {
+    fixture.componentRef.setInput(
+      'catalogue',
+      Array.from({ length: 11 }, (_, index) => ({
+        id: index + 1,
+        name: `tag ${index + 1}`,
+        transactionCount: 11 - index,
+      })),
+    );
+    fixture.detectChanges();
+
+    expect(suggestions()).toHaveLength(8);
+    more()!.click();
+    fixture.detectChanges();
+
+    expect(suggestions()).toHaveLength(11);
+    expect(more()).toBeNull();
   });
 
   it('el escape cierra el desplegable sin añadir nada', () => {
