@@ -19,7 +19,12 @@
       ariaCurrentWhenActive="page"
       aria-label="Tus datos"
     >
-      <span class="fs-profile__avatar" aria-hidden="true">{{ initials() }}</span>
+      <fs-avatar
+        class="fs-profile__avatar"
+        [avatar]="user()?.avatar"
+        [name]="user()?.displayName"
+        [email]="user()?.email"
+      />
       <span class="fs-profile__text">
         <span class="fs-profile__name text-truncate">{{
           user()?.displayName || 'Ponte un nombre'

@@ -51,7 +51,7 @@ Tres decisiones explican casi todo lo demás:
 | --- | --- |
 | **Dos dependencias, y contadas** | `chart.js` para los gráficos y `air-datepicker` para el calendario. Ni Bootstrap ni ninguna librería de componentes: el lenguaje visual es propio y vive en cuatro hojas de [`src/styles/`](src/styles). |
 | **Todo se carga bajo demanda** | Cada ruta es un `loadComponent`. La primera pantalla no paga por las que no se han abierto. |
-| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.9.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
+| **El contrato manda** | Los modelos de [`core/models.ts`](src/app/core/models.ts) son el espejo del contrato OpenAPI **6.10.0** de la API. Se mantienen a mano para que el proyecto siga siendo sencillo de leer, y son el único punto a tocar cuando el contrato cambia. |
 
 ---
 

@@ -7,11 +7,13 @@ import {
   signal,
 } from '@angular/core';
 import { AuthService } from '../../../core/auth.service';
+import { AVATARS, INITIALS_AVATAR, avatarOf } from '../../../core/format/avatars';
 import { ToastService } from '../../../core/toast.service';
 import { describeError } from '../../../core/api-error';
+import { AvatarComponent } from '../../../shared/ui/avatar';
 
 /**
- * El nombre con el que la aplicación se dirige al usuario.
+ * El nombre con el que la aplicación se dirige al usuario y su imagen de perfil.
  *
  * El correo también es un dato suyo, pero no vive aquí: es la credencial con la que se entra
  * y cambiarlo es un trámite con contraseña y enlace, así que va en Seguridad.
@@ -19,7 +21,39 @@ import { describeError } from '../../../core/api-error';
 @Component({
   selector: 'app-account-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AvatarComponent],
   template: `
+    <!--
+      La imagen va antes que el nombre porque es lo primero que se ve de la cuenta. Se aplica
+      al tocarla, sin botón de guardar, como el tema y los colores: se ve el efecto delante y
+      confirmarlo solo añadiría un paso.
+    -->
+    <section class="fs-panel fs-block" aria-labelledby="imagenTitle">
+      <p class="fs-section" id="imagenTitle">Tu imagen</p>
+
+      <div class="fs-avatars" role="group" aria-labelledby="imagenTitle">
+        @for (choice of choices; track choice.id) {
+          <button
+            type="button"
+            class="fs-avatars__item"
+            [class.is-active]="chosen() === choice.id"
+            [attr.aria-pressed]="chosen() === choice.id"
+            [attr.aria-label]="choice.label"
+            [attr.title]="choice.label"
+            (click)="pickAvatar(choice.id)"
+          >
+            <fs-avatar
+              class="fs-avatars__img"
+              [avatar]="choice.id"
+              [name]="auth.user()?.displayName"
+              [email]="auth.user()?.email"
+            />
+          </button>
+        }
+      </div>
+      <p class="fs-hint">Se ve en tu perfil y en todos los dispositivos donde entres.</p>
+    </section>
+
     <section class="fs-panel fs-block" aria-labelledby="nombreTitle">
       <p class="fs-section" id="nombreTitle">Nombre</p>
 
@@ -67,12 +101,78 @@ import { describeError } from '../../../core/api-error';
     </section>
   `,
   styleUrl: '../settings-shared.scss',
+  styles: `
+    .fs-avatars {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(3.5rem, 1fr));
+      gap: 0.75rem;
+      max-width: 26rem;
+      margin-top: 1rem;
+    }
+
+    .fs-avatars__item {
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      border: 0;
+      background: none;
+      cursor: pointer;
+    }
+
+    .fs-avatars__img {
+      width: 3.25rem;
+      height: 3.25rem;
+      transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+
+    .fs-avatars__item:hover .fs-avatars__img {
+      transform: scale(1.06);
+    }
+
+    .fs-avatars__item:active .fs-avatars__img {
+      transform: scale(0.94);
+    }
+
+    /* La elegida se marca con un anillo por fuera, como las muestras de color. */
+    .fs-avatars__item.is-active .fs-avatars__img {
+      box-shadow:
+        0 0 0 2px var(--fs-surface),
+        0 0 0 4px var(--fs-ink);
+    }
+
+    .fs-avatars__item:focus-visible {
+      outline: none;
+    }
+
+    .fs-avatars__item:focus-visible .fs-avatars__img {
+      box-shadow:
+        0 0 0 2px var(--fs-surface),
+        0 0 0 4px var(--fs-brand);
+    }
+  `,
 })
 export class AccountProfilePage {
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
 
   protected readonly saving = signal(false);
+
+  /** Las iniciales primero —son lo que hay si no se elige nada— y detrás los animales. */
+  protected readonly choices = [
+    { id: INITIALS_AVATAR, label: 'Tus iniciales' },
+    ...AVATARS.map(({ id, label }) => ({ id, label })),
+  ];
+
+  /**
+   * La imagen marcada. Sigue a la de la cuenta, pero al tocar otra se marca al momento, sin
+   * esperar a la API; si esta falla, vuelve a la de la cuenta. Una imagen que no se conozca
+   * cuenta como las iniciales, que es como se pinta.
+   */
+  protected readonly chosen = linkedSignal(
+    () => avatarOf(this.auth.user()?.avatar)?.id ?? INITIALS_AVATAR,
+  );
 
   /**
    * Nombre tal y como se está escribiendo, que solo se guarda al confirmarlo.
@@ -102,6 +202,25 @@ export class AccountProfilePage {
   protected onSubmit(event: Event): void {
     event.preventDefault();
     this.save();
+  }
+
+  /**
+   * Guarda la imagen elegida.
+   *
+   * @param id la ilustración, o las iniciales para quitarla
+   */
+  protected pickAvatar(id: string): void {
+    const previous = this.chosen();
+    if (id === previous) {
+      return;
+    }
+    this.chosen.set(id);
+    this.auth.updateProfile({ avatar: id }).subscribe({
+      error: (error) => {
+        this.chosen.set(previous);
+        this.toasts.error(describeError(error));
+      },
+    });
   }
 
   /** Devuelve el campo a lo que hay guardado. */

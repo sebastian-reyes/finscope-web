@@ -14,6 +14,11 @@ export interface UserResponse {
    */
   emailVerified: boolean;
   displayName?: string;
+  /**
+   * Imagen de perfil elegida, por el nombre de su ilustración. Ausente o nula mientras no se
+   * elija, y entonces se pintan las iniciales. Ver `core/format/avatars.ts`.
+   */
+  avatar?: string | null;
 }
 
 export interface AuthResponse {
@@ -34,6 +39,8 @@ export interface RegisterRequest {
 export interface UpdateUserRequest {
   /** Nombre a mostrar. En blanco deja la cuenta sin nombre. */
   displayName?: string;
+  /** Imagen de perfil a fijar. `initials` la quita y vuelve a las iniciales. */
+  avatar?: string;
 }
 
 export interface LoginRequest {

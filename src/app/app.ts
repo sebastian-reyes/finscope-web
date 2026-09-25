@@ -11,6 +11,7 @@ import { SignOutService } from './core/sign-out.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
+import { AvatarComponent } from './shared/ui/avatar';
 import { LogoComponent } from './shared/ui/logo';
 import { OnboardingComponent, OnboardingExit } from './shared/ui/onboarding';
 import { PullRefreshComponent } from './shared/ui/pull-refresh';
@@ -46,6 +47,7 @@ interface NavItem {
 @Component({
   selector: 'app-root',
   imports: [
+    AvatarComponent,
     RouterOutlet,
     RouterLink,
     LogoComponent,

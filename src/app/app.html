@@ -36,9 +36,17 @@
           ></i>
         </button>
 
-        <span class="fs-user text-truncate">
-          {{ user()?.displayName || user()?.email }}
-        </span>
+        <a class="fs-user" routerLink="/account/profile" aria-label="Tus datos">
+          <fs-avatar
+            class="fs-user__avatar"
+            [avatar]="user()?.avatar"
+            [name]="user()?.displayName"
+            [email]="user()?.email"
+          />
+          <span class="fs-user__name text-truncate">
+            {{ user()?.displayName || user()?.email }}
+          </span>
+        </a>
 
         <button
           class="fs-btn fs-btn--icon"

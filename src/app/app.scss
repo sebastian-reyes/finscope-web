@@ -185,18 +185,38 @@
   }
 }
 
-// En un teléfono el nombre no cabe, y tampoco hace falta: quien lo mira sabe quién es.
-// Va en bloque y no en línea porque el recorte con puntos suspensivos no llega a ocurrir
-// sobre un elemento en línea, donde el `max-width` ni siquiera se aplica.
+// Quién ha entrado: su imagen y su nombre, que llevan a sus datos. En un teléfono no se
+// dibuja —la barra de arriba no existe ahí—, y en una ventana estrecha el nombre se va y
+// queda la imagen, que ya dice lo mismo.
 .fs-user {
-  display: none;
-  max-width: 14rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 16rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.2rem;
+  border-radius: 999px;
   font-size: var(--fs-text-sm);
   color: var(--fs-ink-muted);
+  text-decoration: none;
+
+  &:hover {
+    background-color: var(--fs-hover);
+    color: var(--fs-ink);
+  }
+}
+
+.fs-user__avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.fs-user__name {
+  display: none;
 }
 
 @media (min-width: t.$fs-bp-sm) {
-  .fs-user {
+  .fs-user__name {
     display: block;
   }
 }

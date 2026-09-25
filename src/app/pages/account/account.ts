@@ -19,6 +19,7 @@ import { ThemeService } from '../../core/theme.service';
 import { ToastService } from '../../core/toast.service';
 import { describeError } from '../../core/api-error';
 import { mediaQuery } from '../../core/viewport';
+import { AvatarComponent } from '../../shared/ui/avatar';
 import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
 import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 import { ACCOUNT_SECTIONS, AccountSection, SECTIONS, sectionOf } from './sections';
@@ -44,6 +45,7 @@ import { THEME_OPTIONS } from './theme-options';
   selector: 'app-account',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AvatarComponent,
     CatalogueTabsComponent,
     RouterLink,
     RouterLinkActive,
@@ -94,21 +96,6 @@ export class AccountPage {
    * Entra deslizándose desde la izquierda, como hace cualquier pantalla al volver atrás.
    */
   protected readonly returned = signal(false);
-
-  /** Iniciales del avatar: las del nombre, o la primera letra del correo si no lo hay. */
-  protected readonly initials = computed(() => {
-    const user = this.user();
-    const name = user?.displayName?.trim();
-    if (name) {
-      return name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((word) => word[0])
-        .join('')
-        .toUpperCase();
-    }
-    return (user?.email?.[0] ?? '?').toUpperCase();
-  });
 
   /** Lo que se lee al lado de cada fila del menú: cómo está eso ahora. */
   protected readonly status = computed<Record<string, string>>(() => ({

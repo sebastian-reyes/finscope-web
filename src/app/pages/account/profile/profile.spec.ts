@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AccountProfilePage } from './profile';
 import { AuthService } from '../../../core/auth.service';
+import { ToastService } from '../../../core/toast.service';
 import { UserResponse } from '../../../core/models';
 
 const USER: UserResponse = {
@@ -111,6 +112,67 @@ describe('AccountProfilePage', () => {
 
     expect(nameField().value).toBe('Sebastian');
     expect(actions()).toEqual([]);
+  });
+
+  /** La imagen de la cuadrícula con el nombre indicado. */
+  function avatarButton(label: string): HTMLButtonElement {
+    return host().querySelector<HTMLButtonElement>(`.fs-avatars__item[aria-label="${label}"]`)!;
+  }
+
+  /** La que está marcada como elegida. */
+  function chosenAvatar(): string | null {
+    return host().querySelector('.fs-avatars__item.is-active')!.getAttribute('aria-label');
+  }
+
+  it('parte de las iniciales cuando la cuenta no ha elegido imagen', () => {
+    expect(host().querySelectorAll('.fs-avatars__item')).toHaveLength(12);
+    expect(chosenAvatar()).toBe('Tus iniciales');
+  });
+
+  it('guarda la imagen al tocarla y la marca sin esperar a la API', () => {
+    avatarButton('Llama').click();
+    fixture.detectChanges();
+
+    expect(chosenAvatar()).toBe('Llama');
+    const request = http.expectOne({ method: 'PATCH', url: '/auth/me' });
+    expect(request.request.body).toEqual({ avatar: 'llama' });
+    request.flush({ ...USER, avatar: 'llama' });
+    fixture.detectChanges();
+
+    expect(TestBed.inject(AuthService).user()?.avatar).toBe('llama');
+  });
+
+  it('vuelve a las iniciales pidiéndolo con su nombre, no mandando un vacío', async () => {
+    localStorage.setItem('finscope.user', JSON.stringify({ ...USER, avatar: 'fox' }));
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [AccountProfilePage],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(AccountProfilePage);
+    fixture.detectChanges();
+    expect(chosenAvatar()).toBe('Zorro');
+
+    avatarButton('Tus iniciales').click();
+    fixture.detectChanges();
+
+    const request = http.expectOne({ method: 'PATCH', url: '/auth/me' });
+    expect(request.request.body).toEqual({ avatar: 'initials' });
+    request.flush({ ...USER, avatar: null });
+  });
+
+  it('deja marcada la de antes si la API no la acepta', () => {
+    avatarButton('Búho').click();
+    fixture.detectChanges();
+
+    http
+      .expectOne({ method: 'PATCH', url: '/auth/me' })
+      .flush({ message: 'No' }, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    expect(chosenAvatar()).toBe('Tus iniciales');
+    expect(TestBed.inject(ToastService).toasts()[0].tone).toBe('error');
   });
 
   it('sigue al nombre que llega al recargar, pero no pisa lo que se está escribiendo', () => {
