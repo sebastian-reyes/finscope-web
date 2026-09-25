@@ -41,6 +41,14 @@ const SUMMARY: TransactionSummaryResponse = {
   byTag: [{ tag: 'gab', income: 0, expense: 300, transactionCount: 2 }],
 };
 
+/** El mes anterior, con 1500 gastados: este mes, con 1200, se gasta un 20 % menos. */
+const PREVIOUS: TransactionSummaryResponse = {
+  ...SUMMARY,
+  expense: 1500,
+  net: 1500,
+  byCurrency: [{ currency: 'PEN', income: 3000, expense: 1500, net: 1500, transactionCount: 14 }],
+};
+
 const SERIES: SummarySeriesResponse = {
   granularity: 'DAY',
   buckets: [
@@ -131,19 +139,40 @@ describe('DashboardPage', () => {
   }
 
   /**
+   * El último movimiento en dólares, del que sale el tipo de referencia para verlo todo en
+   * dólares. Se pide una vez al abrir la pantalla, no en cada recarga.
+   *
+   * @param usdRate tipo del último movimiento en dólares, o nulo si no hay ninguno
+   */
+  function settleRate(usdRate: number | null = null): void {
+    http.expectOne('/transactions?currency=USD&page=0&size=1&sort=date,desc').flush(
+      usdRate
+        ? {
+            content: [{ ...RECENT.content[0], currency: 'USD', exchangeRate: usdRate }],
+            page: 0,
+            size: 1,
+            totalElements: 1,
+            totalPages: 1,
+          }
+        : { content: [], page: 0, size: 1, totalElements: 0, totalPages: 0 },
+    );
+  }
+
+  /**
    * Contesta a las cinco peticiones del periodo, que salen a la vez.
    *
    * @param month  mes que se espera en todas ellas
    * @param broken parte que se responde con un error, si alguna
    */
-  function settlePeriod(month = 8, broken?: Broken): void {
+  function settlePeriod(month = 8, broken?: Broken, scope = 'convertTo=PEN'): void {
     const period = `month=${month}&year=2026`;
-    // El reparto y la evolución van acotados a una moneda: sin acotar, sus totales sumarían
-    // cantidades que no se suman. El listado de los últimos movimientos no, porque cada fila
-    // enseña la suya.
-    const scoped = `${period}&currency=PEN`;
+    // Por defecto el inicio lo junta todo en soles: el resumen y la evolución piden la
+    // conversión y dejan de acotar por moneda. El listado de los últimos movimientos no se
+    // convierte nunca, porque cada fila enseña la suya.
+    const scoped = `${period}&${scope}`;
     const summary = http.expectOne(`/transactions/summary?${scoped}`);
     const series = http.expectOne(`/transactions/summary/series?${scoped}&granularity=DAY`);
+    const previous = http.expectOne(`/transactions/summary?month=${month - 1}&year=2026&${scope}`);
     const recent = http.expectOne(`/transactions?${period}&page=0&size=6&sort=date,desc`);
     const budgets = http.expectOne(`/budgets?${period}`);
     const recurring = http.expectOne(`/recurring-transactions?${period}`);
@@ -153,6 +182,7 @@ describe('DashboardPage', () => {
     // se recoge, así que en cuanto llega, `forkJoin` cancela lo que siguiera pendiente y
     // esas peticiones ya no admitirían respuesta.
     series.flush(SERIES);
+    previous.flush(PREVIOUS);
     recent.flush(RECENT);
     if (broken === 'budgets') {
       budgets.flush('roto', boom);
@@ -174,6 +204,7 @@ describe('DashboardPage', () => {
 
   function settle(broken?: Broken): void {
     settleCatalogues();
+    settleRate();
     settlePeriod(8, broken);
   }
 
@@ -237,6 +268,7 @@ describe('DashboardPage', () => {
       http.match('/transaction-types').forEach((request) => request.flush(TYPES));
       http.match('/categories').forEach((request) => request.flush(CATEGORIES));
       http.match('/tags').forEach((request) => request.flush(TAGS));
+      settleRate();
       settlePeriod();
 
       expect(TestBed.inject(TransactionEditorService).isOpen()).toBe(true);
@@ -354,5 +386,68 @@ describe('DashboardPage', () => {
     vi.advanceTimersByTime(1800);
     fixture.detectChanges();
     expect(host().querySelector('.fs-item.is-fresh')).toBeNull();
+  });
+
+  describe('viendo el dinero en una sola moneda', () => {
+    /** El selector de vista del balance, si se ofrece. */
+    function viewButton(label: string): HTMLButtonElement | undefined {
+      return Array.from(host().querySelectorAll<HTMLButtonElement>('.fs-views .fs-seg__btn')).find(
+        (button) => button.getAttribute('aria-label') === label,
+      );
+    }
+
+    afterEach(() => localStorage.clear());
+
+    it('abre juntándolo todo en soles y compara el gasto con el mes anterior', () => {
+      settle();
+
+      // 1200 frente a los 1500 de julio: un 20 % menos.
+      expect(card('balance')).toContain('Gastas 20 % menos que en julio');
+      expect(card('balance')).toContain('1,800.00');
+    });
+
+    it('no ofrece elegir vista a quien nunca ha usado dólares', () => {
+      settle();
+
+      expect(host().querySelector('.fs-views')).toBeNull();
+    });
+
+    it('en dólares pide la conversión con el último tipo registrado y avisa de que es aproximado', () => {
+      settleCatalogues();
+      settleRate(3.55);
+      settlePeriod();
+
+      viewButton('Todo en dólares')!.click();
+      fixture.detectChanges();
+
+      const scope = 'convertTo=USD&rate=3.55';
+      http
+        .expectOne(`/transactions/summary/series?month=8&year=2026&${scope}&granularity=DAY`)
+        .flush(SERIES);
+      http.expectOne(`/transactions/summary?month=7&year=2026&${scope}`).flush(PREVIOUS);
+      http.expectOne('/transactions?month=8&year=2026&page=0&size=6&sort=date,desc').flush(RECENT);
+      http.expectOne('/budgets?month=8&year=2026').flush(BUDGETS);
+      http.expectOne('/recurring-transactions?month=8&year=2026').flush(RECURRING);
+      http
+        .expectOne(`/transactions/summary?month=8&year=2026&${scope}`)
+        .flush({ ...SUMMARY, currency: 'USD', rate: 3.55 });
+      fixture.detectChanges();
+
+      expect(card('balance')).toContain('Aproximado');
+      expect(card('balance')).toContain('3.55');
+    });
+
+    it('por moneda vuelve a separarlas y lo recuerda en este dispositivo', () => {
+      settleCatalogues();
+      settleRate(3.55);
+      settlePeriod();
+
+      viewButton('Cada moneda por separado')!.click();
+      fixture.detectChanges();
+      settlePeriod(8, undefined, 'currency=PEN');
+
+      expect(localStorage.getItem('finscope.moneyView')).toBe('split');
+      expect(card('balance')).toContain('Soles');
+    });
   });
 });

@@ -15,6 +15,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ChartConfiguration } from 'chart.js';
 import { ChartComponent } from '../../shared/ui/chart';
 import { PaletteService } from '../../core/palette.service';
+import { mediaQuery } from '../../core/viewport';
 import { ThemeService } from '../../core/theme.service';
 import { MAX_SLICES } from '../../core/format/chart-palette';
 import { BASE_CURRENCY, formatMoney } from '../../core/format/money';
@@ -141,7 +142,11 @@ export function tagSlices(
         <div class="fs-swap__view" animate.enter="is-from-left" animate.leave="is-to-left">
           @if (slices().length) {
             <div class="fs-spending">
-              <fs-chart [config]="config()" [height]="220" [label]="description()" />
+              <fs-chart
+                [config]="config()"
+                [height]="compact() ? 152 : 220"
+                [label]="description()"
+              />
               <ul class="fs-legend">
                 @for (slice of slices(); track slice.label) {
                   <li>
@@ -297,12 +302,16 @@ export function tagSlices(
     }
 
     /* En una tarjeta ancha, el anillo solo dejaría aire a los lados: la leyenda se pone a su
-       derecha y ocupa ese sitio. En una estrecha se apilan, como antes. */
+       derecha y ocupa ese sitio. En una estrecha se apilan. */
     .fs-spending {
       display: grid;
-      gap: 1rem;
-      /* El mínimo en cero es lo que deja que el anillo se encoja con la tarjeta: con un
-         1fr a secas, el hueco nunca baja de lo que mide el lienzo que lleva dentro. */
+      align-items: center;
+      gap: 0.9rem;
+      /* El mínimo en cero es lo que deja que la leyenda se encoja con la tarjeta: con un
+         1fr a secas, el hueco nunca baja de lo que mide su contenido. */
+      /* En el teléfono se apilan: el anillo arriba y la leyenda debajo a todo el ancho, con
+         cada categoría en una sola línea. Al lado del anillo solo quedaban unos 150 px, y ahí
+         nombre, porcentaje e importe no caben juntos sin partirse o recortarse. */
       grid-template-columns: minmax(0, 1fr);
     }
 
@@ -475,6 +484,25 @@ export function tagSlices(
       font-size: 0.875rem;
       color: var(--fs-ink-muted);
     }
+
+    /* En el teléfono el anillo no se estira a lo ancho: mide lo mismo que antes y va
+       centrado, y la leyenda se aprieta un poco para no alargar la tarjeta. Va al final a
+       propósito: con la misma especificidad que las reglas de la leyenda, solo gana si viene
+       después. */
+    @media (max-width: 575.98px) {
+      .fs-spending {
+        gap: 1rem;
+      }
+
+      .fs-spending fs-chart {
+        justify-self: center;
+        width: 9.5rem;
+      }
+
+      .fs-legend {
+        gap: 0.2rem;
+      }
+    }
   `,
 })
 export class SpendingChartComponent {
@@ -484,6 +512,9 @@ export class SpendingChartComponent {
   private readonly injector = inject(Injector);
 
   private readonly swap = viewChild<ElementRef<HTMLElement>>('swap');
+
+  /** Si la tarjeta es la de un teléfono: el anillo se encoge y la leyenda se pone al lado. */
+  protected readonly compact = mediaQuery('(max-width: 575.98px)');
 
   /** Estiramiento en curso, para que dos cambios seguidos no se peleen por el alto. */
   private stretching: Animation | null = null;

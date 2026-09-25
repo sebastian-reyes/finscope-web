@@ -464,6 +464,14 @@ body:has(.fs-topbar) {
   color: var(--fs-ink-faint);
 }
 
+// En el teléfono, las notas que explican cada tarjeta del inicio se van: se leen una vez y
+// después solo alargan la pantalla. En escritorio sobra el sitio y se quedan.
+@media (max-width: 767.98px) {
+  .fs-dash .fs-note {
+    display: none;
+  }
+}
+
 .fs-muted {
   color: var(--fs-ink-muted);
   text-decoration: none;

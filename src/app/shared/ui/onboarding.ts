@@ -32,8 +32,8 @@ export interface OnboardingSlide {
  * qué se va, ponerle límite, dejar lo fijo resuelto y, al final, hacerla propia.
  *
  * Son seis y no una por pantalla. Las categorías y los tags no tienen paso aparte porque se
- * entienden al ver el reparto, que es para lo que existen; y la cuenta no enseña nada que no
- * se encuentre sola.
+ * entienden al ver el reparto, que es para lo que existen. Cada texto dice dónde vive lo que
+ * enseña —el inicio, Plan, Configuración— para que después se encuentre sin buscarlo.
  */
 export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   {
@@ -52,25 +52,25 @@ export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
     id: 'insight',
     eyebrow: 'Entender',
     title: 'Mira en qué se te va',
-    text: 'El inicio reparte tus gastos por categoría y dibuja cómo evolucionan tus ingresos y egresos. Los tags cruzan esa vista: con quién, para qué o en qué viaje.',
+    text: 'El inicio reparte tus gastos por categoría y te dice si gastas más o menos que el mes pasado. ¿Tienes soles y dólares? Míralo todo junto en una moneda, o cada una por separado.',
   },
   {
     id: 'budgets',
     eyebrow: 'Presupuestos',
     title: 'Ponle un límite a cada categoría',
-    text: 'Fija cuánto gastar al mes y la barra te dice cuánto te queda libre de verdad, descontando lo que tus pagos fijos ya se van a llevar.',
+    text: 'En Plan fijas cuánto gastar al mes y la barra te dice cuánto te queda libre de verdad, descontando lo que tus pagos fijos ya se van a llevar.',
   },
   {
     id: 'recurring',
     eyebrow: 'Pagos fijos',
     title: 'Lo de cada mes, sin olvidos',
-    text: 'Alquiler, streaming, el gimnasio: los das de alta una vez y cada mes los confirmas de un toque. Con los avisos activos, te los recordamos el día antes.',
+    text: 'Alquiler, streaming, el gimnasio: los das de alta una vez en Plan y cada mes los confirmas de un toque. Con los avisos activos, te los recordamos el día antes.',
   },
   {
     id: 'yours',
     eyebrow: 'Hazla tuya',
     title: 'Todo listo para empezar',
-    text: 'En Configuración le das a cada categoría su color y su icono, y eliges tema y colores para la aplicación. Instálala en tu teléfono: lo último sigue a mano aunque te quedes sin red.',
+    text: 'En Configuración eliges tu imagen —un zorro, una llama…—, los colores y el tema, y le das a cada categoría su color y su icono. Instálala en tu teléfono: lo último sigue a mano aunque te quedes sin red.',
   },
 ];
 

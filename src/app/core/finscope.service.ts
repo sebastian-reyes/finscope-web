@@ -21,6 +21,7 @@ import {
   SaveRecurringTransactionRequest,
   SaveTagRequest,
   SkipRecurringTransactionRequest,
+  SummaryConversion,
   SummaryGranularity,
   SummarySeriesResponse,
   TagResponse,
@@ -365,22 +366,52 @@ export class FinscopeService {
 
   // Agregados
 
-  /** Totales del periodo y desglose por tag, con los mismos filtros que el listado. */
-  getSummary(filters: TransactionFilters): Observable<TransactionSummaryResponse> {
+  /**
+   * Totales del periodo y desglose por tag, con los mismos filtros que el listado.
+   *
+   * @param filters filtros del periodo
+   * @param conversion si se quieren todas las monedas sumadas en una, cuál y a qué tipo
+   */
+  getSummary(
+    filters: TransactionFilters,
+    conversion?: SummaryConversion | null,
+  ): Observable<TransactionSummaryResponse> {
     return this.http.get<TransactionSummaryResponse>(`${this.api}/transactions/summary`, {
-      params: filterParams(filters),
+      params: conversionParams(filterParams(filters), conversion),
     });
   }
 
-  /** Evolución del periodo en tramos del tamaño indicado. */
+  /**
+   * Evolución del periodo en tramos del tamaño indicado.
+   *
+   * @param filters filtros del periodo
+   * @param granularity tamaño de cada tramo
+   * @param conversion si se quieren todas las monedas sumadas en una, cuál y a qué tipo
+   */
   getSummarySeries(
     filters: TransactionFilters,
     granularity: SummaryGranularity,
+    conversion?: SummaryConversion | null,
   ): Observable<SummarySeriesResponse> {
     return this.http.get<SummarySeriesResponse>(`${this.api}/transactions/summary/series`, {
-      params: filterParams(filters).set('granularity', granularity),
+      params: conversionParams(filterParams(filters), conversion).set('granularity', granularity),
     });
   }
+}
+
+/**
+ * Añade la conversión a los parámetros de un resumen. Con ella la moneda deja de acotar,
+ * así que se quita para que la petición diga lo mismo que la API va a hacer.
+ */
+function conversionParams(params: HttpParams, conversion?: SummaryConversion | null): HttpParams {
+  if (!conversion) {
+    return params;
+  }
+  let converted = params.delete('currency').set('convertTo', conversion.convertTo);
+  if (conversion.rate != null) {
+    converted = converted.set('rate', conversion.rate);
+  }
+  return converted;
 }
 
 /**

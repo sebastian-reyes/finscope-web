@@ -134,13 +134,85 @@
 // El balance es el número por el que se abre la aplicación: ocupa el sitio y el tamaño que
 // le corresponde, y los desgloses quedan debajo en tipografía normal.
 .fs-balance {
-  padding: 1.75rem 1.5rem;
+  padding: 1.5rem;
+}
+
+// El rótulo y el selector de vista comparten renglón: el selector es cómo se lee la cifra
+// de debajo, así que va pegado a ella y no en otra tarjeta.
+.fs-balance__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .fs-balance__label {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--fs-ink-muted);
+}
+
+// El selector en pequeño: son tres toques de preferencia, no la navegación de la tarjeta.
+.fs-views {
+  padding: 0.15rem;
+}
+
+.fs-views .fs-seg__btn {
+  padding: 0.25rem 0.65rem;
+  font-size: var(--fs-text-xs);
+}
+
+// Debajo de la cifra, en una línea: cómo va el gasto frente al mes anterior y cuántos
+// movimientos hay. Antes el recuento era una baldosa más y ocupaba una fila entera.
+.fs-balance__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.fs-balance__count {
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// Gastar menos es la buena noticia, así que baja en verde y sube en rojo: al revés que un
+// saldo, que es lo que confundiría una flecha sin color.
+.fs-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  font-size: var(--fs-text-xs);
+  font-weight: 550;
+}
+
+.fs-change--down {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income-ink);
+}
+
+.fs-change--up {
+  background-color: var(--fs-expense-tint);
+  color: var(--fs-expense);
+}
+
+// De dónde sale la cifra cuando se juntan monedas. Discreta, pero a la vista: un total en
+// dólares con soles dentro es una aproximación y no debe parecer otra cosa.
+.fs-balance__rate {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  font-size: var(--fs-text-xs);
+  line-height: 1.45;
+  color: var(--fs-ink-faint);
 }
 
 // Las herramientas de la cabecera de una tarjeta: el selector de moneda y el de reparto, que
@@ -154,6 +226,11 @@
 
 // Cada moneda del balance es un bloque completo —neto, frase y desglose— y no una fila mas:
 // son respuestas independientes a la misma pregunta, no partes de una suma.
+// Por moneda, el primer bloque no se pega al selector de arriba.
+.fs-balance__head + .fs-balance__block {
+  margin-top: 1rem;
+}
+
 .fs-balance__block + .fs-balance__block {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
@@ -170,27 +247,24 @@
 }
 
 .fs-balance__value {
-  margin: 0.35rem 0 0;
-  font-size: clamp(2.5rem, 8vw, 3.25rem);
+  margin: 0.5rem 0 0;
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
   font-weight: 720;
   line-height: 1.05;
   letter-spacing: -0.035em;
 }
 
-.fs-balance__hint {
-  margin: 0.35rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--fs-ink-muted);
+.fs-balance__value--sm {
+  font-size: clamp(1.75rem, 6vw, 2.25rem);
 }
 
 .fs-split {
   display: grid;
-  // Los tres importes en fila piden unos 19rem, y un teléfono estrecho no los tiene: en
-  // cuanto no caben los tres, la rejilla pasa sola a dos columnas y el tercero baja de
-  // línea, en vez de desbordar la tarjeta.
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  // Ingresos y egresos, uno al lado del otro siempre: son la pareja que explica el balance
+  // y se comparan mejor en la misma fila.
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 
 // Cada desglose en su propia baldosa hundida y no separados por una línea: así el bloque de
@@ -213,10 +287,6 @@
   font-size: 0.75rem;
   font-weight: 400;
   color: var(--fs-ink-muted);
-}
-
-.fs-split__count {
-  color: var(--fs-ink);
 }
 
 .fs-note {
@@ -248,4 +318,44 @@
 .fs-card__head .fs-seg__btn {
   padding: 0.25rem 0.7rem;
   font-size: var(--fs-text-sm);
+}
+
+// --- Saludo ---------------------------------------------------------------------------------
+// Como en el diseño: la imagen de la cuenta y un «Hola» antes de cualquier cifra.
+.fs-hello {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.fs-hello__avatar {
+  width: 3rem;
+  height: 3rem;
+}
+
+.fs-hello__title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.75rem);
+  font-weight: 680;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.fs-hello__hint {
+  margin: 0.15rem 0 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// En el teléfono el balance respira menos: es la primera tarjeta y tiene que dejar ver la
+// siguiente sin desplazar.
+@media (max-width: 767.98px) {
+  .fs-balance {
+    padding: 1.15rem 1.1rem;
+  }
+
+  .fs-split__item {
+    padding: 0.55rem 0.7rem;
+  }
 }

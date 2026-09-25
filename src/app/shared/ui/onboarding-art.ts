@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { COLOR_PRESETS } from '../../core/palette.service';
+import { AvatarComponent } from './avatar';
 import { LogoComponent } from './logo';
 import type { OnboardingSlide } from './onboarding';
 
@@ -17,7 +18,7 @@ import type { OnboardingSlide } from './onboarding';
 @Component({
   selector: 'fs-onboarding-art',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LogoComponent],
+  imports: [AvatarComponent, LogoComponent],
   templateUrl: './onboarding-art.html',
   styleUrl: './onboarding-art.scss',
 })
@@ -27,4 +28,7 @@ export class OnboardingArtComponent {
 
   /** Unas cuantas de las parejas que se pueden elegir, para el dibujo del último paso. */
   protected readonly swatches = COLOR_PRESETS.slice(0, 5);
+
+  /** Unas cuantas de las imágenes de perfil, con la llama delante como la elegida. */
+  protected readonly avatars = ['llama', 'fox', 'cat', 'piggy', 'owl'];
 }

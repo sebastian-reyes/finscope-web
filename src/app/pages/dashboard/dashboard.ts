@@ -1,10 +1,11 @@
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
+import { MoneyView, MoneyViewService } from '../../core/money-view.service';
 import { RefreshService } from '../../core/refresh.service';
 import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
@@ -17,12 +18,14 @@ import {
   Currency,
   CurrencySummaryResponse,
   RecurringOccurrenceResponse,
+  SummaryConversion,
   SummaryGranularity,
   SummarySeriesResponse,
   TransactionResponse,
   TransactionSummaryResponse,
 } from '../../core/models';
 import { AmountComponent } from '../../shared/ui/amount';
+import { AvatarComponent } from '../../shared/ui/avatar';
 import { BudgetSummaryComponent } from './budget-summary';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { QuickTransactionComponent } from './quick-transaction';
@@ -34,6 +37,16 @@ import { SegmentedDirective } from '../../shared/ui/segmented';
 
 /** Cuántos movimientos recientes se enseñan antes de mandar al historial completo. */
 const RECENT_SIZE = 6;
+
+/** Los mismos en un teléfono, donde cada uno es una pantalla más de desplazamiento. */
+const RECENT_SIZE_COMPACT = 4;
+
+/** Cómo ha cambiado el gasto respecto al mes anterior. */
+export interface ExpenseChange {
+  /** Porcentaje de cambio, siempre positivo: el sentido lo dice `direction`. */
+  percent: number;
+  direction: 'up' | 'down' | 'same';
+}
 
 /** Cuánto se queda resaltado el movimiento que se acaba de registrar. */
 const HIGHLIGHT_MS = 1800;
@@ -59,6 +72,7 @@ const WIDE = '(min-width: 992px)';
   selector: 'app-dashboard',
   imports: [
     AmountComponent,
+    AvatarComponent,
     BudgetSummaryComponent,
     DateFieldComponent,
     QuickTransactionComponent,
@@ -80,7 +94,90 @@ export class DashboardPage {
   private readonly editor = inject(TransactionEditorService);
   private readonly toasts = inject(ToastService);
 
+  private readonly moneyView = inject(MoneyViewService);
+
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
+
+  /** El mismo resumen del mes anterior, para decir cómo va este frente a aquel. */
+  protected readonly previous = signal<TransactionSummaryResponse | null>(null);
+
+  protected readonly user = this.auth.user;
+
+  /** El saludo de la cabecera, con el nombre de pila si la cuenta lo tiene. */
+  protected readonly greeting = computed(() => {
+    const first = this.user()?.displayName?.trim().split(/\s+/)[0];
+    return first ? `Hola, ${first}` : 'Hola';
+  });
+
+  /** Cómo ha elegido ver el dinero en este dispositivo. */
+  protected readonly view = this.moneyView.view;
+
+  protected readonly views: ReadonlyArray<{ value: MoneyView; label: string; hint: string }> = [
+    { value: 'PEN', label: 'S/', hint: 'Todo en soles' },
+    { value: 'USD', label: '$', hint: 'Todo en dólares' },
+    { value: 'split', label: 'Por moneda', hint: 'Cada moneda por separado' },
+  ];
+
+  /**
+   * El último tipo de cambio que se registró en dólares, que es la referencia para verlo
+   * todo en dólares. Nulo si todavía no se sabe o si no hay ningún movimiento en dólares.
+   */
+  protected readonly usdRate = computed(() => this.rates.lastRate('USD')?.rate ?? null);
+
+  /**
+   * La vista que de verdad se aplica. En dólares hace falta un tipo de referencia: si la
+   * cuenta nunca ha registrado nada en dólares no lo hay, y entonces se ve en soles, que es
+   * lo mismo que ver en dólares una cuenta que solo tiene soles, pero sin inventar un tipo.
+   */
+  protected readonly effectiveView = computed<MoneyView>(() =>
+    this.view() === 'USD' && this.rates.isKnown('USD') && !this.usdRate() ? 'PEN' : this.view(),
+  );
+
+  /**
+   * Si merece la pena ofrecer la elección de vista. Una cuenta que solo ha usado soles no
+   * tiene nada que juntar ni separar, y el selector sería ruido encima de su balance.
+   */
+  protected readonly offersViews = computed(
+    () => !!this.usdRate() || this.hasSeveralCurrencies() || this.view() !== 'PEN',
+  );
+
+  /** Cómo se piden los totales según la vista: convertidos a una moneda o sin convertir. */
+  private readonly conversion = computed<SummaryConversion | null>(() => {
+    switch (this.effectiveView()) {
+      case 'PEN':
+        return { convertTo: 'PEN' };
+      case 'USD':
+        return { convertTo: 'USD', rate: this.usdRate() };
+      default:
+        return null;
+    }
+  });
+
+  /**
+   * La moneda en la que hablan el reparto y la evolución: la de la vista si se juntan,
+   * y la elegida en la tarjeta del reparto si se ven por separado.
+   */
+  protected readonly displayCurrency = computed<Currency>(() => {
+    const view = this.effectiveView();
+    return view === 'split' ? this.currency() : view;
+  });
+
+  /** Los movimientos recientes que caben: menos en un teléfono. */
+  protected readonly recentShown = computed(() =>
+    this.recent().slice(0, this.isWide() ? RECENT_SIZE : RECENT_SIZE_COMPACT),
+  );
+
+  /** El nombre del mes anterior, para la comparación: «vs. agosto». */
+  protected readonly previousName = computed(() => {
+    const { month, year } = this.period();
+    const before = new Date(year!, month! - 2, 1);
+    return monthLabel(before.getMonth() + 1, before.getFullYear())
+      .split(' ')[0]
+      .toLowerCase();
+  });
+
+  /** El nombre del mes que se mira, para el rótulo del balance. */
+  protected readonly monthName = computed(() => this.title().split(' ')[0].toLowerCase());
   protected readonly series = signal<SummarySeriesResponse | null>(null);
   protected readonly recent = signal<TransactionResponse[]>([]);
   /** Plan del mes, para contestar a «voy bien» y no solo a «cuánto llevo gastado». */
@@ -203,6 +300,55 @@ export class DashboardPage {
   );
 
   /**
+   * Cómo ha cambiado el gasto frente al mes anterior. Se compara el gasto y no el balance:
+   * el porcentaje de un balance que pasa de positivo a negativo no significa nada, y «gastas
+   * un 12 % más» es la frase que de verdad se quiere leer.
+   *
+   * @param current lo gastado este mes
+   * @param before lo gastado el mes anterior, si se sabe
+   * @return el cambio, o nulo si el mes anterior no tuvo gastos con los que comparar
+   */
+  protected expenseChange(
+    current: number,
+    before: number | null | undefined,
+  ): ExpenseChange | null {
+    if (!before) {
+      return null;
+    }
+    const percent = Math.round(((current - before) / before) * 100);
+    return {
+      percent: Math.abs(percent),
+      direction: percent > 0 ? 'up' : percent < 0 ? 'down' : 'same',
+    };
+  }
+
+  /**
+   * Lo gastado el mes anterior en una moneda, para comparar en la vista por moneda.
+   *
+   * @param currency moneda del bloque
+   * @return lo gastado, o nulo si no hubo movimientos en ella
+   */
+  protected previousExpenseIn(currency: Currency): number | null {
+    return (
+      this.previous()?.byCurrency.find((total) => total.currency === currency)?.expense ?? null
+    );
+  }
+
+  /**
+   * Cambia cómo se ve el dinero y vuelve a pedir los totales. No se convierte nada en el
+   * navegador: la suma en soles usa el tipo de cada movimiento, y eso solo lo sabe la API.
+   *
+   * @param view la vista elegida
+   */
+  protected setView(view: MoneyView): void {
+    if (this.view() === view) {
+      return;
+    }
+    this.moneyView.set(view);
+    this.load();
+  }
+
+  /**
    * Nombre y simbolo con los que se rotula una moneda en pantalla.
    *
    * @param currency moneda a rotular
@@ -254,7 +400,19 @@ export class DashboardPage {
 
   constructor() {
     this.editor.refreshCatalogues();
+    // El tipo de referencia de los dólares se pide siempre, aunque se vea en soles: decide si
+    // se ofrece la vista en dólares, y es una sola petición pequeña.
+    this.rates.ensureLoaded('USD');
     this.load();
+
+    // Viendo en dólares, la primera carga espera al tipo de referencia. Cuando llega —o
+    // cuando se sabe que no hay ninguno y la vista cae a soles— se carga lo que se aparcó.
+    effect(() => {
+      if (this.view() === 'USD' && this.rates.isKnown('USD') && this.waitingForRate) {
+        this.waitingForRate = false;
+        untracked(() => this.load());
+      }
+    });
 
     // Arrastrar hacia abajo recarga esta pantalla. Aquí, además de los datos del mes, se
     // vuelve a preguntar quién es el usuario: el aviso de «te falta confirmar tu correo» sale
@@ -322,16 +480,34 @@ export class DashboardPage {
     this.load();
   }
 
+  /** Si la carga está esperando al tipo de referencia de los dólares. */
+  private waitingForRate = false;
+
   protected load(): void {
     this.loading.set(true);
     this.error.set(null);
+    if (this.view() === 'USD' && !this.rates.isKnown('USD')) {
+      this.waitingForRate = true;
+      return;
+    }
     const filters = this.period();
-    // El reparto y la evolucion van acotados a una moneda; el listado de los ultimos
-    // movimientos no, porque cada fila ensena la suya.
-    const scoped = { ...filters, currency: this.currency() };
+    const conversion = this.conversion();
+    // Juntando monedas se convierte todo y la moneda no acota; por separado, el reparto y la
+    // evolucion van acotados a la elegida. El listado de los ultimos movimientos no se acota
+    // nunca, porque cada fila ensena la suya.
+    const scoped = conversion ? filters : { ...filters, currency: this.currency() };
+    const { month, year } = filters;
+    const before = new Date(year!, month! - 2, 1);
+    const previousFilters = {
+      ...scoped,
+      month: before.getMonth() + 1,
+      year: before.getFullYear(),
+    };
     forkJoin({
-      summary: this.api.getSummary(scoped),
-      series: this.api.getSummarySeries(scoped, this.granularity),
+      summary: this.api.getSummary(scoped, conversion),
+      series: this.api.getSummarySeries(scoped, this.granularity, conversion),
+      // La comparación con el mes anterior es un adorno: si falla, el inicio no se entera.
+      previous: this.api.getSummary(previousFilters, conversion).pipe(catchError(() => of(null))),
       recent: this.api.listTransactions({
         ...filters,
         page: 0,
@@ -348,8 +524,9 @@ export class DashboardPage {
         .listRecurring(filters.month!, filters.year!)
         .pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ summary, series, recent, budgets, recurring }) => {
+      next: ({ summary, series, previous, recent, budgets, recurring }) => {
         this.summary.set(summary);
+        this.previous.set(previous);
         this.series.set(series);
         this.recent.set(recent.content);
         this.budgets.set(budgets ?? []);

@@ -269,7 +269,26 @@ export interface CurrencySummaryResponse {
  * Todo lo de un mismo nivel habla de la misma moneda —la del filtro, o la base— salvo
  * `byCurrency`, que es donde están todas.
  */
+/**
+ * Cómo se piden los totales cuando se quieren todas las monedas juntas.
+ *
+ * A soles, cada movimiento usa su propio tipo de cambio, así que no hace falta `rate` y el
+ * resultado es exacto. A otra moneda, lo que no esté en ella se divide por `rate`: cuántos
+ * soles vale una unidad de esa moneda.
+ */
+export interface SummaryConversion {
+  convertTo: Currency;
+  rate?: number | null;
+}
+
 export interface TransactionSummaryResponse {
+  /**
+   * Moneda de las cifras de primer nivel y de los desgloses: la pedida, la base, o aquella a
+   * la que se convirtió.
+   */
+  currency?: Currency;
+  /** Tipo de referencia usado al convertir a una moneda que no es la base; nulo si no. */
+  rate?: number | null;
   income: number;
   expense: number;
   /** Diferencia entre income y expense; negativa si se gastó de más. */
@@ -313,6 +332,8 @@ export interface SummaryBucketResponse {
  * Solo trae los tramos con alguna transacción: los huecos los rellena el cliente.
  */
 export interface SummarySeriesResponse {
+  /** Moneda de los tramos. */
+  currency?: Currency;
   granularity: SummaryGranularity;
   buckets: SummaryBucketResponse[];
 }

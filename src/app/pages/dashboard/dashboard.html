@@ -1,8 +1,25 @@
-<header class="fs-period">
+<!--
+  El saludo, como en el diseño: la cara de la cuenta y su nombre antes que cualquier cifra.
+  El mes va debajo, con sus flechas, porque es lo que se cambia; el saludo solo acompaña.
+-->
+<header class="fs-hello">
+  <fs-avatar
+    class="fs-hello__avatar"
+    [avatar]="user()?.avatar"
+    [name]="user()?.displayName"
+    [email]="user()?.email"
+  />
+  <div class="fs-hello__text">
+    <h1 class="fs-hello__title">{{ greeting() }}</h1>
+    <p class="fs-hello__hint">Aquí tienes un resumen de tu mes.</p>
+  </div>
+</header>
+
+<div class="fs-period">
   <button class="fs-period__step" type="button" (click)="shiftMonth(-1)" aria-label="Mes anterior">
     <i class="bi bi-chevron-left" aria-hidden="true"></i>
   </button>
-  <h1 class="fs-period__title">
+  <h2 class="fs-period__title">
     <span class="visually-hidden">{{ title() }}</span>
     <fs-date-field
       variant="plain"
@@ -12,7 +29,7 @@
       (valueChange)="setMonthValue($event)"
       [max]="today"
     />
-  </h1>
+  </h2>
   <button
     class="fs-period__step"
     type="button"
@@ -22,7 +39,7 @@
   >
     <i class="bi bi-chevron-right" aria-hidden="true"></i>
   </button>
-</header>
+</div>
 
 @if (emailUnverified()) {
   <div class="fs-alert fs-alert--warn" role="status">
@@ -43,33 +60,131 @@
 
 <div class="fs-dash">
   <section class="fs-panel fs-balance fs-dash__balance" aria-labelledby="balanceTitle">
-    <p class="fs-balance__label" id="balanceTitle">Balance del periodo</p>
+    <div class="fs-balance__head">
+      <p class="fs-balance__label" id="balanceTitle">Balance de {{ monthName() }}</p>
+
+      <!--
+        Cómo ver el dinero: todo en soles, todo en dólares o cada moneda aparte. Solo se ofrece
+        a quien ha usado dólares alguna vez; con solo soles no hay nada que juntar.
+      -->
+      @if (offersViews()) {
+        <div class="fs-seg fs-views" role="group" aria-label="Cómo ver el dinero">
+          @for (option of views; track option.value) {
+            <button
+              type="button"
+              class="fs-seg__btn"
+              [class.is-active]="view() === option.value"
+              [attr.aria-pressed]="view() === option.value"
+              [attr.title]="option.hint"
+              [attr.aria-label]="option.hint"
+              [disabled]="option.value === 'USD' && !usdRate()"
+              (click)="setView(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+      }
+    </div>
 
     @if (loading()) {
       <div class="fs-skeleton fs-skeleton--hero"></div>
       <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else if (effectiveView() !== 'split') {
+      @if (summary(); as totals) {
+        <p class="fs-balance__value">
+          <fs-amount [amount]="totals.net" [currency]="displayCurrency()" [signed]="true" />
+        </p>
+
+        <div class="fs-balance__meta">
+          @if (expenseChange(totals.expense, previous()?.expense); as change) {
+            <span class="fs-change fs-change--{{ change.direction }}">
+              <i
+                class="bi"
+                [class.bi-arrow-up]="change.direction === 'up'"
+                [class.bi-arrow-down]="change.direction === 'down'"
+                [class.bi-dash]="change.direction === 'same'"
+                aria-hidden="true"
+              ></i>
+              @if (change.direction === 'same') {
+                Gastas igual que en {{ previousName() }}
+              } @else {
+                Gastas {{ change.percent }} % {{ change.direction === 'up' ? 'más' : 'menos' }} que
+                en {{ previousName() }}
+              }
+            </span>
+          }
+          <span class="fs-balance__count">
+            @if (totals.transactionCount) {
+              {{ totals.transactionCount }}
+              {{ totals.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+            } @else {
+              Este mes todavía no tiene movimientos
+            }
+          </span>
+        </div>
+
+        @if (totals.rate) {
+          <p class="fs-balance__rate">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Aproximado: lo que está en soles, al tipo de {{ totals.rate }} que registraste por
+            última vez.
+          </p>
+        } @else if (hasSeveralCurrencies()) {
+          <p class="fs-balance__rate">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Tus dólares, a los soles que costaron el día de cada movimiento.
+          </p>
+        }
+
+        <div class="fs-split">
+          <div class="fs-split__item">
+            <span class="fs-split__label">
+              <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+            </span>
+            <fs-amount [amount]="totals.income" [currency]="displayCurrency()" code="INCOME" />
+          </div>
+          <div class="fs-split__item">
+            <span class="fs-split__label">
+              <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+            </span>
+            <fs-amount [amount]="totals.expense" [currency]="displayCurrency()" code="EXPENSE" />
+          </div>
+        </div>
+      }
     } @else if (currencyTotals().length) {
       <!--
-        Un balance por moneda, uno debajo de otro. No hay una cifra que los resuma: soles y
-        dolares no se suman, y ensenar su suma seria inventar dinero que no existe.
-        Con una sola moneda —lo normal— esto se ve exactamente igual que antes.
+        Cada moneda por separado, una debajo de otra, sin sumar nada: es la vista de quien
+        quiere ver cuántos dólares tiene como dólares.
       -->
       @for (totals of currencyTotals(); track totals.currency) {
         <div class="fs-balance__block">
-          @if (hasSeveralCurrencies()) {
-            <p class="fs-balance__currency">{{ currencyName(totals.currency) }}</p>
-          }
-          <p class="fs-balance__value">
+          <p class="fs-balance__currency">{{ currencyName(totals.currency) }}</p>
+          <p class="fs-balance__value fs-balance__value--sm">
             <fs-amount [amount]="totals.net" [currency]="totals.currency" [signed]="true" />
           </p>
-          <p class="fs-balance__hint">
-            {{
-              totals.net >= 0
-                ? 'Has ingresado más de lo que has gastado.'
-                : 'Has gastado más de lo que has ingresado.'
-            }}
-          </p>
-
+          <div class="fs-balance__meta">
+            @if (expenseChange(totals.expense, previousExpenseIn(totals.currency)); as change) {
+              <span class="fs-change fs-change--{{ change.direction }}">
+                <i
+                  class="bi"
+                  [class.bi-arrow-up]="change.direction === 'up'"
+                  [class.bi-arrow-down]="change.direction === 'down'"
+                  [class.bi-dash]="change.direction === 'same'"
+                  aria-hidden="true"
+                ></i>
+                @if (change.direction === 'same') {
+                  Igual que en {{ previousName() }}
+                } @else {
+                  {{ change.percent }} % {{ change.direction === 'up' ? 'más' : 'menos' }} gasto
+                }
+              </span>
+            }
+            <span class="fs-balance__count">
+              {{ totals.transactionCount }}
+              {{ totals.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+            </span>
+          </div>
           <div class="fs-split">
             <div class="fs-split__item">
               <span class="fs-split__label">
@@ -83,12 +198,6 @@
               </span>
               <fs-amount [amount]="totals.expense" [currency]="totals.currency" code="EXPENSE" />
             </div>
-            <div class="fs-split__item">
-              <span class="fs-split__label">
-                <i class="bi bi-receipt" aria-hidden="true"></i>Movimientos
-              </span>
-              <span class="fs-num fs-split__count">{{ totals.transactionCount }}</span>
-            </div>
           </div>
         </div>
       }
@@ -96,7 +205,7 @@
       <p class="fs-balance__value">
         <fs-amount [amount]="0" [signed]="true" />
       </p>
-      <p class="fs-balance__hint">Este mes todavía no tiene movimientos.</p>
+      <p class="fs-balance__count">Este mes todavía no tiene movimientos.</p>
     }
   </section>
 
@@ -128,11 +237,11 @@
       </h2>
       <div class="fs-card__tools">
         <!--
-          El selector de moneda solo aparece cuando hay mas de una. Un anillo no puede
-          repartir soles y dolares a la vez: sus porcentajes serian de una cantidad que no
-          existe, asi que aqui se elige de cual se habla.
+          El selector de moneda solo aparece viendo cada moneda por separado y con mas de una.
+          Juntandolas, el anillo ya reparte todo convertido; separadas, no puede repartir soles
+          y dolares a la vez, asi que aqui se elige de cual se habla.
         -->
-        @if (hasSeveralCurrencies()) {
+        @if (effectiveView() === 'split' && hasSeveralCurrencies()) {
           <div class="fs-money-switch" role="group" aria-label="Moneda del reparto">
             @for (option of currencyChoices(); track option) {
               <button
@@ -169,7 +278,7 @@
       <fs-spending-chart
         [byCategory]="totals.byCategory"
         [byTag]="totals.byTag"
-        [currency]="currency()"
+        [currency]="displayCurrency()"
         [mode]="breakdown()"
         [period]="chartPeriod()"
       />
@@ -233,7 +342,7 @@
     @if (loading()) {
       <div class="fs-skeleton fs-skeleton--chart"></div>
     } @else if (series(); as data) {
-      <fs-trend-chart [series]="data" [currency]="currency()" />
+      <fs-trend-chart [series]="data" [currency]="displayCurrency()" />
       <p class="fs-note">
         Solo aparecen los días con movimientos: un hueco significa que ese día no se movió nada.
       </p>
@@ -249,7 +358,7 @@
       <div class="fs-skeleton fs-skeleton--line"></div>
       <div class="fs-skeleton fs-skeleton--line"></div>
     } @else {
-      <fs-recent-transactions [transactions]="recent()" [highlightId]="highlightId()" />
+      <fs-recent-transactions [transactions]="recentShown()" [highlightId]="highlightId()" />
     }
   </section>
 </div>

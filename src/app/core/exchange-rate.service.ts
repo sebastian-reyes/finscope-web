@@ -49,6 +49,17 @@ export class ExchangeRateService {
   }
 
   /**
+   * Si ya se sabe cuál es el último tipo de cambio de una moneda, aunque la respuesta sea
+   * que no hay ninguno. Distingue «todavía no se ha mirado» de «no hay movimientos en ella».
+   *
+   * @param currency moneda por la que se pregunta
+   * @return si ya se ha consultado con éxito
+   */
+  isKnown(currency: Currency): boolean {
+    return currency in this.known();
+  }
+
+  /**
    * Se asegura de conocer el último tipo de cambio de una moneda, pidiéndolo si hace falta.
    *
    * Es el movimiento más reciente en esa moneda, sin acotar por periodo: quien no registra
