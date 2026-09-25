@@ -45,17 +45,9 @@
 
 // Lo que se lee de corrido —el nombre, el tipo, la categoría— cruza las dos columnas: son
 // una decisión cada uno y partirlos por la mitad los haría parecer campos sueltos.
-.fs-form__wide,
-.fs-form__actions {
+.fs-form__wide {
   grid-column: 1 / -1;
   min-width: 0;
-}
-
-.fs-form__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
 }
 
 .fs-kinds {
@@ -236,33 +228,6 @@
   color: var(--fs-ink-muted);
 }
 
-// --- Ajuste del importe real ------------------------------------------------------------
-.fs-adjust {
-  display: grid;
-  gap: 0.75rem;
-  align-items: end;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: t.$fs-bp-sm) {
-  .fs-adjust {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  }
-}
-
-.fs-adjust__field {
-  min-width: 0;
-}
-
-.fs-adjust__actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.fs-adjust__note {
-  grid-column: 1 / -1;
-}
-
 // --- Los que este mes no tocan ----------------------------------------------------------
 .fs-rest__list {
   list-style: none;
@@ -306,4 +271,9 @@
 .fs-new__amount .fs-field {
   flex: 1;
   min-width: 0;
+}
+
+// La nota va pegada a lo que explica, dentro de la hoja.
+.fs-sheet-note {
+  margin: 0;
 }

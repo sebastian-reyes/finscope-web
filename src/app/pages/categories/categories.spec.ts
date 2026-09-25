@@ -69,7 +69,7 @@ describe('CategoriesPage', () => {
     // etiqueta lleva su `[formGroup]`, y sin él el navegador recargaba la página en vez de
     // dar de alta nada.
     host()
-      .querySelector<HTMLFormElement>('.fs-create')!
+      .querySelector<HTMLFormElement>('#newCategoryForm')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/categories');

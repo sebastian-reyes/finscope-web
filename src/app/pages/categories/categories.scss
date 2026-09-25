@@ -20,16 +20,6 @@
   margin-bottom: 0.75rem;
 }
 
-.fs-style {
-  display: flex;
-  flex-direction: column;
-  margin-top: 1rem;
-}
-
-.fs-style .fs-label:not(:first-child) {
-  margin-top: 0.85rem;
-}
-
 .fs-foot {
   margin: 0 0 1rem;
   text-align: center;
@@ -272,29 +262,6 @@
   line-height: 1.45;
 }
 
-// --- Edición en la propia fila --------------------------------------------------------
-// Todo apilado, sin excepciones por ancho de ventana: al editar hay cuatro cosas en juego
-// —nombre, ámbito, botones y aviso— y ninguna combinación de ellas cabe en un renglón de una
-// tarjeta que puede medir un tercio de la página.
-.fs-edit {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.6rem;
-  width: 100%;
-}
-
-.fs-edit__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
-.fs-edit__note {
-  margin: 0;
-}
-
 // --- Elección del ámbito --------------------------------------------------------------
 // Mismos colores y mismos iconos que el par egreso/ingreso del formulario de registro, para
 // que elegir el ámbito de una categoría se lea igual que elegir el tipo de un movimiento.
@@ -339,20 +306,7 @@
   color: var(--fs-brand);
 }
 
-// --- Alta -----------------------------------------------------------------------------
-.fs-create {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
-}
-
-.fs-create__field {
-  flex: 1;
-  min-width: 10rem;
-}
-
-.fs-create__scope {
-  display: flex;
-  flex-direction: column;
+// La nota del ámbito va pegada a su elección, no al pie de la hoja.
+.fs-sheet-note {
+  margin: 0.5rem 0 0;
 }

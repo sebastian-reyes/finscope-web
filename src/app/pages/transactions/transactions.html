@@ -32,7 +32,11 @@
   </div>
 }
 
-<section class="fs-panel fs-filters" aria-label="Filtros">
+<!--
+  Las piezas que se repiten entre la tarjeta de filtros de escritorio y la versión de teléfono.
+  Se escriben una vez para que las dos no puedan acabar comportándose distinto.
+-->
+<ng-template #searchBox>
   <div class="fs-search">
     <i class="bi bi-search fs-search__icon" aria-hidden="true"></i>
     <label class="visually-hidden" for="filterSearch">
@@ -43,7 +47,7 @@
       class="fs-field fs-search__input"
       type="search"
       autocomplete="off"
-      placeholder="Buscar: dentista, Salud, ocio…"
+      [placeholder]="compact() ? 'Buscar movimientos' : 'Buscar: dentista, Salud, ocio…'"
       [value]="searchDraft()"
       (input)="onSearchInput($any($event.target).value)"
     />
@@ -58,173 +62,263 @@
       </button>
     }
   </div>
+</ng-template>
 
-  <div class="fs-filters__group fs-filters__period">
-    <div class="fs-seg" role="group" aria-label="Periodo">
-      <button
-        type="button"
-        class="fs-seg__btn"
-        [class.is-active]="periodMode() === 'month'"
-        [attr.aria-pressed]="periodMode() === 'month'"
-        (click)="setPeriodMode('month')"
-      >
-        Por mes
-      </button>
-      <button
-        type="button"
-        class="fs-seg__btn"
-        [class.is-active]="periodMode() === 'range'"
-        [attr.aria-pressed]="periodMode() === 'range'"
-        (click)="setPeriodMode('range')"
-      >
-        Entre fechas
-      </button>
-      <button
-        type="button"
-        class="fs-seg__btn"
-        [class.is-active]="periodMode() === 'all'"
-        [attr.aria-pressed]="periodMode() === 'all'"
-        (click)="setPeriodMode('all')"
-      >
-        Todo
-      </button>
-    </div>
+<ng-template #monthStepper>
+  <div class="fs-month">
+    <button type="button" class="fs-month__step" (click)="shiftMonth(-1)" aria-label="Mes anterior">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>
+    </button>
+    <fs-date-field
+      class="fs-month__picker"
+      variant="plain"
+      ariaLabel="Mes que se está mirando"
+      mode="month"
+      [value]="monthValue()"
+      (valueChange)="setMonthValue($event)"
+      [max]="today"
+    />
+    <button
+      type="button"
+      class="fs-month__step"
+      [disabled]="isCurrentMonth()"
+      (click)="shiftMonth(1)"
+      aria-label="Mes siguiente"
+    >
+      <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </button>
+  </div>
+</ng-template>
 
-    @switch (periodMode()) {
-      @case ('month') {
-        <div class="fs-month">
-          <button
-            type="button"
-            class="fs-month__step"
-            (click)="shiftMonth(-1)"
-            aria-label="Mes anterior"
-          >
-            <i class="bi bi-chevron-left" aria-hidden="true"></i>
-          </button>
-          <fs-date-field
-            class="fs-month__picker"
-            variant="plain"
-            ariaLabel="Mes que se está mirando"
-            mode="month"
-            [value]="monthValue()"
-            (valueChange)="setMonthValue($event)"
-            [max]="today"
-          />
-          <button
-            type="button"
-            class="fs-month__step"
-            [disabled]="isCurrentMonth()"
-            (click)="shiftMonth(1)"
-            aria-label="Mes siguiente"
-          >
-            <i class="bi bi-chevron-right" aria-hidden="true"></i>
-          </button>
-        </div>
-      }
-      @case ('range') {
-        <div class="fs-range">
-          <label class="visually-hidden" for="rangeFrom">Desde</label>
-          <fs-date-field
-            inputId="rangeFrom"
-            placeholder="Desde"
-            [clearable]="true"
-            [value]="from()"
-            (valueChange)="setFrom($event)"
-            [max]="today"
-          />
-          <span class="fs-range__sep" aria-hidden="true">→</span>
-          <label class="visually-hidden" for="rangeTo">Hasta</label>
-          <fs-date-field
-            inputId="rangeTo"
-            placeholder="Hasta"
-            [clearable]="true"
-            [value]="to()"
-            (valueChange)="setTo($event)"
-            [max]="today"
-          />
-        </div>
-      }
-      @default {
-        <p class="fs-filters__note">Estás viendo tu historial completo.</p>
-      }
-    }
+<ng-template #periodControls>
+  <div class="fs-seg" role="group" aria-label="Periodo">
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="periodMode() === 'month'"
+      [attr.aria-pressed]="periodMode() === 'month'"
+      (click)="setPeriodMode('month')"
+    >
+      Por mes
+    </button>
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="periodMode() === 'range'"
+      [attr.aria-pressed]="periodMode() === 'range'"
+      (click)="setPeriodMode('range')"
+    >
+      Entre fechas
+    </button>
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="periodMode() === 'all'"
+      [attr.aria-pressed]="periodMode() === 'all'"
+      (click)="setPeriodMode('all')"
+    >
+      Todo
+    </button>
   </div>
 
-  <div class="fs-filters__group">
-    <div class="fs-seg" role="group" aria-label="Tipo de movimiento">
+  @switch (periodMode()) {
+    @case ('month') {
+      <ng-container [ngTemplateOutlet]="monthStepper" />
+    }
+    @case ('range') {
+      <div class="fs-range">
+        <label class="visually-hidden" for="rangeFrom">Desde</label>
+        <fs-date-field
+          inputId="rangeFrom"
+          placeholder="Desde"
+          [clearable]="true"
+          [value]="from()"
+          (valueChange)="setFrom($event)"
+          [max]="today"
+        />
+        <span class="fs-range__sep" aria-hidden="true">→</span>
+        <label class="visually-hidden" for="rangeTo">Hasta</label>
+        <fs-date-field
+          inputId="rangeTo"
+          placeholder="Hasta"
+          [clearable]="true"
+          [value]="to()"
+          (valueChange)="setTo($event)"
+          [max]="today"
+        />
+      </div>
+    }
+    @default {
+      <p class="fs-filters__note">Estás viendo tu historial completo.</p>
+    }
+  }
+</ng-template>
+
+<ng-template #kindControls>
+  <div class="fs-seg" role="group" aria-label="Tipo de movimiento">
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="filteredKind() === null"
+      [attr.aria-pressed]="filteredKind() === null"
+      (click)="setKind(null)"
+    >
+      Todos
+    </button>
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="filteredKind() === 'INCOME'"
+      [attr.aria-pressed]="filteredKind() === 'INCOME'"
+      (click)="setKind('INCOME')"
+    >
+      Ingresos
+    </button>
+    <button
+      type="button"
+      class="fs-seg__btn"
+      [class.is-active]="filteredKind() === 'EXPENSE'"
+      [attr.aria-pressed]="filteredKind() === 'EXPENSE'"
+      (click)="setKind('EXPENSE')"
+    >
+      Egresos
+    </button>
+  </div>
+</ng-template>
+
+@if (compact()) {
+  <!--
+    En el teléfono los filtros no pueden llevarse media pantalla: la lista es lo que se viene
+    a ver, y con todo abierto el primer movimiento quedaba por debajo del borde. Quedan a la
+    vista la búsqueda y el mes, que es lo que se toca casi siempre; el resto vive en una hoja
+    y, mientras está puesto, se enseña en fichas que se quitan de un toque.
+  -->
+  <section class="fs-filters fs-filters--compact" aria-label="Filtros">
+    <div class="fs-filters__bar">
+      <ng-container [ngTemplateOutlet]="searchBox" />
       <button
         type="button"
-        class="fs-seg__btn"
-        [class.is-active]="filteredKind() === null"
-        [attr.aria-pressed]="filteredKind() === null"
-        (click)="setKind(null)"
+        class="fs-filters__open"
+        [class.is-active]="activeFilters().length"
+        aria-haspopup="dialog"
+        (click)="openFilters()"
       >
-        Todos
-      </button>
-      <button
-        type="button"
-        class="fs-seg__btn"
-        [class.is-active]="filteredKind() === 'INCOME'"
-        [attr.aria-pressed]="filteredKind() === 'INCOME'"
-        (click)="setKind('INCOME')"
-      >
-        Ingresos
-      </button>
-      <button
-        type="button"
-        class="fs-seg__btn"
-        [class.is-active]="filteredKind() === 'EXPENSE'"
-        [attr.aria-pressed]="filteredKind() === 'EXPENSE'"
-        (click)="setKind('EXPENSE')"
-      >
-        Egresos
+        <i class="bi bi-sliders2" aria-hidden="true"></i>
+        <span>Filtros</span>
+        @if (activeFilters().length; as count) {
+          <span class="fs-filters__count" [attr.aria-label]="count + ' puestos'">{{ count }}</span>
+        }
       </button>
     </div>
 
-    <fs-select-field
-      class="fs-filters__select"
-      inputId="filterCategory"
-      ariaLabel="Categoría"
-      [options]="categoryOptions()"
-      [value]="categoryId() ? categoryId() + '' : ''"
-      (valueChange)="setCategory($event)"
-    />
+    <div class="fs-filters__when">
+      @switch (periodMode()) {
+        @case ('month') {
+          <ng-container [ngTemplateOutlet]="monthStepper" />
+        }
+        @case ('range') {
+          <button type="button" class="fs-when" (click)="openFilters()">
+            <i class="bi bi-calendar-range" aria-hidden="true"></i>{{ rangeSummary() }}
+            <i class="bi bi-chevron-down fs-when__caret" aria-hidden="true"></i>
+          </button>
+        }
+        @default {
+          <button type="button" class="fs-when" (click)="openFilters()">
+            <i class="bi bi-clock-history" aria-hidden="true"></i>Todo el historial
+            <i class="bi bi-chevron-down fs-when__caret" aria-hidden="true"></i>
+          </button>
+        }
+      }
+    </div>
 
-    <fs-select-field
-      class="fs-filters__select"
-      inputId="filterTag"
-      ariaLabel="Tag"
-      [options]="tagOptions()"
-      [value]="tag() ?? ''"
-      (valueChange)="setTag($event)"
-    />
+    @if (activeFilters().length) {
+      <div class="fs-active" role="group" aria-label="Filtros puestos">
+        @for (filter of activeFilters(); track filter.key) {
+          <button
+            type="button"
+            class="fs-active__chip"
+            [class.fs-active__chip--colored]="filter.chip"
+            [attr.aria-label]="'Quitar el filtro ' + filter.label"
+            (click)="removeFilter(filter.key)"
+          >
+            @switch (filter.chip) {
+              @case ('category') {
+                <fs-category-chip [name]="filter.label" />
+              }
+              @case ('tag') {
+                <fs-tag-chip [name]="filter.label" />
+              }
+              @default {
+                <i class="bi {{ filter.icon }}" aria-hidden="true"></i>{{ filter.label }}
+              }
+            }
+            <i class="bi bi-x-lg fs-active__x" aria-hidden="true"></i>
+          </button>
+        }
+        @if (activeFilters().length > 1) {
+          <button type="button" class="fs-active__clear" (click)="clearRefinements()">
+            Quitar todos
+          </button>
+        }
+      </div>
+    }
+  </section>
+} @else {
+  <section class="fs-panel fs-filters" aria-label="Filtros">
+    <ng-container [ngTemplateOutlet]="searchBox" />
 
-    <!--
-      El filtro de moneda aparece cuando hay algo que filtrar. Mientras todo esta en la
-      moneda base es un desplegable con una sola respuesta posible, y eso es ruido.
-    -->
-    @if (hasSeveralCurrencies() || currency()) {
+    <div class="fs-filters__group fs-filters__period">
+      <ng-container [ngTemplateOutlet]="periodControls" />
+    </div>
+
+    <div class="fs-filters__group">
+      <ng-container [ngTemplateOutlet]="kindControls" />
+
       <fs-select-field
         class="fs-filters__select"
-        inputId="filterCurrency"
-        ariaLabel="Moneda"
-        [options]="currencyOptions()"
-        [value]="currency() ?? ''"
-        (valueChange)="setCurrency($event)"
+        inputId="filterCategory"
+        ariaLabel="Categoría"
+        [options]="categoryOptions()"
+        [value]="categoryId() ? categoryId() + '' : ''"
+        (valueChange)="setCategory($event)"
       />
-    }
 
-    @if (isFiltered()) {
-      <button
-        class="fs-btn fs-btn--sm fs-btn--ghost fs-filters__clear"
-        type="button"
-        (click)="clearFilters()"
-      >
-        <i class="bi bi-x-circle" aria-hidden="true"></i>Limpiar
-      </button>
-    }
-  </div>
-</section>
+      <fs-select-field
+        class="fs-filters__select"
+        inputId="filterTag"
+        ariaLabel="Tag"
+        [options]="tagOptions()"
+        [value]="tag() ?? ''"
+        (valueChange)="setTag($event)"
+      />
+
+      <!--
+        El filtro de moneda aparece cuando hay algo que filtrar. Mientras todo esta en la
+        moneda base es un desplegable con una sola respuesta posible, y eso es ruido.
+      -->
+      @if (hasSeveralCurrencies() || currency()) {
+        <fs-select-field
+          class="fs-filters__select"
+          inputId="filterCurrency"
+          ariaLabel="Moneda"
+          [options]="currencyOptions()"
+          [value]="currency() ?? ''"
+          (valueChange)="setCurrency($event)"
+        />
+      }
+
+      @if (isFiltered()) {
+        <button
+          class="fs-btn fs-btn--sm fs-btn--ghost fs-filters__clear"
+          type="button"
+          (click)="clearFilters()"
+        >
+          <i class="bi bi-x-circle" aria-hidden="true"></i>Limpiar
+        </button>
+      }
+    </div>
+  </section>
+}
 
 <!--
   Una tarjeta por moneda. Los importes de monedas distintas no se suman —mil soles no son
@@ -467,5 +561,123 @@
 
 <p class="fs-foot-note">
   ¿Buscas un tag concreto o quieres renombrarlo?
-  <a routerLink="/tags">Ve a tu catálogo de tags</a>.
+  <a routerLink="/account/tags">Ve a tu catálogo de tags</a>.
 </p>
+
+@if (filtersOpen()) {
+  <!--
+    La hoja de filtros, con la forma de la de registrar: sube desde abajo, que es donde está
+    el pulgar. Cada elección se aplica al momento —la lista de detrás ya está filtrada al
+    cerrarla— y el botón de abajo solo dice cuántos quedan y cierra.
+  -->
+  <fs-bottom-sheet
+    title="Filtros"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeFilters()"
+  >
+    <div class="fs-fgroup">
+      <p class="fs-fgroup__label">Periodo</p>
+      <div class="fs-fgroup__period">
+        <ng-container [ngTemplateOutlet]="periodControls" />
+      </div>
+    </div>
+
+    <div class="fs-fgroup">
+      <p class="fs-fgroup__label">Tipo</p>
+      <ng-container [ngTemplateOutlet]="kindControls" />
+    </div>
+
+    <!--
+      Fichas y no desplegables: dentro de una hoja que se desplaza, un menú flotante se
+      recorta contra su borde, y con el pulgar es más rápido tocar lo que ya se ve que
+      abrir una lista para buscarlo.
+    -->
+    <div class="fs-fgroup" role="group" aria-labelledby="pickCategoryLabel">
+      <p class="fs-fgroup__label" id="pickCategoryLabel">Categoría</p>
+      <div class="fs-picks">
+        <button
+          type="button"
+          class="fs-pick"
+          [class.is-active]="categoryId() === null"
+          [attr.aria-pressed]="categoryId() === null"
+          (click)="setCategory('')"
+        >
+          Todas
+        </button>
+        @for (option of categoryOptions().slice(1); track option.value) {
+          <button
+            type="button"
+            class="fs-pick fs-pick--chip"
+            [class.is-active]="categoryId() + '' === option.value"
+            [attr.aria-pressed]="categoryId() + '' === option.value"
+            (click)="setCategory(option.value)"
+          >
+            <fs-category-chip [name]="option.label" />
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (catalogue().length) {
+      <div class="fs-fgroup" role="group" aria-labelledby="pickTagLabel">
+        <p class="fs-fgroup__label" id="pickTagLabel">Tag</p>
+        <div class="fs-picks">
+          <button
+            type="button"
+            class="fs-pick"
+            [class.is-active]="tag() === null"
+            [attr.aria-pressed]="tag() === null"
+            (click)="setTag('')"
+          >
+            Todos
+          </button>
+          @for (option of tagOptions().slice(1); track option.value) {
+            <button
+              type="button"
+              class="fs-pick fs-pick--chip"
+              [class.is-active]="tag() === option.value"
+              [attr.aria-pressed]="tag() === option.value"
+              (click)="setTag(option.value)"
+            >
+              <fs-tag-chip [name]="option.label" />
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @if (hasSeveralCurrencies() || currency()) {
+      <div class="fs-fgroup" role="group" aria-labelledby="pickCurrencyLabel">
+        <p class="fs-fgroup__label" id="pickCurrencyLabel">Moneda</p>
+        <div class="fs-picks">
+          @for (option of currencyOptions(); track option.value) {
+            <button
+              type="button"
+              class="fs-pick"
+              [class.is-active]="(currency() ?? '') === option.value"
+              [attr.aria-pressed]="(currency() ?? '') === option.value"
+              (click)="setCurrency(option.value)"
+            >
+              {{ option.value ? option.label : 'Todas' }}
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="fs-sheet-foot" sheetFoot>
+      @if (isFiltered()) {
+        <button type="button" class="fs-btn fs-btn--ghost" (click)="clearFilters()">Limpiar</button>
+      }
+      <button type="button" class="fs-btn fs-btn--solid fs-fsheet__done" (click)="closeFilters()">
+        @if (summary(); as totals) {
+          Ver {{ totals.transactionCount }}
+          {{ totals.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
+        } @else {
+          Ver resultados
+        }
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}

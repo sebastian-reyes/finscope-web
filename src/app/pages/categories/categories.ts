@@ -6,6 +6,7 @@ import { RefreshService } from '../../core/refresh.service';
 import { ToastService } from '../../core/toast.service';
 import { CategoryResponse, CategoryScope } from '../../core/models';
 import { describeError } from '../../core/api-error';
+import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { ChipColorPickerComponent } from '../../shared/ui/chip-color-picker';
 import { ChipIconPickerComponent } from '../../shared/ui/chip-icon-picker';
@@ -70,6 +71,7 @@ interface CategoryGroup extends Scope {
 @Component({
   selector: 'app-categories',
   imports: [
+    BottomSheetComponent,
     ReactiveFormsModule,
     RouterLink,
     CategoryChipComponent,
@@ -124,6 +126,11 @@ export class CategoriesPage {
     name: ['', [Validators.required, Validators.maxLength(70)]],
   });
 
+  /** La categoría que se está editando, que es lo que abre su hoja. */
+  protected readonly editing = computed(
+    () => this.categories().find((category) => category.id === this.editingId()) ?? null,
+  );
+
   protected readonly newName = this.newForm.controls.name;
   protected readonly editName = this.editForm.controls.name;
 
@@ -177,20 +184,17 @@ export class CategoriesPage {
    * @param scope ámbito con el que nace la categoría
    */
   protected openCreate(scope: CategoryScope): void {
-    this.showCreate.set(true);
+    this.editingId.set(null);
+    this.confirmingId.set(null);
     this.newName.reset('');
     this.newScope.set(scope);
     this.newColor.set(null);
     this.newIcon.set(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.showCreate.set(true);
   }
 
-  protected toggleCreate(): void {
-    this.showCreate.set(!this.showCreate());
-    this.newName.reset('');
-    this.newScope.set('EXPENSE');
-    this.newColor.set(null);
-    this.newIcon.set(null);
+  protected closeCreate(): void {
+    this.showCreate.set(false);
   }
 
   /**
@@ -223,6 +227,7 @@ export class CategoriesPage {
   }
 
   protected startEdit(category: CategoryResponse): void {
+    this.showCreate.set(false);
     this.editingId.set(category.id);
     this.confirmingId.set(null);
     this.editName.setValue(category.name);

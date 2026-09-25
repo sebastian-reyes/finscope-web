@@ -26,26 +26,6 @@
   text-align: center;
 }
 
-// --- Alta -------------------------------------------------------------------------------
-// En una fila cuando cabe: elegir la categoría y poner la cifra son un solo gesto, y
-// partirlos en dos renglones hacía parecer que eran dos decisiones.
-.fs-new {
-  display: grid;
-  gap: 0.75rem;
-  align-items: end;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: t.$fs-bp-sm) {
-  .fs-new {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
-  }
-}
-
-.fs-new__field {
-  min-width: 0;
-}
-
 // --- Total del mes ----------------------------------------------------------------------
 // Abre la pantalla porque es la pregunta con la que se entra: «¿voy bien este mes?». El
 // detalle por categoría contesta a la siguiente, que es «¿y dónde voy mal?».
@@ -124,24 +104,6 @@
   color: var(--fs-ink-muted);
 }
 
-// --- Cambio del importe -----------------------------------------------------------------
-.fs-edit {
-  width: 100%;
-}
-
-.fs-edit__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-// El campo no se estira hasta el borde: un importe de cuatro cifras no necesita media
-// pantalla, y ensanchándolo se pierde de vista contra qué se está comparando.
-.fs-edit__row .fs-field {
-  flex: 0 1 10rem;
-}
-
 // El campo del importe y su moneda van juntos: la moneda es lo que decide que significa el
 // numero que se acaba de escribir, y separarla dejaria el dato principal a medias.
 .fs-new__amount {
@@ -170,4 +132,9 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--fs-ink-muted);
+}
+
+// La nota va pegada al campo al que se refiere, dentro de la hoja.
+.fs-sheet-note {
+  margin: 0.5rem 0 0;
 }

@@ -26,10 +26,11 @@ import {
   TransactionTypeCode,
   TransactionTypeResponse,
 } from '../../core/models';
+import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
-import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
+import { SelectOption } from '../../shared/ui/select-field';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
 import { TagsFieldComponent } from '../../shared/ui/tags-field';
 
@@ -109,10 +110,10 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
   selector: 'app-recurring',
   imports: [
     ReactiveFormsModule,
+    BottomSheetComponent,
     CategoryPickerComponent,
     DateFieldComponent,
     SegmentedDirective,
-    SelectFieldComponent,
     TagsFieldComponent,
     TagChipComponent,
   ],
@@ -144,6 +145,11 @@ export class RecurringPage {
 
   /** Fijo cuyo importe real se está ajustando antes de confirmarlo. */
   protected readonly adjustingId = signal<number | null>(null);
+
+  /** El fijo cuyo mes se está registrando con otro importe, que es lo que abre su hoja. */
+  protected readonly adjusting = computed(
+    () => this.items().find((item) => item.id === this.adjustingId()) ?? null,
+  );
 
   /** Fijo cuya eliminación espera confirmación en su propia fila. */
   protected readonly confirmingId = signal<number | null>(null);
@@ -306,11 +312,10 @@ export class RecurringPage {
 
   // --- Alta y cambio de la plantilla ------------------------------------------------------
 
-  protected toggleForm(): void {
-    if (this.showForm()) {
-      this.closeForm();
-      return;
-    }
+  protected openForm(): void {
+    this.editingId.set(null);
+    this.adjustingId.set(null);
+    this.confirmingId.set(null);
     this.resetForm();
     this.showForm.set(true);
   }
@@ -429,6 +434,8 @@ export class RecurringPage {
 
   /** Abre el ajuste con lo previsto ya puesto: casi siempre solo cambia el importe. */
   protected startAdjust(item: RecurringOccurrenceResponse): void {
+    this.showForm.set(false);
+    this.editingId.set(null);
     this.adjustingId.set(item.id);
     this.confirmingId.set(null);
     const control = this.adjustForm.controls.exchangeRate;

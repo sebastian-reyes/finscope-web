@@ -11,9 +11,8 @@
     <button class="fs-btn fs-btn--outline" type="button" (click)="reload()" aria-label="Recargar">
       <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
     </button>
-    <button class="fs-btn fs-btn--solid" type="button" (click)="toggleCreate()">
-      <i class="bi" [class.bi-plus-lg]="!showCreate()" [class.bi-x-lg]="showCreate()"></i>
-      {{ showCreate() ? 'Cerrar' : 'Nuevo tag' }}
+    <button class="fs-btn fs-btn--solid" type="button" (click)="openCreate()">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo tag
     </button>
   </div>
 </header>
@@ -26,42 +25,6 @@
       <p>{{ error() }}</p>
     </div>
   </div>
-}
-
-@if (showCreate()) {
-  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
-    <form class="fs-create" [formGroup]="newForm" (ngSubmit)="create()">
-      <div class="fs-create__field">
-        <label class="fs-label" for="newTag">Nombre del tag</label>
-        <input
-          id="newTag"
-          class="fs-field"
-          maxlength="70"
-          autocomplete="off"
-          placeholder="alimentación"
-          formControlName="name"
-        />
-      </div>
-      <button class="fs-btn fs-btn--solid" type="submit" [disabled]="saving() || newName.invalid">
-        Crear
-      </button>
-    </form>
-    <div class="fs-style">
-      <span class="fs-label">Icono</span>
-      <fs-chip-icon-picker [name]="newName.value" [(value)]="newIcon" />
-      <span class="fs-label">Color</span>
-      <fs-chip-color-picker
-        kind="tag"
-        [name]="newName.value"
-        [icon]="newIcon()"
-        [(value)]="newColor"
-      />
-    </div>
-    <p class="fs-note">
-      No hace falta darlos de alta aquí: al registrar un movimiento, el tag que escribas se crea
-      solo.
-    </p>
-  </section>
 }
 
 @if (loading()) {
@@ -79,46 +42,8 @@
 
     <ul class="fs-rows">
       @for (tag of tags(); track tag.id) {
-        <li class="fs-row" [class.is-wide]="editingId() === tag.id || confirmingId() === tag.id">
-          @if (editingId() === tag.id) {
-            <form class="fs-row__edit" [formGroup]="editForm" (ngSubmit)="saveEdit(tag)">
-              <input
-                class="fs-field fs-field--sm fs-row__field"
-                maxlength="70"
-                autocomplete="off"
-                formControlName="name"
-                (keyup.escape)="cancelEdit()"
-              />
-              <button
-                class="fs-btn fs-btn--sm fs-btn--solid"
-                type="submit"
-                [disabled]="saving() || editName.invalid"
-              >
-                Guardar
-              </button>
-              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
-                Cancelar
-              </button>
-              <fs-chip-icon-picker
-                class="fs-row__style"
-                [name]="editName.value"
-                [(value)]="editIcon"
-              />
-              <fs-chip-color-picker
-                class="fs-row__style"
-                kind="tag"
-                [name]="editName.value"
-                [icon]="editIcon()"
-                [(value)]="editColor"
-              />
-              @if (tag.transactionCount) {
-                <p class="fs-note fs-row__note">
-                  El cambio se verá en {{ tag.transactionCount }}
-                  {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
-                </p>
-              }
-            </form>
-          } @else if (confirmingId() === tag.id) {
+        <li class="fs-row" [class.is-wide]="confirmingId() === tag.id">
+          @if (confirmingId() === tag.id) {
             <div class="fs-row__confirm">
               <span>
                 ¿Borrar <strong>{{ tag.name }}</strong
@@ -212,4 +137,114 @@
       Registrar un movimiento
     </a>
   </section>
+}
+
+<!-- Alta y edición en la misma hoja que el resto de la aplicación. -->
+@if (showCreate()) {
+  <fs-bottom-sheet
+    title="Nuevo tag"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeCreate()"
+  >
+    <form id="newTagForm" class="fs-sheet-form" [formGroup]="newForm" (ngSubmit)="create()">
+      <div>
+        <label class="fs-label" for="newTag">Nombre del tag</label>
+        <input
+          id="newTag"
+          class="fs-field"
+          maxlength="70"
+          autocomplete="off"
+          placeholder="alimentación"
+          formControlName="name"
+        />
+        <p class="fs-note fs-sheet-note">
+          No hace falta darlos de alta aquí: al registrar un movimiento, el tag que escribas se crea
+          solo.
+        </p>
+      </div>
+
+      <div>
+        <span class="fs-label">Icono</span>
+        <fs-chip-icon-picker [name]="newName.value" [(value)]="newIcon" />
+      </div>
+
+      <div>
+        <span class="fs-label">Color</span>
+        <fs-chip-color-picker
+          kind="tag"
+          [name]="newName.value"
+          [icon]="newIcon()"
+          [(value)]="newColor"
+        />
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="closeCreate()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="newTagForm"
+        [disabled]="saving() || newName.invalid"
+      >
+        Crear
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}
+
+@if (editing(); as tag) {
+  <fs-bottom-sheet
+    title="Editar tag"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="cancelEdit()"
+  >
+    <form id="editTagForm" class="fs-sheet-form" [formGroup]="editForm" (ngSubmit)="saveEdit(tag)">
+      <div>
+        <label class="fs-label" for="editTag">Nombre del tag</label>
+        <input
+          id="editTag"
+          class="fs-field"
+          maxlength="70"
+          autocomplete="off"
+          formControlName="name"
+        />
+        @if (tag.transactionCount) {
+          <p class="fs-note fs-sheet-note">
+            El cambio se verá en {{ tag.transactionCount }}
+            {{ tag.transactionCount === 1 ? 'movimiento' : 'movimientos' }}.
+          </p>
+        }
+      </div>
+
+      <div>
+        <span class="fs-label">Icono</span>
+        <fs-chip-icon-picker [name]="editName.value" [(value)]="editIcon" />
+      </div>
+
+      <div>
+        <span class="fs-label">Color</span>
+        <fs-chip-color-picker
+          kind="tag"
+          [name]="editName.value"
+          [icon]="editIcon()"
+          [(value)]="editColor"
+        />
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="cancelEdit()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="editTagForm"
+        [disabled]="saving() || editName.invalid"
+      >
+        Guardar
+      </button>
+    </div>
+  </fs-bottom-sheet>
 }

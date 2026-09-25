@@ -26,7 +26,7 @@ const DONE = 'done';
  *
  * No viaja en el perfil: quien se registra en el ordenador y abre luego el teléfono no lo ve
  * dos veces, pero tampoco lo ve en el teléfono. Para eso haría falta tocar el contrato, y el
- * recorrido se puede volver a abrir desde Mi cuenta.
+ * recorrido se puede volver a abrir desde la configuración.
  */
 @Injectable({ providedIn: 'root' })
 export class OnboardingService {

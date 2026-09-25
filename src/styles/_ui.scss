@@ -329,3 +329,91 @@
 .text-nowrap {
   white-space: nowrap;
 }
+
+// --- Formulario dentro de una hoja ---------------------------------------------------------
+// Presupuestos, categorías, tags y fijos se crean y se editan en la misma hoja que los
+// filtros y el registro. Todo apilado: en una hoja no hay ancho que repartir, y un campo por
+// renglón es lo que se rellena de arriba abajo con el pulgar.
+.fs-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.fs-sheet-form .fs-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+// El pie de la hoja: la acción principal se lleva el ancho y la secundaria queda a su lado.
+.fs-sheet-actions {
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.fs-sheet-actions .fs-btn--solid {
+  flex: 1;
+}
+
+// --- Elección en fichas --------------------------------------------------------------------
+// Dentro de una hoja, las opciones se tocan en vez de abrirse en un desplegable: un menú
+// flotante se recortaría contra el borde de la hoja, y con el pulgar es más rápido tocar lo
+// que ya se ve que abrir una lista para buscarlo.
+.fs-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.fs-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--fs-line);
+  border-radius: 999px;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink);
+  font: inherit;
+  font-size: var(--fs-text-sm);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+
+  i {
+    color: var(--fs-ink-muted);
+  }
+
+  &.is-active {
+    border-color: var(--fs-brand);
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-weight: 550;
+
+    i {
+      color: inherit;
+    }
+  }
+}
+
+// Categorías y tags llevan su ficha, con el color con que se ven en la lista: se reconocen
+// antes de leerlas. La elegida se marca con un anillo por fuera, como las muestras de color de
+// la configuración, porque un tinte encima pisaría el color que la identifica.
+.fs-pick--chip {
+  min-height: 0;
+  padding: 0.2rem;
+  border-color: transparent;
+  background: none;
+
+  &.is-active {
+    border-color: transparent;
+    background: none;
+    box-shadow: 0 0 0 2px var(--fs-ink);
+  }
+}

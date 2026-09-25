@@ -9,6 +9,9 @@ import {
   model,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { CategoryChipComponent } from './category-chip';
+import { TagChipComponent } from './tag-chip';
 
 /** Una opción del desplegable. */
 export interface SelectOption {
@@ -19,6 +22,11 @@ export interface SelectOption {
   icon?: string;
   /** Texto secundario a la derecha, como el número de movimientos. */
   hint?: string;
+  /**
+   * Si la opción es una categoría o un tag, se dibuja como su ficha, con su color y su
+   * icono, en lugar de como texto: es como se reconoce en el resto de la aplicación.
+   */
+  chip?: 'category' | 'tag';
 }
 
 /** A partir de cuántas opciones deja de servir recorrer la lista con la vista. */
@@ -47,6 +55,7 @@ let nextId = 1;
 @Component({
   selector: 'fs-select-field',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CategoryChipComponent, NgTemplateOutlet, TagChipComponent],
   host: {
     '(document:click)': 'onDocumentClick($event)',
     '(keydown.escape)': 'close()',
@@ -68,10 +77,10 @@ let nextId = 1;
       (keydown)="onKeydown($event)"
     >
       @if (selected(); as option) {
-        @if (option.icon) {
-          <i class="bi {{ option.icon }} fs-select__icon" aria-hidden="true"></i>
-        }
-        <span class="fs-select__label text-truncate">{{ option.label }}</span>
+        <ng-container
+          [ngTemplateOutlet]="optionBody"
+          [ngTemplateOutletContext]="{ $implicit: option }"
+        />
       }
       <i class="bi bi-chevron-down fs-select__caret" aria-hidden="true"></i>
     </button>
@@ -111,10 +120,10 @@ let nextId = 1;
               (click)="pick(option)"
               (mouseenter)="activeIndex.set(index)"
             >
-              @if (option.icon) {
-                <i class="bi {{ option.icon }} fs-select__icon" aria-hidden="true"></i>
-              }
-              <span class="fs-select__label text-truncate">{{ option.label }}</span>
+              <ng-container
+                [ngTemplateOutlet]="optionBody"
+                [ngTemplateOutletContext]="{ $implicit: option }"
+              />
               @if (option.hint) {
                 <span class="fs-select__hint fs-num">{{ option.hint }}</span>
               }
@@ -128,8 +137,33 @@ let nextId = 1;
         </ul>
       </div>
     }
+
+    <!-- Lo que se ve de una opción, igual en el botón y en la lista. -->
+    <ng-template #optionBody let-option>
+      @switch (option.chip) {
+        @case ('category') {
+          <span class="fs-select__chip"><fs-category-chip [name]="option.label" /></span>
+        }
+        @case ('tag') {
+          <span class="fs-select__chip"><fs-tag-chip [name]="option.label" /></span>
+        }
+        @default {
+          @if (option.icon) {
+            <i class="bi {{ option.icon }} fs-select__icon" aria-hidden="true"></i>
+          }
+          <span class="fs-select__label text-truncate">{{ option.label }}</span>
+        }
+      }
+    </ng-template>
   `,
   styles: `
+    /* La ficha ocupa el sitio del rótulo y se recorta como él si el nombre no cabe. */
+    .fs-select__chip {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+    }
+
     :host {
       position: relative;
       display: inline-block;

@@ -12,17 +12,6 @@
   color: var(--fs-ink-muted);
 }
 
-.fs-create {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-}
-
-.fs-create__field {
-  flex: 1;
-  min-width: 0;
-}
-
 // El catálogo en baldosas y no en una lista de filas de ancho completo. Un tag es un nombre
 // corto y un contador: puesto en una fila que cruza la pantalla, deja casi todo el renglón
 // vacío, y con pocos tags la tarjeta entera se ve desierta. En rejilla, quepan tres o
@@ -61,8 +50,8 @@
   background-color: var(--fs-hover);
 }
 
-// Renombrar o confirmar un borrado necesita más sitio del que da una baldosa: esa ocupa la
-// fila entera mientras dure, y vuelve a su hueco al terminar.
+// Confirmar un borrado necesita más sitio del que da una baldosa: esa ocupa la fila entera
+// mientras dure, y vuelve a su hueco al terminar.
 .fs-row.is-wide {
   grid-column: 1 / -1;
 }
@@ -110,7 +99,6 @@
   gap: 0.15rem;
 }
 
-.fs-row__edit,
 .fs-row__confirm {
   display: flex;
   flex-wrap: wrap;
@@ -123,32 +111,9 @@
   justify-content: space-between;
 }
 
-.fs-row__field {
-  flex: 1;
-  min-width: 8rem;
-  width: auto;
-}
-
-.fs-row__note {
-  width: 100%;
-  margin: 0;
-}
-
-// Los selectores ocupan cada uno su renglón bajo el nombre: en la misma línea que los
-// botones no caben las diez muestras de color ni en un ordenador.
-.fs-row__style {
-  width: 100%;
-  padding-top: 0.25rem;
-}
-
-.fs-style {
-  display: flex;
-  flex-direction: column;
-  margin-top: 1rem;
-}
-
-.fs-style .fs-label:not(:first-child) {
-  margin-top: 0.85rem;
+// La nota va pegada al campo al que se refiere, dentro de la hoja.
+.fs-sheet-note {
+  margin: 0.5rem 0 0;
 }
 
 // La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;

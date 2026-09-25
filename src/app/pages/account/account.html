@@ -1,510 +1,104 @@
-<header class="fs-head">
-  <div>
-    <h1 class="fs-head__title">Mi cuenta</h1>
-    <p class="fs-head__hint">
-      Tus datos de acceso y el aspecto con el que ves la aplicación. Nada de esto cambia tus
-      movimientos.
-    </p>
-  </div>
-</header>
-
 <!--
-  Dos columnas en escritorio: a la izquierda quién eres —tus datos y los avisos que recibes—,
-  a la derecha cómo ves la aplicación. Antes era una sola pila y, como ningún formulario de
-  esta pantalla se estira a lo ancho de un monitor, cada tarjeta gastaba dos tercios de su
-  ancho en papel en blanco y el aspecto quedaba a una pantalla de desplazamiento.
-
-  Las dos envolturas se disuelven con `display: contents` por debajo de 992 px, así que en
-  móvil las secciones vuelven a ser hijas de la página y se leen en el orden de siempre.
+  Menú y pantalla hija. En el teléfono se turnan —la clase `has-detail` dice cuál toca— y en
+  escritorio se ven a la vez, el menú a la izquierda.
 -->
-<div class="fs-account">
-  <div class="fs-account__col">
-    <section class="fs-panel fs-block" aria-labelledby="datosTitle">
-      <p class="fs-section" id="datosTitle">Tus datos</p>
+<div class="fs-settings" [class.has-detail]="section()">
+  <div
+    class="fs-settings__menu"
+    [class.fs-view-in--back]="returned()"
+    (animationend)="onMenuAnimationEnd($event)"
+  >
+    <header class="fs-head">
+      <h1 class="fs-head__title">Configuración</h1>
+    </header>
 
-      <form class="fs-form" (submit)="onSubmit($event)">
-        <div>
-          <label class="fs-label" for="accountName">Nombre</label>
-          <input
-            id="accountName"
-            type="text"
-            class="fs-field"
-            maxlength="70"
-            autocomplete="name"
-            placeholder="Cómo quieres que te llamemos"
-            [value]="name()"
-            [disabled]="saving()"
-            (input)="name.set($any($event.target).value)"
-          />
-          <p class="fs-hint">
-            Es lo que aparece arriba a la derecha. Puedes dejarlo en blanco y se usará tu correo.
-          </p>
-        </div>
+    <a
+      class="fs-panel fs-profile"
+      routerLink="/account/profile"
+      routerLinkActive="is-active"
+      ariaCurrentWhenActive="page"
+      aria-label="Tus datos"
+    >
+      <span class="fs-profile__avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="fs-profile__text">
+        <span class="fs-profile__name text-truncate">{{
+          user()?.displayName || 'Ponte un nombre'
+        }}</span>
+        <span class="fs-profile__email text-truncate">{{ user()?.email }}</span>
+      </span>
+      <i class="bi bi-chevron-right fs-row__chevron" aria-hidden="true"></i>
+    </a>
 
-        @if (changed()) {
-          <div class="fs-form__actions" animate.enter="fs-anim-expand">
-            <button
-              type="button"
-              class="fs-btn fs-btn--ghost"
-              [disabled]="saving()"
-              (click)="discard()"
-            >
-              Descartar
-            </button>
-            <button type="submit" class="fs-btn fs-btn--solid" [disabled]="saving()">
-              @if (saving()) {
-                <span class="fs-spinner" aria-hidden="true"></span>
-                Guardando…
-              } @else {
-                Guardar nombre
-              }
-            </button>
-          </div>
-        }
-      </form>
-
-      <!--
-        El correo vive fuera del formulario del nombre y no dentro: su cambio es otro trámite ---
-        pide contraseña y termina en el buzón, no en el botón de guardar --- y, más abajo, un
-        formulario dentro de otro es HTML que el navegador descarta.
-      -->
-      <div class="fs-form">
-        <div>
-          <span class="fs-label" id="accountEmailLabel">Correo</span>
-          <p class="fs-email" aria-labelledby="accountEmailLabel">
-            <span class="fs-email__address">{{ user()?.email }}</span>
-            @if (verified()) {
-              <span class="fs-badge fs-badge--ok">
-                <i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verificado
-              </span>
-            } @else {
-              <span class="fs-badge">
-                <i class="bi bi-exclamation-circle" aria-hidden="true"></i>Sin verificar
-              </span>
-            }
-          </p>
-
-          @if (!verified()) {
-            <p class="fs-hint">
-              Nadie ha comprobado todavía que recibas correo aquí. Hasta hacerlo no podrías
-              recuperar tu contraseña si la olvidaras, porque el enlace iría a esta dirección.
-            </p>
-            <button
-              type="button"
-              class="fs-btn fs-btn--soft fs-btn--sm fs-email__action"
-              [disabled]="sendingVerification()"
-              (click)="resendVerification()"
-            >
-              @if (sendingVerification()) {
-                <span class="fs-spinner" aria-hidden="true"></span>
-                Mandando…
-              } @else {
-                <i class="bi bi-envelope-check" aria-hidden="true"></i>Mandarme el enlace
-              }
-            </button>
-          }
-
-          @if (pendingEmail(); as pending) {
-            <!--
-            El cambio queda a medias a propósito: la cuenta sigue entrando con el correo de
-            arriba hasta que se pulse el enlace que acaba de salir hacia la dirección nueva. Se
-            dice aquí, junto al correo viejo, porque es justo lo que puede extrañar al recargar.
-          -->
-            <div class="fs-alert fs-alert--warn fs-email__pending" role="status">
-              <i class="bi bi-envelope-arrow-up" aria-hidden="true"></i>
-              <div>
-                <p class="fs-alert__title">Confirma tu correo nuevo</p>
-                <p>
-                  Hemos mandado un enlace a <strong>{{ pending }}</strong
-                  >. Hasta que lo pulses, sigues entrando con el de arriba. Vale una hora.
-                </p>
-              </div>
-            </div>
-          }
-
-          @if (changingEmail()) {
-            <form
-              class="fs-email__form"
-              (submit)="onEmailSubmit($event)"
-              animate.enter="fs-anim-expand"
-            >
-              <div>
-                <label class="fs-label" for="newEmail">Correo nuevo</label>
-                <input
-                  id="newEmail"
-                  type="email"
-                  class="fs-field"
-                  inputmode="email"
-                  autocomplete="email"
-                  maxlength="255"
-                  placeholder="tu@correo.com"
-                  [value]="newEmail()"
-                  [disabled]="sendingChange()"
-                  (input)="newEmail.set($any($event.target).value)"
-                />
-              </div>
-
-              <div>
-                <label class="fs-label" for="currentPassword">Tu contraseña</label>
-                <div class="fs-reveal">
-                  <input
-                    id="currentPassword"
-                    class="fs-field"
-                    [type]="showPassword() ? 'text' : 'password'"
-                    autocomplete="current-password"
-                    maxlength="72"
-                    placeholder="••••••••"
-                    [value]="password()"
-                    [disabled]="sendingChange()"
-                    (input)="password.set($any($event.target).value)"
-                  />
-                  <button
-                    type="button"
-                    class="fs-reveal__btn"
-                    (click)="showPassword.set(!showPassword())"
-                    [attr.aria-label]="
-                      showPassword() ? 'Ocultar la contraseña' : 'Ver la contraseña'
-                    "
-                  >
-                    <i
-                      class="bi"
-                      [class.bi-eye]="!showPassword()"
-                      [class.bi-eye-slash]="showPassword()"
-                      aria-hidden="true"
-                    ></i>
-                  </button>
-                </div>
-                <p class="fs-hint">
-                  El correo es con lo que entras, así que se pide la contraseña para cambiarlo. Al
-                  antiguo le avisamos del intento.
-                </p>
-              </div>
-
-              <div class="fs-form__actions">
-                <button
-                  type="button"
-                  class="fs-btn fs-btn--ghost"
-                  [disabled]="sendingChange()"
-                  (click)="toggleEmailForm()"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  class="fs-btn fs-btn--solid"
-                  [disabled]="sendingChange() || !canSubmitEmail()"
-                >
-                  @if (sendingChange()) {
-                    <span class="fs-spinner" aria-hidden="true"></span>
-                    Mandando…
-                  } @else {
-                    Mandar el enlace
-                  }
-                </button>
-              </div>
-            </form>
-          } @else {
-            <button
-              type="button"
-              class="fs-btn fs-btn--ghost fs-btn--sm fs-email__action"
-              (click)="toggleEmailForm()"
-            >
-              <i class="bi bi-pencil" aria-hidden="true"></i>Cambiar mi correo
-            </button>
-          }
-        </div>
-
+    <nav class="fs-panel fs-menu" aria-label="Ajustes">
+      @for (item of menu; track item.slug) {
         <!--
-          La contraseña no se teclea aquí: se cambia con el mismo enlace que la recupera cuando se
-          olvida. Es el único camino que da el contrato --- no hay un cambio con la contraseña
-          actual --- y es además el que deja fuera a quien se encuentre esta sesión abierta sin
-          saberla: el permiso para cambiarla es recibir el correo, no tener la pantalla delante.
+          Marcada a mano y no con routerLinkActive: una fila puede abrir varias pantallas
+          hermanas —categorías y tags— y tiene que seguir marcada en cualquiera de ellas.
         -->
-        <div>
-          <span class="fs-label">Contraseña</span>
-          <p class="fs-hint">
-            Se cambia desde un enlace que mandamos a <strong>{{ user()?.email }}</strong
-            >. Vale una hora, sirve una sola vez y, al usarlo, se cierran todas las sesiones
-            abiertas, esta incluida.
-          </p>
-
-          @if (passwordLinkSent()) {
-            <div class="fs-alert fs-alert--warn fs-password__sent" role="status">
-              <i class="bi bi-envelope-check" aria-hidden="true"></i>
-              <div>
-                <p class="fs-alert__title">Mira tu correo</p>
-                <p>
-                  El enlace para elegir una contraseña nueva va camino de
-                  <strong>{{ user()?.email }}</strong
-                  >. Si no llega, míralo en el correo no deseado antes de volver a pedirlo.
-                </p>
-              </div>
-            </div>
+        <a
+          class="fs-row"
+          [routerLink]="item.tabs ? item.tabs[0].path : ['/account', item.slug]"
+          [class.is-active]="section()?.slug === item.slug"
+          [attr.aria-current]="section()?.slug === item.slug ? 'page' : null"
+        >
+          <span class="fs-row__icon"><i class="bi {{ item.icon }}" aria-hidden="true"></i></span>
+          <span class="fs-row__label">{{ item.title }}</span>
+          @if (status()[item.slug]; as value) {
+            <span class="fs-row__value" [class.is-warn]="warns()[item.slug]">{{ value }}</span>
           }
-
-          <button
-            type="button"
-            class="fs-btn fs-btn--soft fs-btn--sm fs-email__action"
-            [disabled]="sendingPassword()"
-            (click)="sendPasswordLink()"
-          >
-            @if (sendingPassword()) {
-              <span class="fs-spinner" aria-hidden="true"></span>
-              Mandando…
-            } @else {
-              <i class="bi bi-key" aria-hidden="true"></i>
-              {{ passwordLinkSent() ? 'Volver a mandarlo' : 'Cambiar mi contraseña' }}
-            }
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="fs-panel fs-block" aria-labelledby="avisosTitle">
-      <p class="fs-section" id="avisosTitle">Avisos</p>
-
-      <!--
-        Los avisos llegan aunque la aplicación esté cerrada: los manda la API cuando un fijo vence
-        o un presupuesto llega a su límite. Lo que se activa aquí es este dispositivo; las
-        preferencias, en cambio, son de la cuenta y valen para todos.
-      -->
-      @switch (pushStatus()) {
-        @case ('install-required') {
-          <div class="fs-alert fs-alert--warn fs-push__note" role="status">
-            <i class="bi bi-phone" aria-hidden="true"></i>
-            <div>
-              <p class="fs-alert__title">Primero, instala FinScope</p>
-              <p>
-                En iPhone y iPad los avisos solo funcionan con la aplicación en la pantalla de
-                inicio. Pulsa <i class="bi bi-box-arrow-up" aria-label="Compartir"></i>
-                <strong>Compartir</strong> → <strong>Añadir a pantalla de inicio</strong>, ábrela
-                desde ahí y vuelve a esta pantalla.
-              </p>
-            </div>
-          </div>
-        }
-        @case ('unsupported') {
-          <p class="fs-hint">
-            Este navegador no admite avisos. En el móvil, instala FinScope desde el navegador y
-            actívalos desde la aplicación instalada.
-          </p>
-        }
-        @case ('loading') {
-          <div class="fs-skeleton fs-push__skeleton"></div>
-        }
-        @case ('unavailable') {
-          <p class="fs-hint">Los avisos no están disponibles por ahora.</p>
-        }
-        @case ('denied') {
-          <div class="fs-alert fs-alert--warn fs-push__note" role="status">
-            <i class="bi bi-bell-slash" aria-hidden="true"></i>
-            <div>
-              <p class="fs-alert__title">Los avisos están bloqueados</p>
-              <p>
-                Bloqueaste los avisos de FinScope en este dispositivo y la aplicación ya no puede
-                volver a pedirlos. Permítelos en los ajustes de notificaciones del teléfono o del
-                navegador y vuelve aquí.
-              </p>
-            </div>
-          </div>
-        }
-        @case ('off') {
-          <p class="fs-hint fs-push__lead">
-            Te avisamos el día antes y el mismo día de cada movimiento fijo pendiente, y cuando un
-            presupuesto se acerca a su límite. Llegan aunque no abras la aplicación.
-          </p>
-          <button
-            type="button"
-            class="fs-btn fs-btn--solid fs-push__action"
-            [disabled]="pushBusy()"
-            (click)="enablePush()"
-          >
-            @if (pushBusy()) {
-              <span class="fs-spinner" aria-hidden="true"></span>
-              Activando…
-            } @else {
-              <i class="bi bi-bell" aria-hidden="true"></i>Activar avisos en este dispositivo
-            }
-          </button>
-        }
-        @case ('on') {
-          <p class="fs-push__state">
-            <span class="fs-badge fs-badge--ok">
-              <i class="bi bi-bell-fill" aria-hidden="true"></i>Activos en este dispositivo
-            </span>
-          </p>
-
-          @if (preferences(); as prefs) {
-            <div class="fs-push__prefs" role="group" aria-label="Qué avisos recibir">
-              <label class="fs-toggle">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  [checked]="prefs.recurringDue"
-                  (change)="setPreference('recurringDue', $any($event.target).checked)"
-                />
-                <span class="fs-toggle__track" aria-hidden="true"></span>
-                <span class="fs-toggle__text">
-                  <span class="fs-toggle__title">Movimientos fijos</span>
-                  <span class="fs-toggle__hint"
-                    >El día antes y el mismo día, si siguen pendientes</span
-                  >
-                </span>
-              </label>
-              <label class="fs-toggle">
-                <input
-                  type="checkbox"
-                  role="switch"
-                  [checked]="prefs.budgetLimit"
-                  (change)="setPreference('budgetLimit', $any($event.target).checked)"
-                />
-                <span class="fs-toggle__track" aria-hidden="true"></span>
-                <span class="fs-toggle__text">
-                  <span class="fs-toggle__title">Presupuestos</span>
-                  <span class="fs-toggle__hint">Al llegar al 90 % y al pasarte</span>
-                </span>
-              </label>
-            </div>
-          } @else {
-            <div class="fs-skeleton fs-push__skeleton"></div>
-          }
-
-          <p class="fs-hint">
-            Qué avisos recibir vale para todos tus dispositivos. Salen entre las 8:00 y las 21:00.
-          </p>
-
-          <div class="fs-push__buttons">
-            <button
-              type="button"
-              class="fs-btn fs-btn--soft fs-btn--sm"
-              [disabled]="sendingTest()"
-              (click)="sendTestNotification()"
-            >
-              @if (sendingTest()) {
-                <span class="fs-spinner" aria-hidden="true"></span>
-                Mandando…
-              } @else {
-                <i class="bi bi-send" aria-hidden="true"></i>Mandarme un aviso de prueba
-              }
-            </button>
-            <button
-              type="button"
-              class="fs-btn fs-btn--ghost fs-btn--sm"
-              [disabled]="pushBusy()"
-              (click)="disablePush()"
-            >
-              <i class="bi bi-bell-slash" aria-hidden="true"></i>Desactivar en este dispositivo
-            </button>
-          </div>
-        }
+          <i class="bi bi-chevron-right fs-row__chevron" aria-hidden="true"></i>
+        </a>
       }
-    </section>
-  </div>
-
-  <div class="fs-account__col">
-    <section class="fs-panel fs-block" aria-labelledby="aspectoTitle">
-      <p class="fs-section" id="aspectoTitle">Aspecto</p>
-
-      <div class="fs-seg" role="group" aria-label="Aspecto de la aplicación">
-        @for (option of themes; track option.value) {
-          <button
-            type="button"
-            class="fs-seg__btn"
-            [class.is-active]="preference() === option.value"
-            [attr.aria-pressed]="preference() === option.value"
-            (click)="setTheme(option.value)"
-          >
-            <i class="bi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}
-          </button>
-        }
-      </div>
-
-      <p class="fs-hint">
-        Se recuerda en este navegador. Siguiendo al sistema, cambia solo cuando lo hace tu
-        dispositivo.
-      </p>
-    </section>
-
-    <section class="fs-panel fs-block" aria-labelledby="coloresTitle">
-      <p class="fs-section" id="coloresTitle">Colores</p>
-
-      <!--
-        Una muestra de lo que cambia, y no una fila de cuadraditos sueltos: el icono, el botón de
-        registrar, un botón macizo, el círculo de los huecos vacíos y una barra de presupuesto son
-        los cinco sitios donde la pareja se ve de verdad, así que se enseñan juntos y se mueven
-        mientras se elige. Es decorativa —lo que representa está debajo, en palabras—, de ahí
-        que no se anuncie.
-      -->
-      <div class="fs-preview" aria-hidden="true">
-        <fs-logo class="fs-preview__mark" />
-        <span class="fs-preview__fab"><i class="bi bi-plus-lg"></i></span>
-        <span class="fs-preview__btn">Guardar</span>
-        <span class="fs-preview__accent"><i class="bi bi-inbox"></i></span>
-        <span class="fs-preview__bar"><span></span></span>
-      </div>
-
-      @for (slot of slots; track slot.role) {
-        <div class="fs-slot">
-          <p class="fs-label" [id]="slot.role + 'Label'">{{ slot.label }}</p>
-
-          <div class="fs-swatches" role="group" [attr.aria-labelledby]="slot.role + 'Label'">
-            @for (preset of presets; track preset.hex) {
-              <button
-                type="button"
-                class="fs-swatch"
-                [style.background-color]="preset.hex"
-                [class.is-active]="current(slot.role) === preset.hex"
-                [attr.aria-pressed]="current(slot.role) === preset.hex"
-                [attr.aria-label]="preset.name"
-                [attr.title]="preset.name"
-                (click)="setColor(slot.role, preset.hex)"
-              ></button>
-            }
-
-            <!--
-              El campo de color nativo hace de duodécima muestra: enseña el color puesto ahora
-              —sea de la lista o no— y al pulsarlo abre el selector del sistema, que es el que
-              ya sabe usar quien llega aquí.
-            -->
-            <span class="fs-swatch fs-swatch--custom">
-              <input
-                type="color"
-                [value]="current(slot.role)"
-                [attr.aria-label]="slot.custom"
-                [attr.title]="slot.custom"
-                (input)="setColor(slot.role, $any($event.target).value)"
-              />
-              <i class="bi bi-eyedropper" aria-hidden="true"></i>
-            </span>
-          </div>
-
-          <p class="fs-hint">{{ slot.hint }}</p>
-        </div>
-      }
-
-      @if (!isDefaultPalette()) {
-        <button type="button" class="fs-btn fs-btn--ghost fs-reset" (click)="resetColors()">
-          <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>Restablecer
-        </button>
-      }
-    </section>
+    </nav>
 
     <!--
-      El recorrido solo se abre solo al crear la cuenta. Quien lo omitió con prisa, o quiere
-      enseñarle la aplicación a otra persona, lo encuentra aquí.
+      Lo que no es un ajuste sino una acción va aparte, como en el diseño: el recorrido se
+      abre encima de lo que haya y cerrar la sesión saca de la aplicación, así que ninguna
+      de las dos lleva flecha de «entrar».
     -->
-    <section class="fs-panel fs-block" aria-labelledby="recorridoTitle">
-      <p class="fs-section" id="recorridoTitle">Primeros pasos</p>
+    <div class="fs-panel fs-menu">
+      <button type="button" class="fs-row" (click)="replayOnboarding()">
+        <span class="fs-row__icon"><i class="bi bi-question-circle" aria-hidden="true"></i></span>
+        <span class="fs-row__label">
+          Ayuda: ver el recorrido
+          <span class="fs-row__hint">Un minuto por todo lo que puedes hacer en FinScope</span>
+        </span>
+        <i class="bi bi-play-circle fs-row__chevron" aria-hidden="true"></i>
+      </button>
 
-      <div class="fs-tour-row">
-        <p class="fs-hint">
-          Un repaso de un minuto por lo que puedes hacer en FinScope: registrar, entender en qué se
-          va tu dinero, presupuestos, pagos fijos y avisos.
-        </p>
-        <button type="button" class="fs-btn fs-btn--soft" (click)="replayOnboarding()">
-          <i class="bi bi-play-circle" aria-hidden="true"></i>Ver el recorrido
-        </button>
-      </div>
-    </section>
+      <button
+        type="button"
+        class="fs-row fs-row--danger"
+        [disabled]="signingOut()"
+        (click)="signOut()"
+      >
+        <span class="fs-row__icon"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></span>
+        <span class="fs-row__label">
+          @if (signingOut()) {
+            Cerrando sesión…
+          } @else {
+            Cerrar sesión
+          }
+        </span>
+      </button>
+    </div>
   </div>
+
+  <section class="fs-settings__detail" [attr.aria-label]="section()?.title">
+    @if (section(); as current) {
+      <header class="fs-detail-head">
+        <a class="fs-back" routerLink="/account">
+          <i class="bi bi-chevron-left" aria-hidden="true"></i>Configuración
+        </a>
+        @if (current.tabs; as tabs) {
+          <!-- Cada pantalla hermana trae su título: aquí basta con saltar entre ellas. -->
+          <fs-catalogue-tabs [tabs]="tabs" [label]="current.title" />
+        } @else {
+          <h2 class="fs-head__title" id="settingsDetailTitle">{{ current.title }}</h2>
+          <p class="fs-head__hint">{{ current.hint }}</p>
+        }
+      </header>
+    }
+    <router-outlet [fsSlide]="destinations" />
+  </section>
 </div>

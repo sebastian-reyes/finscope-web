@@ -42,37 +42,30 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/transactions/transactions').then((m) => m.TransactionsPage),
   },
+  // Categorías y tags viven ahora en la configuración. Las direcciones de antes siguen
+  // llevando a su sitio: puede haber enlaces guardados o una pestaña abierta con ellas.
+  { path: 'categories', redirectTo: '/account/categories' },
+  { path: 'tags', redirectTo: '/account/tags' },
   // La redirección de la raíz va antes que el marco de catálogos: aquel no tiene segmento
   // propio, así que la URL vacía también le encaja y dejaba la pantalla sin ninguna de las
   // dos listas dentro.
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
-    // Ruta sin segmento propio: las dos pantallas conservan sus direcciones y solo comparten
-    // el marco, que es lo que mantiene vivo el conmutador al saltar de una a otra.
+    // El plan del mes. Ruta sin segmento propio: las dos pantallas conservan sus direcciones
+    // y solo comparten el marco, que es lo que mantiene vivo el conmutador al saltar.
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/catalogues/catalogues').then((m) => m.CataloguesPage),
     children: [
       {
-        path: 'categories',
-        loadComponent: () => import('./pages/categories/categories').then((m) => m.CategoriesPage),
-      },
-      {
-        // Los presupuestos comparten marco con las categorías porque son de ellas: se fijan
-        // por categoría y se dejan de mirar en cuanto se cierra el mes.
         path: 'budgets',
         loadComponent: () => import('./pages/budgets/budgets').then((m) => m.BudgetsPage),
       },
       {
-        // Los fijos van entre el plan y los tags porque son la otra mitad del plan: el
-        // presupuesto dice cuánto se piensa gastar y el fijo dice qué parte de eso ya
-        // tiene dueño antes de empezar el mes.
+        // Los fijos son la otra mitad del plan: el presupuesto dice cuánto se piensa
+        // gastar y el fijo dice qué parte de eso ya tiene dueño antes de empezar el mes.
         path: 'recurring',
         loadComponent: () => import('./pages/recurring/recurring').then((m) => m.RecurringPage),
-      },
-      {
-        path: 'tags',
-        loadComponent: () => import('./pages/tags/tags').then((m) => m.TagsPage),
       },
     ],
   },
@@ -80,6 +73,40 @@ export const routes: Routes = [
     path: 'account',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/account/account').then((m) => m.AccountPage),
+    // Sin hija vacía a propósito: en `/account` solo se ve el menú, que en el teléfono es la
+    // pantalla entera y en escritorio lleva a los datos por su cuenta.
+    children: [
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./pages/account/profile/profile').then((m) => m.AccountProfilePage),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./pages/account/notifications/notifications').then(
+            (m) => m.AccountNotificationsPage,
+          ),
+      },
+      {
+        path: 'security',
+        loadComponent: () =>
+          import('./pages/account/security/security').then((m) => m.AccountSecurityPage),
+      },
+      {
+        path: 'categories',
+        loadComponent: () => import('./pages/categories/categories').then((m) => m.CategoriesPage),
+      },
+      {
+        path: 'tags',
+        loadComponent: () => import('./pages/tags/tags').then((m) => m.TagsPage),
+      },
+      {
+        path: 'appearance',
+        loadComponent: () =>
+          import('./pages/account/appearance/appearance').then((m) => m.AccountAppearancePage),
+      },
+    ],
   },
   { path: '**', redirectTo: 'dashboard' },
 ];

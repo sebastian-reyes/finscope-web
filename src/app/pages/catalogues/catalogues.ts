@@ -1,33 +1,38 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
+import { CatalogueTabsComponent, SectionTab } from '../../shared/ui/catalogue-tabs';
 import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 
+/** Las dos caras del plan del mes, en el orden del razonamiento. */
+export const PLAN_TABS: readonly SectionTab[] = [
+  { path: '/budgets', label: 'Presupuestos', icon: 'bi-clipboard-check' },
+  { path: '/recurring', label: 'Fijos', icon: 'bi-arrow-repeat' },
+];
+
 /**
- * Marco común de las cuatro pantallas que se organizan por categoría: el catálogo de
- * categorías, el presupuesto que se fija sobre ellas, los movimientos fijos que lo
- * comprometen y el catálogo de tags.
+ * Marco del plan del mes: los presupuestos, que dicen cuánto se piensa gastar, y los
+ * movimientos fijos, que dicen qué parte de eso ya tiene dueño antes de empezar.
  *
- * Existe por una razón concreta: el conmutador tiene que sobrevivir al salto de una
- * pantalla a la otra. Montado dentro de cada página, cambiar de catálogo lo destruía y lo
- * volvía a crear, así que su pastilla aparecía ya colocada en la opción nueva en lugar de
- * deslizarse hasta ella, que es justo lo que cuenta que son dos caras de lo mismo.
+ * Antes compartían marco con las categorías y los tags, y la pestaña se llamaba
+ * «Categorías» y abría en ellas: lo que se mira cada mes quedaba a un toque de más, detrás
+ * de lo que se configura una vez. Las categorías y los tags viven ahora en la configuración.
  *
- * De paso, el conmutador se escribe una vez y no una por pantalla.
+ * El marco existe para que el conmutador sobreviva al salto de una pantalla a la otra:
+ * montado dentro de cada página, se destruía y su pastilla aparecía ya colocada en la opción
+ * nueva en lugar de deslizarse hasta ella.
  */
 @Component({
   selector: 'app-catalogues',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, CatalogueTabsComponent, SlideOutletDirective],
   template: `
-    <fs-catalogue-tabs />
+    <fs-catalogue-tabs [tabs]="tabs" label="Presupuestos y fijos" />
     <router-outlet [fsSlide]="destinations" />
   `,
 })
 export class CataloguesPage {
-  /**
-   * El mismo orden que tienen las cuatro opciones en el conmutador, para que la pantalla
-   * entre por el lado hacia el que se deslizó la pastilla.
-   */
-  protected readonly destinations = ['/categories', '/budgets', '/recurring', '/tags'];
+  protected readonly tabs = PLAN_TABS;
+
+  /** El mismo orden que el conmutador, para que la pantalla entre por el lado que le toca. */
+  protected readonly destinations = PLAN_TABS.map((tab) => tab.path);
 }

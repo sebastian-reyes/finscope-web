@@ -1,115 +1,64 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AccountPage } from './account';
+import { OnboardingService } from '../../core/onboarding.service';
 import { UserResponse } from '../../core/models';
 
 const USER: UserResponse = {
   id: 7,
   email: 'sebastian@example.com',
   emailVerified: true,
-  displayName: 'Sebastian',
+  displayName: 'Sebastian Reyes',
 };
 
 describe('AccountPage', () => {
   let fixture: ComponentFixture<AccountPage>;
   let http: HttpTestingController;
 
-  /** El elemento de la pantalla, ya tipado: `nativeElement` llega como `any`. */
   function host(): HTMLElement {
     return fixture.nativeElement as HTMLElement;
   }
 
-  /** El campo del nombre, que es lo único editable de la pantalla. */
-  function nameField(): HTMLInputElement {
-    return host().querySelector<HTMLInputElement>('#accountName')!;
+  /** Las filas del menú de ajustes, por su rótulo. */
+  function rows(): string[] {
+    return Array.from(host().querySelectorAll('nav .fs-row__label')).map((label) =>
+      label.textContent!.trim(),
+    );
   }
 
-  /** Escribe en el campo como lo haría el usuario. */
-  function type(value: string): void {
-    const field = nameField();
-    field.value = value;
-    field.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-  }
-
-  /** Los botones que solo aparecen cuando hay algo que guardar. */
-  function actions(): string[] {
-    return buttons().map((button) => button.textContent!.trim());
-  }
-
-  /** Esos mismos botones, para poder pulsarlos. */
-  function buttons(): HTMLButtonElement[] {
-    return Array.from(host().querySelectorAll<HTMLButtonElement>('.fs-form__actions button'));
-  }
-
-  /** El botón del bloque del correo cuyo texto empieza por lo indicado. */
-  function emailButton(text: string): HTMLButtonElement {
-    return Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find((button) =>
-      button.textContent!.trim().startsWith(text),
+  /** La fila del menú cuyo rótulo empieza por lo indicado. */
+  function row(text: string): HTMLElement {
+    return Array.from(host().querySelectorAll<HTMLElement>('.fs-row')).find((candidate) =>
+      candidate.querySelector('.fs-row__label')!.textContent!.trim().startsWith(text),
     )!;
   }
 
-  /** Escribe en un campo del formulario del correo. */
-  function fill(selector: string, value: string): void {
-    const field = host().querySelector<HTMLInputElement>(selector)!;
-    field.value = value;
-    field.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-  }
-
-  /** Envía el formulario del correo, que es el segundo de la pantalla. */
-  function submitEmail(): void {
-    host().querySelectorAll('form')[1].dispatchEvent(new Event('submit'));
-    fixture.detectChanges();
-  }
-
-  /** Rehace la pantalla partiendo del usuario indicado. */
-  async function rebuild(user: UserResponse): Promise<void> {
-    http.verify();
-    TestBed.resetTestingModule();
+  /** Monta la pantalla partiendo del usuario indicado. */
+  async function build(user: UserResponse): Promise<void> {
     localStorage.setItem('finscope.user', JSON.stringify(user));
+    localStorage.setItem('finscope.accessToken', 'un-acceso');
+    localStorage.setItem('finscope.refreshToken', 'un-refresco');
     await TestBed.configureTestingModule({
       imports: [AccountPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    }).compileComponents();
-    http = TestBed.inject(HttpTestingController);
-    fixture = TestBed.createComponent(AccountPage);
-    fixture.detectChanges();
-    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(user);
-    fixture.detectChanges();
-  }
-
-  /** Envía el formulario como lo haría el botón de guardar. */
-  function submit(): void {
-    host().querySelector('form')!.dispatchEvent(new Event('submit'));
-    fixture.detectChanges();
-  }
-
-  /** Las muestras de color de uno de los dos huecos, en el orden en que se ven. */
-  function swatches(role: 'primary' | 'secondary'): HTMLButtonElement[] {
-    const group = host().querySelector(`[aria-labelledby="${role}Label"]`)!;
-    return Array.from(group.querySelectorAll<HTMLButtonElement>('button.fs-swatch'));
-  }
-
-  /** La muestra marcada como puesta, que es la que lleva el anillo. */
-  function chosen(role: 'primary' | 'secondary'): HTMLButtonElement | undefined {
-    return swatches(role).find((swatch) => swatch.getAttribute('aria-pressed') === 'true');
-  }
-
-  beforeEach(async () => {
-    localStorage.setItem('finscope.user', JSON.stringify(USER));
-    await TestBed.configureTestingModule({
-      imports: [AccountPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'login', children: [] }]),
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AccountPage);
     fixture.detectChanges();
     // La pantalla vuelve a preguntar quién es el usuario al abrirse.
-    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(USER);
+    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(user);
     fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    await build(USER);
   });
 
   afterEach(() => {
@@ -118,205 +67,68 @@ describe('AccountPage', () => {
   });
 
   it('no enseña el token de acceso ni las rutas de la API', () => {
-    localStorage.setItem('finscope.accessToken', 'un-token-de-acceso');
-    fixture.detectChanges();
-
     const text = host().textContent ?? '';
-    expect(text).not.toContain('un-token-de-acceso');
+    expect(text).not.toContain('un-acceso');
+    expect(text).not.toContain('un-refresco');
     expect(text).not.toContain('/auth/me');
     // El identificador interno tampoco le dice nada a quien usa la aplicación.
     expect(text).not.toContain(String(USER.id));
   });
 
-  it('parte del nombre guardado y no ofrece guardar hasta que cambia', () => {
-    expect(nameField().value).toBe('Sebastian');
-    expect(actions()).toEqual([]);
+  it('abre con quién eres: iniciales, nombre y correo', () => {
+    const card = host().querySelector('.fs-profile')!;
 
-    type('Sebas');
-
-    expect(actions()).toEqual(['Descartar', 'Guardar nombre']);
+    expect(card.querySelector('.fs-profile__avatar')!.textContent!.trim()).toBe('SR');
+    expect(card.textContent).toContain('Sebastian Reyes');
+    expect(card.textContent).toContain(USER.email);
   });
 
-  it('manda el nombre recortado y deja de ofrecer guardar', () => {
-    type('  Sebastián R.  ');
-
-    submit();
-
-    const request = http.expectOne({ method: 'PATCH', url: '/auth/me' });
-    expect(request.request.body).toEqual({ displayName: 'Sebastián R.' });
-    request.flush({ ...USER, displayName: 'Sebastián R.' });
-    fixture.detectChanges();
-
-    expect(nameField().value).toBe('Sebastián R.');
-    expect(actions()).toEqual([]);
+  it('reparte los ajustes en un menú en lugar de enseñarlos todos a la vez', () => {
+    expect(rows()).toEqual(['Categorías y tags', 'Notificaciones', 'Seguridad', 'Tema y colores']);
+    // Ni un formulario ni una muestra de color en el menú: están en su pantalla.
+    expect(host().querySelector('input')).toBeNull();
+    expect(host().querySelector('.fs-swatch')).toBeNull();
   });
 
-  it('deja la cuenta sin nombre cuando se envía en blanco', () => {
-    type('   ');
-
-    submit();
-
-    const request = http.expectOne({ method: 'PATCH', url: '/auth/me' });
-    expect(request.request.body).toEqual({ displayName: '' });
-    request.flush({ id: USER.id, email: USER.email });
-    fixture.detectChanges();
-
-    expect(nameField().value).toBe('');
+  it('dice al lado de cada fila cómo está ahora', () => {
+    expect(row('Tema').querySelector('.fs-row__value')!.textContent!.trim()).toBe('Sistema');
+    // Con el correo confirmado, Seguridad no tiene nada que reclamar.
+    expect(row('Seguridad').querySelector('.fs-row__value')).toBeNull();
   });
 
-  it('descarta lo escrito y vuelve a lo guardado', () => {
-    type('Otro nombre');
-
-    buttons()
-      .find((button) => button.textContent!.trim() === 'Descartar')!
-      .click();
-    fixture.detectChanges();
-
-    expect(nameField().value).toBe('Sebastian');
-    expect(actions()).toEqual([]);
-  });
-
-  it('arranca con los colores guardados a nombre de quien entra', async () => {
-    // Se rehace la pantalla con algo ya guardado bajo la clave de este usuario: es el camino
-    // de lectura, el que hace que al volver a entrar te encuentres tu color y no el de otro.
+  it('avisa desde el menú de que falta confirmar el correo', async () => {
     http.verify();
-    localStorage.setItem(
-      `finscope.colors.${USER.id}`,
-      JSON.stringify({ primary: '#7c3aed', secondary: '#d9930b' }),
-    );
     TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      imports: [AccountPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
-    }).compileComponents();
-    http = TestBed.inject(HttpTestingController);
-    fixture = TestBed.createComponent(AccountPage);
-    fixture.detectChanges();
-    http.expectOne({ method: 'GET', url: '/auth/me' }).flush(USER);
-    fixture.detectChanges();
+    await build({ ...USER, emailVerified: false });
 
-    expect(chosen('primary')!.getAttribute('aria-label')).toBe('Violeta');
-    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Ámbar');
+    const value = row('Seguridad').querySelector('.fs-row__value')!;
+    expect(value.textContent!.trim()).toBe('Sin verificar');
+    expect(value.classList).toContain('is-warn');
   });
 
-  it('parte de los colores de fábrica y no ofrece restablecerlos', () => {
-    expect(chosen('primary')!.getAttribute('aria-label')).toBe('Azul');
-    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Verde');
-    expect(host().querySelector('.fs-reset')).toBeNull();
+  it('usa la inicial del correo cuando la cuenta no tiene nombre', async () => {
+    http.verify();
+    TestBed.resetTestingModule();
+    await build({ id: USER.id, email: USER.email, emailVerified: true });
+
+    expect(host().querySelector('.fs-profile__avatar')!.textContent!.trim()).toBe('S');
+    expect(host().querySelector('.fs-profile')!.textContent).toContain('Ponte un nombre');
   });
 
-  it('aplica el color elegido al documento y lo recuerda', () => {
-    const violeta = swatches('primary').find(
-      (swatch) => swatch.getAttribute('aria-label') === 'Violeta',
-    )!;
+  it('vuelve a abrir el recorrido de bienvenida', () => {
+    const onboarding = TestBed.inject(OnboardingService);
 
-    violeta.click();
-    fixture.detectChanges();
+    row('Ayuda').click();
 
-    expect(chosen('primary')).toBe(violeta);
-    // Lo que importa no es el hexadecimal exacto —la escala se deriva— sino que la variable
-    // deje de valer lo que valía: es lo único que hace que la aplicación cambie de color.
-    expect(document.documentElement.style.getPropertyValue('--fs-brand')).not.toBe('');
-    // La clave lleva el identificador: lo elegido es de esta cuenta, no de este navegador.
-    expect(JSON.parse(localStorage.getItem(`finscope.colors.${USER.id}`)!).primary).toBe('#7c3aed');
+    expect(onboarding.isOpen()).toBe(true);
   });
 
-  it('ofrece restablecer en cuanto la pareja deja de ser la de fábrica, y la devuelve', () => {
-    swatches('secondary')
-      .find((swatch) => swatch.getAttribute('aria-label') === 'Ámbar')!
-      .click();
+  it('cierra la sesión desde el menú, que en el teléfono es la única salida', () => {
+    row('Cerrar sesión').click();
     fixture.detectChanges();
 
-    host().querySelector<HTMLButtonElement>('.fs-reset')!.click();
-    fixture.detectChanges();
+    http.expectOne({ method: 'POST', url: '/auth/logout' }).flush(null);
 
-    expect(chosen('secondary')!.getAttribute('aria-label')).toBe('Verde');
-    expect(localStorage.getItem(`finscope.colors.${USER.id}`)).toBeNull();
-    expect(host().querySelector('.fs-reset')).toBeNull();
-  });
-
-  it('deja elegir un color que no está en la lista corta', () => {
-    const field = host().querySelector<HTMLInputElement>('.fs-swatch--custom input')!;
-
-    field.value = '#123456';
-    field.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(chosen('primary')).toBeUndefined();
-    expect(JSON.parse(localStorage.getItem(`finscope.colors.${USER.id}`)!).primary).toBe('#123456');
-  });
-
-  it('no manda nada al correo: se enseña, pero no se toca', () => {
-    expect(host().textContent).toContain(USER.email);
-    expect(host().querySelector('input[type="email"]')).toBeNull();
-  });
-  it('marca el correo como verificado y no ofrece mandarlo otra vez', () => {
-    expect(host().textContent).toContain('Verificado');
-    expect(emailButton('Mandarme el enlace')).toBeUndefined();
-  });
-
-  it('pide el enlace de verificación cuando el correo no está comprobado', async () => {
-    await rebuild({ ...USER, emailVerified: false });
-
-    expect(host().textContent).toContain('Sin verificar');
-
-    emailButton('Mandarme el enlace').click();
-    fixture.detectChanges();
-
-    const request = http.expectOne({ method: 'POST', url: '/auth/verify-email' });
-    request.flush(null, { status: 202, statusText: 'Accepted' });
-    fixture.detectChanges();
-  });
-
-  it('no ofrece mandar el enlace con la dirección que la cuenta ya tiene', () => {
-    emailButton('Cambiar mi correo').click();
-    fixture.detectChanges();
-
-    fill('#newEmail', USER.email);
-    fill('#currentPassword', 'una-contrasena');
-
-    expect(emailButton('Mandar el enlace').disabled).toBe(true);
-  });
-
-  it('pide el cambio con la contraseña y deja el correo de la cuenta como estaba', () => {
-    emailButton('Cambiar mi correo').click();
-    fixture.detectChanges();
-
-    fill('#newEmail', '  nuevo@example.com  ');
-    fill('#currentPassword', 'una-contrasena');
-    submitEmail();
-
-    const request = http.expectOne({ method: 'POST', url: '/auth/change-email' });
-    expect(request.request.body).toEqual({
-      email: 'nuevo@example.com',
-      password: 'una-contrasena',
-    });
-    request.flush(null, { status: 202, statusText: 'Accepted' });
-    fixture.detectChanges();
-
-    // Lo que se enseña arriba sigue siendo el correo de siempre: el cambio no ha ocurrido
-    // todavía, y decir lo contrario haría creer que ya se entra con el nuevo.
-    expect(host().textContent).toContain(USER.email);
-    expect(host().textContent).toContain('Confirma tu correo nuevo');
-    expect(host().textContent).toContain('nuevo@example.com');
-  });
-
-  it('manda a su propio correo el enlace con el que cambiar la contraseña', () => {
-    emailButton('Cambiar mi contraseña').click();
-    fixture.detectChanges();
-
-    const request = http.expectOne({ method: 'POST', url: '/auth/forgot-password' });
-    expect(request.request.body).toEqual({ email: USER.email });
-    request.flush(null, { status: 202, statusText: 'Accepted' });
-    fixture.detectChanges();
-
-    expect(host().textContent).toContain('Mira tu correo');
-    // El botón pasa a ofrecer repetirlo, que es lo único que queda por hacer desde aquí.
-    expect(emailButton('Volver a mandarlo')).toBeDefined();
-  });
-
-  it('no pide la contraseña actual para cambiarla: el permiso es recibir el enlace', () => {
-    expect(host().textContent).toContain('Contraseña');
-    expect(host().querySelector('input[type="password"]')).toBeNull();
+    expect(localStorage.getItem('finscope.user')).toBeNull();
   });
 });

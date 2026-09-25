@@ -104,13 +104,10 @@ describe('BudgetsPage', () => {
     host().querySelector<HTMLButtonElement>('.fs-head__actions .fs-btn--solid')!.click();
     fixture.detectChanges();
 
-    // La lista del desplegable solo existe con el panel abierto.
-    host().querySelector<HTMLButtonElement>('fs-select-field .fs-select')!.click();
-    fixture.detectChanges();
-
-    const options = Array.from(
-      host().querySelectorAll<HTMLElement>('fs-select-field [role="option"]'),
-    ).map((option) => option.textContent!.trim());
+    // Las categorías se ofrecen como fichas dentro de la hoja.
+    const options = Array.from(host().querySelectorAll<HTMLElement>('.fs-pick')).map((option) =>
+      option.textContent!.trim(),
+    );
 
     // Fuera «Salario» por ser de solo ingresos, y fuera «Comida» y «Transporte» por tener ya
     // presupuesto este mes. Queda la de reserva, que admite las dos cosas.
@@ -149,13 +146,10 @@ describe('BudgetsPage', () => {
     host().querySelector<HTMLButtonElement>('.fs-head__actions .fs-btn--solid')!.click();
     fixture.detectChanges();
 
-    // La categoría se elige en el desplegable de la casa, que no pasa por el formulario.
-    host().querySelector<HTMLButtonElement>('fs-select-field .fs-select')!.click();
-    fixture.detectChanges();
-    const otros = Array.from(
-      host().querySelectorAll<HTMLElement>('fs-select-field [role="option"]'),
-    ).find((option) => option.textContent!.includes('Otros'))!;
-    otros.click();
+    // La categoría se elige tocando su ficha, que no pasa por el formulario.
+    Array.from(host().querySelectorAll<HTMLButtonElement>('.fs-pick'))
+      .find((option) => option.textContent!.includes('Otros'))!
+      .click();
     fixture.detectChanges();
 
     const amount = host().querySelector<HTMLInputElement>('#newBudgetAmount')!;
@@ -166,7 +160,7 @@ describe('BudgetsPage', () => {
     // El envío del formulario, no un clic al método: sin `[formGroup]` en la etiqueta el
     // navegador recargaría la página en lugar de dar de alta nada.
     host()
-      .querySelector<HTMLFormElement>('.fs-new')!
+      .querySelector<HTMLFormElement>('#newBudgetForm')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/budgets');
@@ -207,7 +201,7 @@ describe('BudgetsPage', () => {
     fixture.detectChanges();
 
     host()
-      .querySelector<HTMLFormElement>('.fs-edit')!
+      .querySelector<HTMLFormElement>('#editBudgetForm')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/budgets/11');

@@ -1,0 +1,184 @@
+<section class="fs-panel fs-block" aria-labelledby="correoTitle">
+  <p class="fs-section" id="correoTitle">Correo</p>
+
+  <p class="fs-email" aria-labelledby="correoTitle">
+    <span class="fs-email__address">{{ user()?.email }}</span>
+    @if (verified()) {
+      <span class="fs-badge fs-badge--ok">
+        <i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verificado
+      </span>
+    } @else {
+      <span class="fs-badge">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>Sin verificar
+      </span>
+    }
+  </p>
+
+  @if (!verified()) {
+    <p class="fs-hint">
+      Nadie ha comprobado todavía que recibas correo aquí. Hasta hacerlo no podrías recuperar tu
+      contraseña si la olvidaras, porque el enlace iría a esta dirección.
+    </p>
+    <button
+      type="button"
+      class="fs-btn fs-btn--soft fs-btn--sm fs-email__action"
+      [disabled]="sendingVerification()"
+      (click)="resendVerification()"
+    >
+      @if (sendingVerification()) {
+        <span class="fs-spinner" aria-hidden="true"></span>
+        Mandando…
+      } @else {
+        <i class="bi bi-envelope-check" aria-hidden="true"></i>Mandarme el enlace
+      }
+    </button>
+  }
+
+  @if (pendingEmail(); as pending) {
+    <!--
+      El cambio queda a medias a propósito: la cuenta sigue entrando con el correo de arriba
+      hasta que se pulse el enlace que acaba de salir hacia la dirección nueva. Se dice aquí,
+      junto al correo viejo, porque es justo lo que puede extrañar al recargar.
+    -->
+    <div class="fs-alert fs-alert--warn fs-email__pending" role="status">
+      <i class="bi bi-envelope-arrow-up" aria-hidden="true"></i>
+      <div>
+        <p class="fs-alert__title">Confirma tu correo nuevo</p>
+        <p>
+          Hemos mandado un enlace a <strong>{{ pending }}</strong
+          >. Hasta que lo pulses, sigues entrando con el de arriba. Vale una hora.
+        </p>
+      </div>
+    </div>
+  }
+
+  @if (changingEmail()) {
+    <form class="fs-email__form" (submit)="onEmailSubmit($event)" animate.enter="fs-anim-expand">
+      <div>
+        <label class="fs-label" for="newEmail">Correo nuevo</label>
+        <input
+          id="newEmail"
+          type="email"
+          class="fs-field"
+          inputmode="email"
+          autocomplete="email"
+          maxlength="255"
+          placeholder="tu@correo.com"
+          [value]="newEmail()"
+          [disabled]="sendingChange()"
+          (input)="newEmail.set($any($event.target).value)"
+        />
+      </div>
+
+      <div>
+        <label class="fs-label" for="currentPassword">Tu contraseña</label>
+        <div class="fs-reveal">
+          <input
+            id="currentPassword"
+            class="fs-field"
+            [type]="showPassword() ? 'text' : 'password'"
+            autocomplete="current-password"
+            maxlength="72"
+            placeholder="••••••••"
+            [value]="password()"
+            [disabled]="sendingChange()"
+            (input)="password.set($any($event.target).value)"
+          />
+          <button
+            type="button"
+            class="fs-reveal__btn"
+            (click)="showPassword.set(!showPassword())"
+            [attr.aria-label]="showPassword() ? 'Ocultar la contraseña' : 'Ver la contraseña'"
+          >
+            <i
+              class="bi"
+              [class.bi-eye]="!showPassword()"
+              [class.bi-eye-slash]="showPassword()"
+              aria-hidden="true"
+            ></i>
+          </button>
+        </div>
+        <p class="fs-hint">
+          El correo es con lo que entras, así que se pide la contraseña para cambiarlo. Al antiguo
+          le avisamos del intento.
+        </p>
+      </div>
+
+      <div class="fs-form__actions">
+        <button
+          type="button"
+          class="fs-btn fs-btn--ghost"
+          [disabled]="sendingChange()"
+          (click)="toggleEmailForm()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="fs-btn fs-btn--solid"
+          [disabled]="sendingChange() || !canSubmitEmail()"
+        >
+          @if (sendingChange()) {
+            <span class="fs-spinner" aria-hidden="true"></span>
+            Mandando…
+          } @else {
+            Mandar el enlace
+          }
+        </button>
+      </div>
+    </form>
+  } @else {
+    <button
+      type="button"
+      class="fs-btn fs-btn--ghost fs-btn--sm fs-email__action"
+      (click)="toggleEmailForm()"
+    >
+      <i class="bi bi-pencil" aria-hidden="true"></i>Cambiar mi correo
+    </button>
+  }
+</section>
+
+<!--
+  La contraseña no se teclea aquí: se cambia con el mismo enlace que la recupera cuando se
+  olvida. Es el único camino que da el contrato --- no hay un cambio con la contraseña actual ---
+  y es además el que deja fuera a quien se encuentre esta sesión abierta sin saberla: el
+  permiso para cambiarla es recibir el correo, no tener la pantalla delante.
+-->
+<section class="fs-panel fs-block" aria-labelledby="claveTitle">
+  <p class="fs-section" id="claveTitle">Contraseña</p>
+
+  <p class="fs-hint fs-lead">
+    Se cambia desde un enlace que mandamos a <strong>{{ user()?.email }}</strong
+    >. Vale una hora, sirve una sola vez y, al usarlo, se cierran todas las sesiones abiertas, esta
+    incluida.
+  </p>
+
+  @if (passwordLinkSent()) {
+    <div class="fs-alert fs-alert--warn fs-password__sent" role="status">
+      <i class="bi bi-envelope-check" aria-hidden="true"></i>
+      <div>
+        <p class="fs-alert__title">Mira tu correo</p>
+        <p>
+          El enlace para elegir una contraseña nueva va camino de
+          <strong>{{ user()?.email }}</strong
+          >. Si no llega, míralo en el correo no deseado antes de volver a pedirlo.
+        </p>
+      </div>
+    </div>
+  }
+
+  <button
+    type="button"
+    class="fs-btn fs-btn--soft fs-btn--sm fs-email__action"
+    [disabled]="sendingPassword()"
+    (click)="sendPasswordLink()"
+  >
+    @if (sendingPassword()) {
+      <span class="fs-spinner" aria-hidden="true"></span>
+      Mandando…
+    } @else {
+      <i class="bi bi-key" aria-hidden="true"></i>
+      {{ passwordLinkSent() ? 'Volver a mandarlo' : 'Cambiar mi contraseña' }}
+    }
+  </button>
+</section>

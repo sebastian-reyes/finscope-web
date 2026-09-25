@@ -78,7 +78,7 @@ describe('TagsPage', () => {
   it('da de alta el tag al enviar el formulario', () => {
     startCreate('alimentación');
 
-    submit('.fs-create');
+    submit('#newTagForm');
 
     const request = http.expectOne('/tags');
     expect(request.request.method).toBe('POST');
@@ -94,7 +94,7 @@ describe('TagsPage', () => {
   it('recorta los espacios del nombre, que no distinguen un tag de otro', () => {
     startCreate('  viaje  ');
 
-    submit('.fs-create');
+    submit('#newTagForm');
 
     const request = http.expectOne('/tags');
     expect(request.request.body).toEqual({ name: 'viaje' });
@@ -106,7 +106,7 @@ describe('TagsPage', () => {
     host().querySelectorAll<HTMLButtonElement>('.fs-head__actions .fs-btn')[1].click();
     fixture.detectChanges();
 
-    submit('.fs-create');
+    submit('#newTagForm');
 
     http.expectNone('/tags');
   });
@@ -115,14 +115,16 @@ describe('TagsPage', () => {
     press('Editar gab');
 
     // El tag es uno solo y lo comparten sus movimientos: renombrarlo los alcanza a todos.
-    expect(row(0).querySelector('.fs-row__note')!.textContent).toContain('4 movimientos');
+    expect(host().querySelector('fs-bottom-sheet .fs-sheet-note')!.textContent).toContain(
+      '4 movimientos',
+    );
   });
 
   it('renombra el tag y recarga el catálogo con el nombre nuevo', () => {
     press('Editar viaje');
-    write('.fs-row__field', 'viajes');
+    write('#editTag', 'viajes');
 
-    submit('.fs-row__edit');
+    submit('#editTagForm');
 
     const request = http.expectOne('/tags/2');
     expect(request.request.method).toBe('PATCH');
@@ -134,9 +136,9 @@ describe('TagsPage', () => {
 
   it('deja el nombre en pantalla si la API lo rechaza, para poder corregirlo', () => {
     press('Editar viaje');
-    write('.fs-row__field', 'gab');
+    write('#editTag', 'gab');
 
-    submit('.fs-row__edit');
+    submit('#editTagForm');
     http
       .expectOne('/tags/2')
       .flush(
@@ -148,7 +150,7 @@ describe('TagsPage', () => {
     // El conflicto se cuenta en un aviso, no borrando lo que se estaba escribiendo: la API
     // rechaza el nombre ocupado en vez de fusionar los dos tags.
     expect(TestBed.inject(ToastService).toasts()[0].tone).toBe('error');
-    expect(host().querySelector('.fs-row__edit')).not.toBeNull();
+    expect(host().querySelector<HTMLInputElement>('#editTag')!.value).toBe('gab');
   });
 
   it('no borra el tag hasta que se confirma en su propia fila', () => {
@@ -184,7 +186,7 @@ describe('TagsPage', () => {
     // decide el borrado de otra.
     press('Borrar viaje');
 
-    expect(row(0).querySelector('.fs-row__edit')).toBeNull();
+    expect(host().querySelector('#editTagForm')).toBeNull();
     expect(row(1).querySelector('.fs-row__confirm')).not.toBeNull();
   });
 

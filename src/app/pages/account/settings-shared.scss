@@ -1,0 +1,67 @@
+// Lo que comparten las pantallas de la configuración. Cada una lo carga junto a su propia
+// hoja: el encapsulado de Angular no deja que una regla del menú llegue a sus hijas, y copiar
+// el panel, el campo y la pista en cuatro sitios era la forma de que acabaran distintos.
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fs-block {
+  padding: 1.25rem;
+}
+
+.fs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  // El formulario no se estira a lo ancho de un monitor: un nombre y un correo se leen
+  // mejor en una columna estrecha que repartidos por media pantalla.
+  max-width: 28rem;
+}
+
+.fs-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--fs-ink-faint);
+}
+
+// Los botones solo aparecen cuando hay algo que guardar, así que llegan con la fila entera:
+// no hay un hueco reservado esperándolos.
+.fs-form__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+// El distintivo dice el estado sin gritarlo: sin verificar no es un fallo --- la cuenta
+// funciona igual ---, así que sale en gris y no en rojo. Lo que hay que hacer va debajo,
+// en palabras y con su botón.
+.fs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fs-badge--ok {
+  background-color: var(--fs-income-tint);
+  color: var(--fs-income-ink);
+}

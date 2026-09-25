@@ -70,7 +70,7 @@ export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
     id: 'yours',
     eyebrow: 'Hazla tuya',
     title: 'Todo listo para empezar',
-    text: 'Dale a cada categoría su color y su icono, y elige tema y colores para la aplicación. Instálala en tu teléfono: lo último sigue a mano aunque te quedes sin red.',
+    text: 'En Configuración le das a cada categoría su color y su icono, y eliges tema y colores para la aplicación. Instálala en tu teléfono: lo último sigue a mano aunque te quedes sin red.',
   },
 ];
 

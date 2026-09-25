@@ -1,6 +1,6 @@
 @use '../styles/tokens' as t;
 
-// Barra superior. En móvil solo lleva marca y acciones; la navegación vive abajo.
+// Barra superior. Solo existe entera en escritorio; en móvil la navegación vive abajo.
 .fs-topbar {
   position: sticky;
   top: 0;
@@ -46,6 +46,21 @@
   align-items: center;
   gap: 0.5rem;
   margin-left: auto;
+}
+
+// En el teléfono la barra se queda en la franja de la zona segura —su alto es cero fuera de
+// una aplicación instalada—: sin fila, sin línea, y solo con el fondo translúcido para que lo
+// que se desplaza por debajo no se lea detrás de la hora ni de la isla dinámica. Lo que
+// llevaba ya tiene otro sitio: la navegación abajo y el tema y la salida en la configuración.
+// Va detrás de la regla de la fila, que tiene la misma especificidad y si no la pisaría.
+@media (max-width: #{t.$fs-bp-lg - 0.02px}) {
+  .fs-topbar {
+    border-bottom: 0;
+  }
+
+  .fs-topbar__inner {
+    display: none;
+  }
 }
 
 // El contenido respira un poco más en escritorio, donde hay sitio.

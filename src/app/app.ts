@@ -1,13 +1,13 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
-import { filter, map, switchMap } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { AppUpdateService } from './core/app-update.service';
 import { AuthService } from './core/auth.service';
 import { ConnectionService } from './core/connection.service';
 import { OnboardingService } from './core/onboarding.service';
 import { PaletteService } from './core/palette.service';
-import { PushService } from './core/push.service';
+import { SignOutService } from './core/sign-out.service';
 import { ThemeService } from './core/theme.service';
 import { ToastService } from './core/toast.service';
 import { TransactionEditorService } from './core/transaction-editor.service';
@@ -17,6 +17,7 @@ import { PullRefreshComponent } from './shared/ui/pull-refresh';
 import { SegmentedDirective } from './shared/ui/segmented';
 import { SlideOutletDirective } from './shared/ui/slide-outlet';
 import { TransactionEditorComponent } from './shared/ui/transaction-editor';
+import { ACCOUNT_SECTIONS } from './pages/account/sections';
 
 /**
  * Lo que puede envejecer la copia del usuario antes de volver a preguntarla al recuperar el
@@ -59,10 +60,10 @@ interface NavItem {
 })
 export class App {
   private readonly auth = inject(AuthService);
-  private readonly push = inject(PushService);
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
   private readonly toastService = inject(ToastService);
+  private readonly session = inject(SignOutService);
 
   // La paleta no se consulta desde aquí, pero es la carcasa quien tiene que despertarla: es
   // lo primero que se instancia, y hasta que no existe no hay colores escritos en el
@@ -84,7 +85,7 @@ export class App {
 
   protected readonly user = this.auth.user;
   protected readonly isLoggedIn = this.auth.isLoggedIn;
-  protected readonly loggingOut = signal(false);
+  protected readonly loggingOut = this.session.busy;
 
   /** Cuándo se preguntó por última vez quién es el usuario. */
   private lastUserCheck = Date.now();
@@ -97,40 +98,42 @@ export class App {
     { path: '/transactions', label: 'Movimientos', icon: 'bi-arrow-left-right' },
   ];
 
-  // La barra inferior solo tiene cinco huecos y por ahí se llega a cuatro pantallas, así
-  // que entra la principal —las categorías, que son las que reparten el gasto— y desde ella
-  // se alcanzan los presupuestos, los fijos y los tags con el conmutador que llevan las
-  // cuatro arriba. A los presupuestos y a los fijos se llega además desde el inicio, que es
-  // donde se piensa en ellos.
+  // A la derecha, el plan del mes y la cuenta. El plan son los presupuestos y los fijos, que
+  // se miran cada mes; las categorías y los tags, que se configuran una vez, están dentro de
+  // la configuración y no se llevan un hueco de la barra.
   protected readonly rightNav: NavItem[] = [
-    // Ni los presupuestos, ni los fijos, ni los tags tienen hueco propio, así que se cuentan
-    // como parte de las categorías: sin esto, estando en ellos la barra no marcaba ninguna
-    // sección y la pastilla se encogía a nada, como si la pantalla no estuviera en ningún
-    // sitio.
+    // Los fijos no tienen hueco propio: comparten el del plan, y sin contarlos aquí la barra
+    // no marcaba ninguna sección estando en ellos.
     {
-      path: '/categories',
-      label: 'Categorías',
-      icon: 'bi-grid-1x2',
-      covers: ['/budgets', '/recurring', '/tags'],
+      path: '/budgets',
+      label: 'Plan',
+      icon: 'bi-clipboard-check',
+      covers: ['/recurring'],
     },
-    { path: '/account', label: 'Cuenta', icon: 'bi-person' },
+    // La configuración es un menú con sus pantallas debajo, y en todas ellas se sigue
+    // estando en la cuenta.
+    {
+      path: '/account',
+      label: 'Perfil',
+      icon: 'bi-person',
+      covers: ACCOUNT_SECTIONS,
+    },
   ];
 
   protected readonly allNav = [...this.leftNav, ...this.rightNav];
 
   /**
    * Los destinos en el orden en que se leen, para que la pantalla nueva entre por el lado
-   * del que viene. Es el orden de la barra, con los tags al lado de las categorías porque
-   * comparten sitio en ella y se salta de una a otra con el conmutador.
+   * del que viene. Es el orden de la barra, con los fijos al lado de los presupuestos porque
+   * comparten sitio en ella y se salta de uno a otro con el conmutador.
    */
   protected readonly destinations = [
     '/dashboard',
     '/transactions',
-    '/categories',
     '/budgets',
     '/recurring',
-    '/tags',
     '/account',
+    ...ACCOUNT_SECTIONS,
   ];
 
   /** Dirección en curso, que es la que decide qué destino está marcado. */
@@ -146,7 +149,7 @@ export class App {
    * Si un destino es el que se está mirando.
    *
    * Se decide aquí y no con `routerLinkActive` porque un destino puede cubrir más de una
-   * dirección —las categorías cubren también los tags— y esa directiva solo sabe comparar
+   * dirección —el plan cubre también los fijos— y esa directiva solo sabe comparar
    * con la suya.
    *
    * @param item destino de la barra
@@ -215,19 +218,7 @@ export class App {
     }
   }
 
-  /**
-   * Cierra la sesión dando de baja antes este dispositivo de los avisos.
-   * Va primero porque la baja necesita la sesión que se está cerrando; si no, la siguiente
-   * persona que usara este navegador recibiría los avisos de la cuenta anterior.
-   */
   protected logout(): void {
-    this.loggingOut.set(true);
-    this.push
-      .release()
-      .pipe(switchMap(() => this.auth.logout()))
-      .subscribe(() => {
-        this.loggingOut.set(false);
-        this.router.navigate(['/login']);
-      });
+    this.session.signOut();
   }
 }

@@ -216,7 +216,7 @@ describe('RecurringPage', () => {
     fixture.detectChanges();
 
     host()
-      .querySelector<HTMLFormElement>('.fs-adjust')!
+      .querySelector<HTMLFormElement>('#adjustForm')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/recurring-transactions/11/confirm');
@@ -261,7 +261,7 @@ describe('RecurringPage', () => {
     fixture.detectChanges();
 
     host()
-      .querySelector<HTMLFormElement>('.fs-adjust')!
+      .querySelector<HTMLFormElement>('#adjustForm')!
       .dispatchEvent(new Event('submit', { cancelable: true }));
 
     const request = http.expectOne('/recurring-transactions/11/confirm');

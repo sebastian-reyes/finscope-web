@@ -1,0 +1,113 @@
+// Interruptores y notas propias de los avisos. El panel, la pista y el distintivo vienen de
+// la hoja compartida de la configuración.
+
+.fs-push__note {
+  margin: 1rem 0 0;
+}
+
+.fs-push__lead {
+  max-width: 34rem;
+  margin-top: 0.75rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-push__action {
+  margin-top: 1rem;
+}
+
+.fs-push__state {
+  margin: 1rem 0 0;
+}
+
+.fs-push__skeleton {
+  height: 2.5rem;
+  margin-top: 1rem;
+}
+
+.fs-push__prefs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 28rem;
+  margin-top: 1rem;
+}
+
+.fs-push__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+// Interruptor: la casilla de verdad sigue ahí, invisible y encima de todo, para que el
+// teclado, el lector de pantalla y el toque la usen tal cual; lo que se ve es su pista.
+.fs-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  cursor: pointer;
+}
+
+.fs-toggle input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.fs-toggle__track {
+  position: relative;
+  flex: none;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background-color: var(--fs-line-strong);
+  transition: background-color 0.15s ease;
+}
+
+.fs-toggle__track::after {
+  content: '';
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 0.15s ease;
+}
+
+.fs-toggle input:checked + .fs-toggle__track {
+  background-color: var(--fs-brand);
+}
+
+.fs-toggle input:checked + .fs-toggle__track::after {
+  transform: translateX(1rem);
+}
+
+.fs-toggle input:focus-visible + .fs-toggle__track {
+  box-shadow: var(--fs-focus-tint);
+}
+
+.fs-toggle__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-toggle__title {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink);
+}
+
+.fs-toggle__hint {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}

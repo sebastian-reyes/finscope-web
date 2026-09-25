@@ -1,0 +1,137 @@
+<section class="fs-panel fs-block" aria-labelledby="avisosTitle">
+  <p class="fs-section" id="avisosTitle">Avisos</p>
+
+  <!--
+    Los avisos llegan aunque la aplicación esté cerrada: los manda la API cuando un fijo vence
+    o un presupuesto llega a su límite. Lo que se activa aquí es este dispositivo; las
+    preferencias, en cambio, son de la cuenta y valen para todos.
+  -->
+  @switch (pushStatus()) {
+    @case ('install-required') {
+      <div class="fs-alert fs-alert--warn fs-push__note" role="status">
+        <i class="bi bi-phone" aria-hidden="true"></i>
+        <div>
+          <p class="fs-alert__title">Primero, instala FinScope</p>
+          <p>
+            En iPhone y iPad los avisos solo funcionan con la aplicación en la pantalla de inicio.
+            Pulsa <i class="bi bi-box-arrow-up" aria-label="Compartir"></i>
+            <strong>Compartir</strong> → <strong>Añadir a pantalla de inicio</strong>, ábrela desde
+            ahí y vuelve a esta pantalla.
+          </p>
+        </div>
+      </div>
+    }
+    @case ('unsupported') {
+      <p class="fs-hint">
+        Este navegador no admite avisos. En el móvil, instala FinScope desde el navegador y
+        actívalos desde la aplicación instalada.
+      </p>
+    }
+    @case ('loading') {
+      <div class="fs-skeleton fs-push__skeleton"></div>
+    }
+    @case ('unavailable') {
+      <p class="fs-hint">Los avisos no están disponibles por ahora.</p>
+    }
+    @case ('denied') {
+      <div class="fs-alert fs-alert--warn fs-push__note" role="status">
+        <i class="bi bi-bell-slash" aria-hidden="true"></i>
+        <div>
+          <p class="fs-alert__title">Los avisos están bloqueados</p>
+          <p>
+            Bloqueaste los avisos de FinScope en este dispositivo y la aplicación ya no puede volver
+            a pedirlos. Permítelos en los ajustes de notificaciones del teléfono o del navegador y
+            vuelve aquí.
+          </p>
+        </div>
+      </div>
+    }
+    @case ('off') {
+      <p class="fs-hint fs-push__lead">
+        Te avisamos el día antes y el mismo día de cada movimiento fijo pendiente, y cuando un
+        presupuesto se acerca a su límite. Llegan aunque no abras la aplicación.
+      </p>
+      <button
+        type="button"
+        class="fs-btn fs-btn--solid fs-push__action"
+        [disabled]="pushBusy()"
+        (click)="enablePush()"
+      >
+        @if (pushBusy()) {
+          <span class="fs-spinner" aria-hidden="true"></span>
+          Activando…
+        } @else {
+          <i class="bi bi-bell" aria-hidden="true"></i>Activar avisos en este dispositivo
+        }
+      </button>
+    }
+    @case ('on') {
+      <p class="fs-push__state">
+        <span class="fs-badge fs-badge--ok">
+          <i class="bi bi-bell-fill" aria-hidden="true"></i>Activos en este dispositivo
+        </span>
+      </p>
+
+      @if (preferences(); as prefs) {
+        <div class="fs-push__prefs" role="group" aria-label="Qué avisos recibir">
+          <label class="fs-toggle">
+            <input
+              type="checkbox"
+              role="switch"
+              [checked]="prefs.recurringDue"
+              (change)="setPreference('recurringDue', $any($event.target).checked)"
+            />
+            <span class="fs-toggle__track" aria-hidden="true"></span>
+            <span class="fs-toggle__text">
+              <span class="fs-toggle__title">Movimientos fijos</span>
+              <span class="fs-toggle__hint">El día antes y el mismo día, si siguen pendientes</span>
+            </span>
+          </label>
+          <label class="fs-toggle">
+            <input
+              type="checkbox"
+              role="switch"
+              [checked]="prefs.budgetLimit"
+              (change)="setPreference('budgetLimit', $any($event.target).checked)"
+            />
+            <span class="fs-toggle__track" aria-hidden="true"></span>
+            <span class="fs-toggle__text">
+              <span class="fs-toggle__title">Presupuestos</span>
+              <span class="fs-toggle__hint">Al llegar al 90 % y al pasarte</span>
+            </span>
+          </label>
+        </div>
+      } @else {
+        <div class="fs-skeleton fs-push__skeleton"></div>
+      }
+
+      <p class="fs-hint">
+        Qué avisos recibir vale para todos tus dispositivos. Salen entre las 8:00 y las 21:00.
+      </p>
+
+      <div class="fs-push__buttons">
+        <button
+          type="button"
+          class="fs-btn fs-btn--soft fs-btn--sm"
+          [disabled]="sendingTest()"
+          (click)="sendTestNotification()"
+        >
+          @if (sendingTest()) {
+            <span class="fs-spinner" aria-hidden="true"></span>
+            Mandando…
+          } @else {
+            <i class="bi bi-send" aria-hidden="true"></i>Mandarme un aviso de prueba
+          }
+        </button>
+        <button
+          type="button"
+          class="fs-btn fs-btn--ghost fs-btn--sm"
+          [disabled]="pushBusy()"
+          (click)="disablePush()"
+        >
+          <i class="bi bi-bell-slash" aria-hidden="true"></i>Desactivar en este dispositivo
+        </button>
+      </div>
+    }
+  }
+</section>

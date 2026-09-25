@@ -145,6 +145,17 @@
   --fs-fab-rise: 1.5rem;
 }
 
+// En el teléfono la barra de arriba no lleva nada: la navegación está abajo, y el tema y el
+// cierre de sesión, en la configuración. Queda solo la franja de la zona segura, que es lo
+// que impide que el contenido pase por detrás de la hora y de la isla dinámica. Se anula el
+// alto y no la barra entera para que todo lo que se mide contra `--fs-topbar-total` —el
+// indicador de recargar, el lienzo— siga cuadrando sin tocarlo.
+@media (max-width: #{t.$fs-bp-lg - 0.02px}) {
+  :root {
+    --fs-topbar-height: 0px;
+  }
+}
+
 [data-theme='dark'] {
   color-scheme: dark;
 
@@ -240,17 +251,31 @@ body {
 //
 // El degradado solo existe cuando existe la barra: sin sesión no hay ninguna, y una franja
 // pintada arriba sin nada al lado se vería peor que el hueco.
+//
+// En el teléfono la franja es solo la zona segura y no lleva línea: pintada sobre la hora se
+// leería como una raya suelta.
 body:has(.fs-topbar) {
   background-image: linear-gradient(
     to bottom,
     var(--fs-surface) 0,
-    var(--fs-surface) calc(var(--fs-topbar-total) - 1px),
-    var(--fs-line) calc(var(--fs-topbar-total) - 1px),
-    var(--fs-line) var(--fs-topbar-total),
+    var(--fs-surface) var(--fs-topbar-total),
     transparent var(--fs-topbar-total)
   );
   background-attachment: fixed;
   background-repeat: no-repeat;
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  body:has(.fs-topbar) {
+    background-image: linear-gradient(
+      to bottom,
+      var(--fs-surface) 0,
+      var(--fs-surface) calc(var(--fs-topbar-total) - 1px),
+      var(--fs-line) calc(var(--fs-topbar-total) - 1px),
+      var(--fs-line) var(--fs-topbar-total),
+      transparent var(--fs-topbar-total)
+    );
+  }
 }
 
 // Los importes se leen en columna y comparándolos entre sí: sin cifras de ancho fijo, el

@@ -476,3 +476,251 @@
     gap: 0.15rem;
   }
 }
+
+// --- Teléfono ------------------------------------------------------------------------------
+// Por debajo de tablet los filtros se recogen: la búsqueda con su botón de filtros en una
+// fila, el mes debajo y, si hay algo puesto en la hoja, sus fichas. Sin tarjeta alrededor:
+// son la cabecera de la lista, no una sección más que compita con ella.
+
+.fs-filters--compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+  padding: 0;
+}
+
+.fs-filters__bar {
+  display: flex;
+  gap: 0.5rem;
+
+  .fs-search {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.fs-filters__open {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  height: var(--fs-field-height);
+  padding: 0 0.9rem;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius-control);
+  background-color: var(--fs-surface);
+  color: var(--fs-ink);
+  font: inherit;
+  font-size: var(--fs-text-sm);
+  font-weight: 550;
+  cursor: pointer;
+
+  // Con algo puesto se tiñe: es lo que avisa de que la lista no es el mes entero aunque las
+  // fichas queden fuera de la vista.
+  &.is-active {
+    border-color: rgba(var(--fs-brand-rgb), 0.35);
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+  }
+}
+
+.fs-filters__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background-color: var(--fs-brand);
+  color: var(--fs-on-brand);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+// El mes va centrado, como la cabecera de periodo del inicio y de los presupuestos: es el
+// mismo control y se lee como el título de lo que hay debajo.
+.fs-filters__when {
+  display: flex;
+  justify-content: center;
+  min-height: 2.25rem;
+}
+
+.fs-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--fs-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--fs-hover);
+  }
+}
+
+.fs-when__caret {
+  font-size: 0.7rem;
+  color: var(--fs-ink-faint);
+}
+
+// Las fichas de lo puesto van en una tira que se arrastra de lado: por muchas que haya, no
+// empujan la lista hacia abajo más de una línea.
+.fs-active {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 -1rem;
+  padding: 0 1rem 0.1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.fs-active__chip,
+.fs-active__clear {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: var(--fs-text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fs-active__chip {
+  border: 1px solid rgba(var(--fs-brand-rgb), 0.3);
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+  font-weight: 550;
+}
+
+.fs-active__x {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.fs-active__clear {
+  border: 0;
+  background: none;
+  color: var(--fs-ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+// --- Hoja de filtros -----------------------------------------------------------------------
+// El velo, el asa y la subida son de `fs-bottom-sheet`; aquí solo lo que va dentro.
+
+.fs-sheet-foot {
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.fs-fsheet__done {
+  flex: 1;
+}
+
+.fs-fgroup__label {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fs-accent);
+}
+
+// Periodo: el conmutador arriba y lo que pide debajo, centrado como en la barra.
+.fs-fgroup__period {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+
+  .fs-month {
+    align-self: center;
+  }
+
+  .fs-range {
+    align-self: stretch;
+  }
+}
+
+// En la barra, la ficha de una categoría o un tag va con su color y el aspa al lado, sobre
+// una pastilla neutra que es la que se toca.
+.fs-active__chip--colored {
+  padding-left: 0.2rem;
+  border-color: var(--fs-line);
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
+}
+
+@media (max-width: 767.98px) {
+  // La cabecera se queda en el título: registrar ya es el botón central de la barra y
+  // recargar es arrastrar hacia abajo, y la explicación se aprende la primera vez.
+  .fs-head {
+    margin-bottom: 0.9rem;
+  }
+
+  .fs-head__hint,
+  .fs-head__actions {
+    display: none;
+  }
+
+  // Los totales en una sola fila de tres: siguen diciendo lo mismo en la mitad de alto.
+  .fs-totals {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .fs-totals__currency {
+    margin-bottom: 0.4rem;
+  }
+
+  .fs-totals__grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .fs-totals__item {
+    min-width: 0;
+    // Un importe de cinco cifras con su símbolo tiene que caber en un tercio de teléfono.
+    font-size: min(0.9375rem, 3.6vw);
+    white-space: nowrap;
+  }
+
+  .fs-totals__label {
+    font-size: 0.6875rem;
+  }
+
+  // Con varias monedas, las tarjetas se leen como un bloque: la separación de siempre las
+  // hacía parecer secciones distintas.
+  .fs-totals:has(+ .fs-totals) {
+    margin-bottom: 0.5rem;
+  }
+
+  // El orden se elige con un desplegable estrecho y el recuento no se parte en dos líneas.
+  .fs-list__head .fs-section {
+    white-space: nowrap;
+  }
+
+  .fs-list__head .fs-list__sort {
+    flex: 0 1 11rem;
+    min-width: 0;
+  }
+}

@@ -39,11 +39,10 @@
     <button
       class="fs-btn fs-btn--solid"
       type="button"
-      (click)="toggleCreate()"
-      [disabled]="!available().length && !showCreate()"
+      (click)="openCreate()"
+      [disabled]="!available().length"
     >
-      <i class="bi" [class.bi-plus-lg]="!showCreate()" [class.bi-x-lg]="showCreate()"></i>
-      {{ showCreate() ? 'Cerrar' : 'Presupuestar' }}
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Presupuestar
     </button>
   </div>
 </div>
@@ -56,71 +55,6 @@
       <p>{{ error() }}</p>
     </div>
   </div>
-}
-
-@if (showCreate()) {
-  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
-    <form class="fs-new" [formGroup]="newForm" (ngSubmit)="create()">
-      <div class="fs-new__field">
-        <span class="fs-label" id="newBudgetCategory">Categoría</span>
-        <fs-select-field
-          inputId="newBudgetCategoryField"
-          ariaLabel="Categoría a presupuestar"
-          [options]="categoryOptions()"
-          [value]="newCategoryId()"
-          (valueChange)="newCategoryId.set($event)"
-        />
-      </div>
-
-      <div class="fs-new__field">
-        <label class="fs-label" for="newBudgetAmount">Presupuesto del mes</label>
-        <div class="fs-new__amount">
-          <input
-            id="newBudgetAmount"
-            class="fs-field fs-num"
-            type="number"
-            inputmode="decimal"
-            min="0.01"
-            step="0.01"
-            placeholder="400.00"
-            formControlName="amount"
-          />
-          <!--
-            La moneda forma parte de lo que identifica al plan: una categoria admite uno por
-            moneda y mes, asi que presupuestar en dolares no pisa lo que ya hubiera en soles.
-          -->
-          <div class="fs-money-switch" role="group" aria-label="Moneda del presupuesto">
-            @for (option of currencies; track option) {
-              <button
-                type="button"
-                class="fs-money-switch__btn"
-                [class.is-active]="newCurrency() === option"
-                [attr.aria-pressed]="newCurrency() === option"
-                [attr.aria-label]="currencyName(option)"
-                [disabled]="saving()"
-                (click)="newCurrency.set(option)"
-              >
-                {{ currencySign(option) }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-
-      <button
-        class="fs-btn fs-btn--solid"
-        type="submit"
-        [disabled]="saving() || newForm.invalid || !newCategoryId()"
-      >
-        Fijar
-      </button>
-    </form>
-    <p class="fs-note">
-      Solo se ofrecen las categorías que admiten egresos y que todavía no tienen presupuesto este
-      mes. El avance se mide contra lo gastado, así que una categoría de solo ingresos no tendría
-      nada contra lo que compararse.
-    </p>
-  </section>
 }
 
 @if (loading()) {
@@ -170,40 +104,7 @@
   <ul class="fs-buds">
     @for (budget of budgets(); track budget.id) {
       <li class="fs-panel fs-block fs-buds__item">
-        @if (editingId() === budget.id) {
-          <form class="fs-edit" [formGroup]="editForm" (ngSubmit)="saveEdit(budget)">
-            <label class="fs-label" [attr.for]="'amount' + budget.id">
-              Presupuesto de {{ budget.category }}
-            </label>
-            <div class="fs-edit__row">
-              <input
-                [id]="'amount' + budget.id"
-                class="fs-field fs-num"
-                type="number"
-                inputmode="decimal"
-                min="0.01"
-                step="0.01"
-                formControlName="amount"
-                (keyup.escape)="cancelEdit()"
-              />
-              <button
-                class="fs-btn fs-btn--sm fs-btn--solid"
-                type="submit"
-                [disabled]="saving() || editForm.invalid"
-              >
-                Guardar
-              </button>
-              <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelEdit()">
-                Cancelar
-              </button>
-            </div>
-            <p class="fs-note">
-              Llevas {{ money(budget.spent, budget.currency) }} gastados en esta categoría. Bajar el
-              presupuesto por debajo de esa cifra no borra nada: solo hace que la barra se lea como
-              pasada.
-            </p>
-          </form>
-        } @else if (confirmingId() === budget.id) {
+        @if (confirmingId() === budget.id) {
           <div class="fs-buds__confirm" animate.enter="fs-anim-expand">
             <span>
               ¿Quitar el presupuesto de <strong>{{ budget.category }}</strong
@@ -266,4 +167,130 @@
       presupuestar. Si ya planificaste {{ previousLabel().toLowerCase() }}, cópialo y ajusta.
     </p>
   </section>
+}
+
+<!-- Alta y cambio de un presupuesto en la misma hoja que el resto de la aplicación. -->
+@if (showCreate()) {
+  <fs-bottom-sheet
+    title="Nuevo presupuesto"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeCreate()"
+  >
+    <form id="newBudgetForm" class="fs-sheet-form" [formGroup]="newForm" (ngSubmit)="create()">
+      <div role="group" aria-labelledby="newBudgetCategory">
+        <span class="fs-label" id="newBudgetCategory">Categoría</span>
+        <div class="fs-picks">
+          @for (option of categoryOptions().slice(1); track option.value) {
+            <button
+              type="button"
+              class="fs-pick fs-pick--chip"
+              [class.is-active]="newCategoryId() === option.value"
+              [attr.aria-pressed]="newCategoryId() === option.value"
+              (click)="newCategoryId.set(option.value)"
+            >
+              <fs-category-chip [name]="option.label" />
+            </button>
+          }
+        </div>
+        <p class="fs-note fs-sheet-note">
+          Solo salen las categorías que admiten egresos y que todavía no tienen presupuesto este
+          mes: el avance se mide contra lo gastado.
+        </p>
+      </div>
+
+      <div>
+        <label class="fs-label" for="newBudgetAmount">Presupuesto del mes</label>
+        <div class="fs-new__amount">
+          <input
+            id="newBudgetAmount"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="400.00"
+            formControlName="amount"
+          />
+          <!--
+            La moneda forma parte de lo que identifica al plan: una categoria admite uno por
+            moneda y mes, asi que presupuestar en dolares no pisa lo que ya hubiera en soles.
+          -->
+          <div class="fs-money-switch" role="group" aria-label="Moneda del presupuesto">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="newCurrency() === option"
+                [attr.aria-pressed]="newCurrency() === option"
+                [attr.aria-label]="currencyName(option)"
+                [disabled]="saving()"
+                (click)="newCurrency.set(option)"
+              >
+                {{ currencySign(option) }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="closeCreate()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="newBudgetForm"
+        [disabled]="saving() || newForm.invalid || !newCategoryId()"
+      >
+        Fijar
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}
+
+@if (editing(); as budget) {
+  <fs-bottom-sheet
+    [title]="'Presupuesto de ' + budget.category"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="cancelEdit()"
+  >
+    <form
+      id="editBudgetForm"
+      class="fs-sheet-form"
+      [formGroup]="editForm"
+      (ngSubmit)="saveEdit(budget)"
+    >
+      <div>
+        <label class="fs-label" [attr.for]="'amount' + budget.id">Presupuesto del mes</label>
+        <input
+          [id]="'amount' + budget.id"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          formControlName="amount"
+        />
+        <p class="fs-note fs-sheet-note">
+          Llevas {{ money(budget.spent, budget.currency) }} gastados en esta categoría. Bajar el
+          presupuesto por debajo de esa cifra no borra nada: solo hace que la barra se lea como
+          pasada.
+        </p>
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="cancelEdit()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="editBudgetForm"
+        [disabled]="saving() || editForm.invalid"
+      >
+        Guardar
+      </button>
+    </div>
+  </fs-bottom-sheet>
 }

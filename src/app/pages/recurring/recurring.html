@@ -26,9 +26,8 @@
     </p>
   </div>
   <div class="fs-head__actions">
-    <button class="fs-btn fs-btn--solid" type="button" (click)="toggleForm()">
-      <i class="bi" [class.bi-plus-lg]="!showForm()" [class.bi-x-lg]="showForm()"></i>
-      {{ showForm() ? 'Cerrar' : 'Nuevo fijo' }}
+    <button class="fs-btn fs-btn--solid" type="button" (click)="openForm()">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo fijo
     </button>
   </div>
 </div>
@@ -41,168 +40,6 @@
       <p>{{ error() }}</p>
     </div>
   </div>
-}
-
-@if (showForm()) {
-  <section class="fs-panel fs-block" animate.enter="fs-anim-expand">
-    <p class="fs-section">
-      <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
-      {{ editingId() ? 'Cambiar el fijo' : 'Un movimiento que se repite' }}
-    </p>
-
-    <form class="fs-form" [formGroup]="form" (ngSubmit)="save()">
-      <div class="fs-form__wide">
-        <label class="fs-label" for="recurringDescription">Cómo lo llamas</label>
-        <input
-          id="recurringDescription"
-          class="fs-field"
-          type="text"
-          maxlength="70"
-          placeholder="Alquiler"
-          autocomplete="off"
-          formControlName="description"
-        />
-      </div>
-
-      <div class="fs-form__wide">
-        <span class="fs-label" id="recurringKindLabel">Tipo</span>
-        <div class="fs-kinds" role="group" aria-labelledby="recurringKindLabel">
-          <button
-            type="button"
-            class="fs-btn fs-btn--sm"
-            [class.fs-btn--solid]="kind() === 'EXPENSE'"
-            [class.fs-btn--outline]="kind() !== 'EXPENSE'"
-            [attr.aria-pressed]="kind() === 'EXPENSE'"
-            (click)="setKind('EXPENSE')"
-          >
-            <i class="bi bi-arrow-down-left" aria-hidden="true"></i>Egreso
-          </button>
-          <button
-            type="button"
-            class="fs-btn fs-btn--sm"
-            [class.fs-btn--solid]="kind() === 'INCOME'"
-            [class.fs-btn--outline]="kind() !== 'INCOME'"
-            [attr.aria-pressed]="kind() === 'INCOME'"
-            (click)="setKind('INCOME')"
-          >
-            <i class="bi bi-arrow-up-right" aria-hidden="true"></i>Ingreso
-          </button>
-        </div>
-      </div>
-
-      <div class="fs-form__wide">
-        <span class="fs-label" id="recurringCategoryLabel">Categoría</span>
-        <fs-category-picker
-          [categories]="categories()"
-          [kind]="kind()"
-          [selected]="categoryId()"
-          (selectedChange)="categoryId.set($event)"
-        />
-      </div>
-
-      <div class="fs-form__wide">
-        <label class="fs-label" for="recurringTags">Tags</label>
-        <fs-tags-field
-          inputId="recurringTags"
-          [(tags)]="pickedTags"
-          [catalogue]="tagCatalogue()"
-          [disabled]="saving()"
-        />
-        <p class="fs-hint">
-          Se escriben una vez: cada mes que marques este fijo como pagado, el movimiento nace con
-          ellos. La categoría es una sola y reparte el gasto; los tags se solapan.
-        </p>
-      </div>
-
-      <div>
-        <label class="fs-label" for="recurringAmount">Importe habitual</label>
-        <div class="fs-new__amount">
-          <input
-            id="recurringAmount"
-            class="fs-field fs-num"
-            type="number"
-            inputmode="decimal"
-            min="0.01"
-            step="0.01"
-            placeholder="180.00"
-            formControlName="amount"
-          />
-          <!--
-            La plantilla guarda la moneda pero no el tipo de cambio: el de cada mes es el
-            del dia en que se pague, asi que se pide al confirmar.
-          -->
-          <div class="fs-money-switch" role="group" aria-label="Moneda del cargo">
-            @for (option of currencies; track option) {
-              <button
-                type="button"
-                class="fs-money-switch__btn"
-                [class.is-active]="currency() === option"
-                [attr.aria-pressed]="currency() === option"
-                [attr.aria-label]="currencyName(option)"
-                [disabled]="saving()"
-                (click)="currency.set(option)"
-              >
-                {{ currencySign(option) }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label class="fs-label" for="recurringDay">Día del mes</label>
-        <input
-          id="recurringDay"
-          class="fs-field fs-num"
-          type="number"
-          inputmode="numeric"
-          min="1"
-          max="31"
-          step="1"
-          formControlName="dayOfMonth"
-        />
-      </div>
-
-      <div>
-        <span class="fs-label" id="recurringRhythmLabel">Cada cuánto</span>
-        <fs-select-field
-          inputId="recurringRhythmField"
-          ariaLabel="Cada cuántos meses se repite"
-          [options]="rhythms"
-          [value]="everyMonths()"
-          (valueChange)="everyMonths.set($event)"
-        />
-      </div>
-
-      <div>
-        <span class="fs-label" id="recurringStartLabel">Desde</span>
-        <fs-date-field
-          inputId="recurringStartField"
-          ariaLabel="Mes desde el que aplica"
-          mode="month"
-          [value]="startValue()"
-          (valueChange)="startValue.set($event)"
-        />
-      </div>
-
-      <div class="fs-form__actions">
-        <button
-          class="fs-btn fs-btn--solid"
-          type="submit"
-          [disabled]="saving() || form.invalid || !categoryId()"
-        >
-          {{ editingId() ? 'Guardar' : 'Añadir' }}
-        </button>
-        <button class="fs-btn fs-btn--ghost" type="button" (click)="closeForm()">Cancelar</button>
-      </div>
-    </form>
-
-    <p class="fs-note">
-      El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede corregir,
-      y lo corregido va al movimiento. Los tags sí van tal cual, mes a mes. Un cargo del 31 vence el
-      28 en febrero.
-    </p>
-  </section>
 }
 
 @if (loading()) {
@@ -268,76 +105,7 @@
           </div>
         </div>
 
-        @if (adjustingId() === item.id) {
-          <form class="fs-adjust" [formGroup]="adjustForm" (ngSubmit)="confirmAdjusted(item)">
-            <div class="fs-adjust__field">
-              <label class="fs-label" [attr.for]="'adjustAmount' + item.id">
-                Lo que de verdad {{ item.type === 'INCOME' ? 'entró' : 'se pagó' }}
-              </label>
-              <input
-                [id]="'adjustAmount' + item.id"
-                class="fs-field fs-num"
-                type="number"
-                inputmode="decimal"
-                min="0.01"
-                step="0.01"
-                formControlName="amount"
-                (keyup.escape)="cancelAdjust()"
-              />
-            </div>
-            <!--
-              El cambio del dia solo existe fuera de la moneda base. Viene propuesto con el
-              ultimo que se uso: confirmarlo cada mes tiene que costar un vistazo, no una
-              consulta.
-            -->
-            @if (needsRate(item)) {
-              <div class="fs-adjust__field">
-                <label class="fs-label" [attr.for]="'adjustRate' + item.id"> Tipo de cambio </label>
-                <input
-                  [id]="'adjustRate' + item.id"
-                  class="fs-field fs-num"
-                  type="number"
-                  inputmode="decimal"
-                  min="0.000001"
-                  step="0.000001"
-                  placeholder="3.55"
-                  formControlName="exchangeRate"
-                  (keyup.escape)="cancelAdjust()"
-                />
-              </div>
-            }
-            <div class="fs-adjust__field">
-              <span class="fs-label">Fecha</span>
-              <fs-date-field
-                [inputId]="'adjustDate' + item.id"
-                ariaLabel="Fecha real del movimiento"
-                mode="date"
-                [value]="adjustDate()"
-                (valueChange)="adjustDate.set($event)"
-              />
-            </div>
-            <div class="fs-adjust__actions">
-              <button
-                class="fs-btn fs-btn--sm fs-btn--solid"
-                type="submit"
-                [disabled]="saving() || adjustForm.invalid"
-              >
-                Registrar
-              </button>
-              <button
-                class="fs-btn fs-btn--sm fs-btn--ghost"
-                type="button"
-                (click)="cancelAdjust()"
-              >
-                Cancelar
-              </button>
-            </div>
-            <p class="fs-note fs-adjust__note">
-              La fecha tiene que caer dentro de {{ title().toLowerCase() }}: es lo que ata el
-              movimiento al mes que estás confirmando.
-            </p>
-          </form>
-        } @else if (confirmingId() === item.id) {
+        @if (confirmingId() === item.id) {
           <div class="fs-fix__confirm" animate.enter="fs-anim-expand">
             <span>
               ¿Eliminar <strong>{{ item.description }}</strong
@@ -484,4 +252,253 @@
       sabrás cuánto del mes está comprometido antes de gastar nada.
     </p>
   </section>
+}
+
+<!--
+  Alta y cambio de un fijo en la misma hoja que el resto de la aplicación. Es un formulario
+  largo, así que el cuerpo se desplaza y los botones se quedan fijos abajo.
+-->
+@if (showForm()) {
+  <fs-bottom-sheet
+    [title]="editingId() ? 'Editar fijo' : 'Nuevo fijo'"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeForm()"
+  >
+    <form id="recurringForm" class="fs-sheet-form fs-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="fs-form__wide">
+        <label class="fs-label" for="recurringDescription">Cómo lo llamas</label>
+        <input
+          id="recurringDescription"
+          class="fs-field"
+          type="text"
+          maxlength="70"
+          placeholder="Alquiler"
+          autocomplete="off"
+          formControlName="description"
+        />
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="recurringKindLabel">Tipo</span>
+        <div class="fs-kinds" role="group" aria-labelledby="recurringKindLabel">
+          <button
+            type="button"
+            class="fs-btn fs-btn--sm"
+            [class.fs-btn--solid]="kind() === 'EXPENSE'"
+            [class.fs-btn--outline]="kind() !== 'EXPENSE'"
+            [attr.aria-pressed]="kind() === 'EXPENSE'"
+            (click)="setKind('EXPENSE')"
+          >
+            <i class="bi bi-arrow-down-left" aria-hidden="true"></i>Egreso
+          </button>
+          <button
+            type="button"
+            class="fs-btn fs-btn--sm"
+            [class.fs-btn--solid]="kind() === 'INCOME'"
+            [class.fs-btn--outline]="kind() !== 'INCOME'"
+            [attr.aria-pressed]="kind() === 'INCOME'"
+            (click)="setKind('INCOME')"
+          >
+            <i class="bi bi-arrow-up-right" aria-hidden="true"></i>Ingreso
+          </button>
+        </div>
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="recurringCategoryLabel">Categoría</span>
+        <fs-category-picker
+          [categories]="categories()"
+          [kind]="kind()"
+          [selected]="categoryId()"
+          (selectedChange)="categoryId.set($event)"
+        />
+      </div>
+
+      <div class="fs-form__wide">
+        <label class="fs-label" for="recurringTags">Tags</label>
+        <fs-tags-field
+          inputId="recurringTags"
+          [(tags)]="pickedTags"
+          [catalogue]="tagCatalogue()"
+          [disabled]="saving()"
+        />
+        <p class="fs-hint">
+          Se escriben una vez: cada mes que marques este fijo como pagado, el movimiento nace con
+          ellos. La categoría es una sola y reparte el gasto; los tags se solapan.
+        </p>
+      </div>
+
+      <div>
+        <label class="fs-label" for="recurringAmount">Importe habitual</label>
+        <div class="fs-new__amount">
+          <input
+            id="recurringAmount"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="180.00"
+            formControlName="amount"
+          />
+          <!--
+            La plantilla guarda la moneda pero no el tipo de cambio: el de cada mes es el
+            del dia en que se pague, asi que se pide al confirmar.
+          -->
+          <div class="fs-money-switch" role="group" aria-label="Moneda del cargo">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="currency() === option"
+                [attr.aria-pressed]="currency() === option"
+                [attr.aria-label]="currencyName(option)"
+                [disabled]="saving()"
+                (click)="currency.set(option)"
+              >
+                {{ currencySign(option) }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="fs-label" for="recurringDay">Día del mes</label>
+        <input
+          id="recurringDay"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="31"
+          step="1"
+          formControlName="dayOfMonth"
+        />
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="recurringRhythmLabel">Cada cuánto</span>
+        <div class="fs-picks" role="group" aria-labelledby="recurringRhythmLabel">
+          @for (option of rhythms; track option.value) {
+            <button
+              type="button"
+              class="fs-pick"
+              [class.is-active]="everyMonths() === option.value"
+              [attr.aria-pressed]="everyMonths() === option.value"
+              (click)="everyMonths.set(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div>
+        <span class="fs-label" id="recurringStartLabel">Desde</span>
+        <fs-date-field
+          inputId="recurringStartField"
+          ariaLabel="Mes desde el que aplica"
+          mode="month"
+          [value]="startValue()"
+          (valueChange)="startValue.set($event)"
+        />
+      </div>
+      <p class="fs-note fs-form__wide">
+        El importe es el de siempre, no el definitivo: al marcar el mes como pagado se puede
+        corregir, y lo corregido va al movimiento. Los tags sí van tal cual, mes a mes. Un cargo del
+        31 vence el 28 en febrero.
+      </p>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="closeForm()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="recurringForm"
+        [disabled]="saving() || form.invalid || !categoryId()"
+      >
+        {{ editingId() ? 'Guardar' : 'Añadir' }}
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}
+
+@if (adjusting(); as item) {
+  <fs-bottom-sheet
+    [title]="'Registrar ' + item.description"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="cancelAdjust()"
+  >
+    <form
+      id="adjustForm"
+      class="fs-sheet-form"
+      [formGroup]="adjustForm"
+      (ngSubmit)="confirmAdjusted(item)"
+    >
+      <div class="fs-adjust__field">
+        <label class="fs-label" [attr.for]="'adjustAmount' + item.id">
+          Lo que de verdad {{ item.type === 'INCOME' ? 'entró' : 'se pagó' }}
+        </label>
+        <input
+          [id]="'adjustAmount' + item.id"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          formControlName="amount"
+        />
+      </div>
+      <!--
+        El cambio del dia solo existe fuera de la moneda base. Viene propuesto con el
+        ultimo que se uso: confirmarlo cada mes tiene que costar un vistazo, no una
+        consulta.
+      -->
+      @if (needsRate(item)) {
+        <div class="fs-adjust__field">
+          <label class="fs-label" [attr.for]="'adjustRate' + item.id"> Tipo de cambio </label>
+          <input
+            [id]="'adjustRate' + item.id"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.000001"
+            step="0.000001"
+            placeholder="3.55"
+            formControlName="exchangeRate"
+          />
+        </div>
+      }
+      <div class="fs-adjust__field">
+        <span class="fs-label">Fecha</span>
+        <fs-date-field
+          [inputId]="'adjustDate' + item.id"
+          ariaLabel="Fecha real del movimiento"
+          mode="date"
+          [value]="adjustDate()"
+          (valueChange)="adjustDate.set($event)"
+        />
+      </div>
+      <p class="fs-note fs-sheet-note">
+        La fecha tiene que caer dentro de {{ title().toLowerCase() }}: es lo que ata el movimiento
+        al mes que estás confirmando.
+      </p>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="cancelAdjust()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="adjustForm"
+        [disabled]="saving() || adjustForm.invalid"
+      >
+        Registrar
+      </button>
+    </div>
+  </fs-bottom-sheet>
 }

@@ -21,10 +21,12 @@ import {
 } from '../../core/format/money';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { BudgetResponse, CategoryResponse, Currency } from '../../core/models';
+import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
+import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
-import { SelectFieldComponent, SelectOption } from '../../shared/ui/select-field';
+import { SelectOption } from '../../shared/ui/select-field';
 
 /** Totales del mes: el plan entero contra lo que de verdad se lleva gastado. */
 interface BudgetTotals {
@@ -57,10 +59,11 @@ interface BudgetTotals {
   selector: 'app-budgets',
   imports: [
     ReactiveFormsModule,
+    BottomSheetComponent,
     BudgetBarComponent,
+    CategoryChipComponent,
     DateFieldComponent,
     SegmentedDirective,
-    SelectFieldComponent,
   ],
   templateUrl: './budgets.html',
   styleUrl: './budgets.scss',
@@ -172,6 +175,11 @@ export class BudgetsPage {
     );
   });
 
+  /** El presupuesto que se está cambiando, que es lo que abre su hoja. */
+  protected readonly editing = computed(
+    () => this.budgets().find((budget) => budget.id === this.editingId()) ?? null,
+  );
+
   /**
    * Las mismas categorías, con la forma que entiende el desplegable de la casa.
    * Abre con una opción vacía a propósito: el desplegable enseña la primera cuando el valor
@@ -277,9 +285,15 @@ export class BudgetsPage {
     this.reload();
   }
 
-  protected toggleCreate(): void {
-    this.showCreate.set(!this.showCreate());
+  protected openCreate(): void {
+    this.editingId.set(null);
+    this.confirmingId.set(null);
     this.resetCreate();
+    this.showCreate.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.showCreate.set(false);
   }
 
   protected create(): void {
@@ -312,6 +326,7 @@ export class BudgetsPage {
   }
 
   protected startEdit(budget: BudgetResponse): void {
+    this.showCreate.set(false);
     this.editingId.set(budget.id);
     this.confirmingId.set(null);
     this.editAmount.setValue(budget.amount);

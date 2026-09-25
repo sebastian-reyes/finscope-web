@@ -7,6 +7,7 @@ import { ToastService } from '../../core/toast.service';
 import { TagResponse } from '../../core/models';
 import { describeError } from '../../core/api-error';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
+import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { ChipColorPickerComponent } from '../../shared/ui/chip-color-picker';
 import { ChipIconPickerComponent } from '../../shared/ui/chip-icon-picker';
 import { styleChange } from '../../core/format/chip-color';
@@ -26,6 +27,7 @@ import { styleChange } from '../../core/format/chip-color';
 @Component({
   selector: 'app-tags',
   imports: [
+    BottomSheetComponent,
     ReactiveFormsModule,
     RouterLink,
     TagChipComponent,
@@ -66,6 +68,11 @@ export class TagsPage {
   protected readonly editForm = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(70)]],
   });
+
+  /** El tag que se está editando, que es lo que abre su hoja. */
+  protected readonly editing = computed(
+    () => this.tags().find((tag) => tag.id === this.editingId()) ?? null,
+  );
 
   protected readonly newName = this.newForm.controls.name;
   protected readonly editName = this.editForm.controls.name;
@@ -109,11 +116,17 @@ export class TagsPage {
     });
   }
 
-  protected toggleCreate(): void {
-    this.showCreate.set(!this.showCreate());
+  protected openCreate(): void {
+    this.editingId.set(null);
+    this.confirmingId.set(null);
     this.newName.reset('');
     this.newColor.set(null);
     this.newIcon.set(null);
+    this.showCreate.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.showCreate.set(false);
   }
 
   protected create(): void {
@@ -136,6 +149,7 @@ export class TagsPage {
   }
 
   protected startEdit(tag: TagResponse): void {
+    this.showCreate.set(false);
     this.editingId.set(tag.id);
     this.confirmingId.set(null);
     this.editName.setValue(tag.name);

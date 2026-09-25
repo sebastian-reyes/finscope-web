@@ -1,37 +1,39 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { SegmentedDirective } from './segmented';
 
+/** Una de las pantallas hermanas entre las que se salta con el conmutador. */
+export interface SectionTab {
+  path: string;
+  label: string;
+  icon: string;
+}
+
 /**
- * Conmutador entre las cuatro pantallas que se organizan por categoría.
+ * Conmutador entre pantallas hermanas que comparten un hueco de la navegación.
  *
- * Categorías y tags son cosas distintas —una clasifica y el otro contextualiza— y ni el
- * presupuesto ni los fijos son catálogos en absoluto, pero las cuatro se mantienen igual y
- * se llega a ellas por el mismo sitio, así que comparten hueco en lugar de ocupar cuatro de
- * la barra inferior, donde solo caben cinco y el pulgar ya llega justo.
+ * Lo usan dos marcos: el plan del mes —presupuestos y fijos— y, dentro de la configuración,
+ * categorías y tags. En los dos casos son cosas distintas que se mantienen igual y se llega a
+ * ellas por el mismo sitio, así que comparten hueco en lugar de ocupar uno cada una.
  *
- * El orden es el del razonamiento: en qué se gasta, cuánto se piensa gastar, qué parte de
- * eso ya está comprometida, y al final los tags, que es lo lejos que están del plan del mes.
- * Los rótulos son de una palabra porque en móvil las cuatro comparten renglón.
+ * Los rótulos son de una palabra porque en el teléfono todas comparten renglón.
  */
 @Component({
   selector: 'fs-catalogue-tabs',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, RouterLinkActive, SegmentedDirective],
   template: `
-    <nav class="fs-seg fs-tabs" aria-label="Categorías, presupuestos, fijos y tags">
-      <a class="fs-seg__btn fs-tabs__link" routerLink="/categories" routerLinkActive="is-active">
-        <i class="bi bi-grid-1x2" aria-hidden="true"></i>Categorías
-      </a>
-      <a class="fs-seg__btn fs-tabs__link" routerLink="/budgets" routerLinkActive="is-active">
-        <i class="bi bi-clipboard-check" aria-hidden="true"></i>Presupuestos
-      </a>
-      <a class="fs-seg__btn fs-tabs__link" routerLink="/recurring" routerLinkActive="is-active">
-        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>Fijos
-      </a>
-      <a class="fs-seg__btn fs-tabs__link" routerLink="/tags" routerLinkActive="is-active">
-        <i class="bi bi-tags" aria-hidden="true"></i>Tags
-      </a>
+    <nav class="fs-seg fs-tabs" [attr.aria-label]="label()">
+      @for (tab of tabs(); track tab.path) {
+        <a
+          class="fs-seg__btn fs-tabs__link"
+          [routerLink]="tab.path"
+          routerLinkActive="is-active"
+          ariaCurrentWhenActive="page"
+        >
+          <i class="bi {{ tab.icon }}" aria-hidden="true"></i>{{ tab.label }}
+        </a>
+      }
     </nav>
   `,
   styles: `
@@ -46,14 +48,12 @@ import { SegmentedDirective } from './segmented';
        solo se ajusta lo propio de unos enlaces: el icono y el subrayado. */
     .fs-tabs {
       margin-bottom: 1rem;
-      /* Lo que se salga se queda dentro del conmutador. Las cuatro opciones con su icono
-         miden 433 px, y en un teléfono de 390 eso no se recortaba: estiraba el documento y
-         dejaba toda la sección del catálogo con scroll horizontal, con las tarjetas y sus
-         botones saliéndose por la derecha. Aquí lo que se desplaza es la tira, no la
-         pantalla. */
+      /* Lo que se salga se queda dentro del conmutador. Con cuatro opciones la tira medía
+         433 px y en un teléfono de 390 estiraba el documento entero; hoy son dos y caben,
+         pero si vuelve a crecer lo que se desplaza tiene que ser la tira, no la pantalla. */
       max-width: 100%;
       overflow-x: auto;
-      /* La barra de desplazamiento sobra: es una tira de cuatro y se arrastra con el dedo. */
+      /* La barra de desplazamiento sobra: la tira es corta y se arrastra con el dedo. */
       scrollbar-width: none;
     }
 
@@ -71,20 +71,11 @@ import { SegmentedDirective } from './segmented';
       flex: none;
       white-space: nowrap;
     }
-
-    /* En el teléfono los iconos se van. Son un adorno —los rótulos son palabras completas y
-       se entienden solos— y sin ellos las cuatro caben de sobra en una pantalla normal, que
-       es mejor que poder verlas arrastrando. */
-    @media (max-width: 576px) {
-      .fs-tabs__link {
-        gap: 0;
-        padding-inline: 0.7rem;
-      }
-
-      .fs-tabs__link i {
-        display: none;
-      }
-    }
   `,
 })
-export class CatalogueTabsComponent {}
+export class CatalogueTabsComponent {
+  readonly tabs = input.required<readonly SectionTab[]>();
+
+  /** Lo que se le lee al lector de pantalla al llegar al conmutador. */
+  readonly label = input.required<string>();
+}

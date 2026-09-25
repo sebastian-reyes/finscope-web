@@ -1,5 +1,5 @@
-import { DatePipe } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, debounceTime, forkJoin } from 'rxjs';
@@ -26,7 +26,9 @@ import {
 } from '../../core/models';
 import { CURRENCIES, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
+import { mediaQuery } from '../../core/viewport';
 import { AmountComponent } from '../../shared/ui/amount';
+import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
@@ -45,6 +47,18 @@ const HIGHLIGHT_MS = 1800;
  * menos la última; esperar más haría que escribir se sintiera desconectado de la lista.
  */
 const SEARCH_DEBOUNCE_MS = 300;
+
+/** Un filtro de los que viven en la hoja, puesto ahora, tal y como se enseña en su ficha. */
+interface ActiveFilter {
+  key: 'kind' | 'category' | 'tag' | 'currency';
+  /** Categoría y tag se dibujan como su ficha, con su color; el resto, como texto. */
+  chip?: 'category' | 'tag';
+  label: string;
+  icon: string;
+}
+
+/** Cómo se escribe un día suelto en el resumen del rango: «1 ago». */
+const SHORT_DAY = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short' });
 
 /** Movimientos de un mismo día, con el rótulo bajo el que se agrupan. */
 interface DayGroup {
@@ -71,8 +85,10 @@ interface DayGroup {
   selector: 'app-transactions',
   imports: [
     DatePipe,
+    NgTemplateOutlet,
     RouterLink,
     AmountComponent,
+    BottomSheetComponent,
     CategoryChipComponent,
     DateFieldComponent,
     SegmentedDirective,
@@ -87,6 +103,16 @@ export class TransactionsPage {
   private readonly styles = inject(CatalogueStylesService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
+
+  /**
+   * Si la pantalla es la de un teléfono. Ahí los filtros se recogen en una barra y una hoja;
+   * se decide en el componente y no en la hoja de estilos porque las dos versiones no pueden
+   * convivir en el documento: repetirían los identificadores de los campos.
+   */
+  protected readonly compact = mediaQuery('(max-width: 767.98px)');
+
+  /** Si la hoja de filtros está abierta. */
+  protected readonly filtersOpen = signal(false);
 
   protected readonly result = signal<TransactionPageResponse | null>(null);
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
@@ -186,6 +212,7 @@ export class TransactionsPage {
       label: category.name,
       icon: this.styles.iconOf('category', category.name),
       hint: String(category.transactionCount),
+      chip: 'category' as const,
     })),
   ]);
 
@@ -196,6 +223,7 @@ export class TransactionsPage {
       label: tag.name,
       icon: this.styles.iconOf('tag', tag.name),
       hint: String(tag.transactionCount),
+      chip: 'tag' as const,
     })),
   ]);
 
@@ -294,6 +322,57 @@ export class TransactionsPage {
       !this.isCurrentMonth(),
   );
 
+  /**
+   * Los filtros de la hoja que están puestos, en el orden en que se leen en ella.
+   * La búsqueda y el periodo no cuentan: están siempre a la vista, encima de las fichas.
+   */
+  protected readonly activeFilters = computed<ActiveFilter[]>(() => {
+    const active: ActiveFilter[] = [];
+    const kind = this.filteredKind();
+    if (kind) {
+      active.push(
+        kind === 'INCOME'
+          ? { key: 'kind', label: 'Ingresos', icon: 'bi-arrow-up-right' }
+          : { key: 'kind', label: 'Egresos', icon: 'bi-arrow-down-left' },
+      );
+    }
+    const category = this.categories().find((candidate) => candidate.id === this.categoryId());
+    if (category) {
+      active.push({
+        key: 'category',
+        chip: 'category',
+        label: category.name,
+        icon: this.styles.iconOf('category', category.name),
+      });
+    }
+    const tag = this.tag();
+    if (tag) {
+      active.push({ key: 'tag', chip: 'tag', label: tag, icon: this.styles.iconOf('tag', tag) });
+    }
+    const currency = this.currency();
+    if (currency) {
+      active.push({ key: 'currency', label: currency, icon: 'bi-coin' });
+    }
+    return active;
+  });
+
+  /** El rango de fechas en pocas letras, para la barra del teléfono: «1 ago → 15 sep». */
+  protected readonly rangeSummary = computed(() => {
+    const day = (value: string) => SHORT_DAY.format(new Date(`${value.slice(0, 10)}T00:00`));
+    const from = this.from();
+    const to = this.to();
+    if (from && to) {
+      return `${day(from)} → ${day(to)}`;
+    }
+    if (from) {
+      return `Desde el ${day(from)}`;
+    }
+    if (to) {
+      return `Hasta el ${day(to)}`;
+    }
+    return 'Elige las fechas';
+  });
+
   protected readonly hasPrevious = computed(() => this.pageIndex() > 0);
 
   protected readonly hasNext = computed(() => {
@@ -336,6 +415,14 @@ export class TransactionsPage {
   });
 
   constructor() {
+    // Si la ventana se ensancha hasta la tarjeta de escritorio, la hoja sobra: sus controles
+    // ya están a la vista.
+    effect(() => {
+      if (!this.compact()) {
+        this.filtersOpen.set(false);
+      }
+    });
+
     // Arrastrar hacia abajo recarga esta pantalla. El gesto vive en la carcasa —el dedo
     // arrastra la ventana, no una pantalla concreta—, así que lo que se deja aquí es qué hay
     // que volver a pedir y cómo saber que ya ha terminado.
@@ -543,6 +630,48 @@ export class TransactionsPage {
     this.typed.next('');
     this.searchText.set('');
     this.search();
+  }
+
+  /**
+   * Quita los filtros de la hoja y deja la búsqueda y el periodo como estaban: es lo que
+   * ofrecen las fichas, que solo enseñan esos.
+   */
+  protected clearRefinements(): void {
+    this.typeId.set(null);
+    this.categoryId.set(null);
+    this.tag.set(null);
+    this.currency.set(null);
+    this.search();
+  }
+
+  /**
+   * Quita uno de los filtros desde su ficha.
+   *
+   * @param key cuál
+   */
+  protected removeFilter(key: ActiveFilter['key']): void {
+    switch (key) {
+      case 'kind':
+        this.setKind(null);
+        break;
+      case 'category':
+        this.setCategory('');
+        break;
+      case 'tag':
+        this.setTag('');
+        break;
+      case 'currency':
+        this.setCurrency('');
+        break;
+    }
+  }
+
+  protected openFilters(): void {
+    this.filtersOpen.set(true);
+  }
+
+  protected closeFilters(): void {
+    this.filtersOpen.set(false);
   }
 
   protected openCreate(): void {

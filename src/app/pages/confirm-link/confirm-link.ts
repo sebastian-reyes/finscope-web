@@ -63,7 +63,9 @@ export class ConfirmLinkPage {
   protected readonly isLoggedIn = this.auth.isLoggedIn;
 
   /** A dónde lleva el botón del final, según haya sesión abierta o no. */
-  protected readonly destination = computed(() => (this.isLoggedIn() ? '/account' : '/login'));
+  protected readonly destination = computed(() =>
+    this.isLoggedIn() ? '/account/security' : '/login',
+  );
 
   constructor() {
     const token = this.route.snapshot.queryParamMap.get('token');
