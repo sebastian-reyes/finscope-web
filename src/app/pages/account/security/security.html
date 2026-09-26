@@ -1,5 +1,7 @@
 <section class="fs-panel fs-block" aria-labelledby="correoTitle">
-  <h2 class="fs-card__title" id="correoTitle"><i class="bi bi-envelope" aria-hidden="true"></i>Correo</h2>
+  <h2 class="fs-card__title" id="correoTitle">
+    <i class="bi bi-envelope" aria-hidden="true"></i>Correo
+  </h2>
 
   <p class="fs-email" aria-labelledby="correoTitle">
     <span class="fs-email__address">{{ user()?.email }}</span>
@@ -145,7 +147,9 @@
   permiso para cambiarla es recibir el correo, no tener la pantalla delante.
 -->
 <section class="fs-panel fs-block" aria-labelledby="claveTitle">
-  <h2 class="fs-card__title" id="claveTitle"><i class="bi bi-key" aria-hidden="true"></i>Contraseña</h2>
+  <h2 class="fs-card__title" id="claveTitle">
+    <i class="bi bi-key" aria-hidden="true"></i>Contraseña
+  </h2>
 
   <p class="fs-hint fs-lead">
     Se cambia desde un enlace que mandamos a <strong>{{ user()?.email }}</strong

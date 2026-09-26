@@ -148,6 +148,21 @@
   [class.fs-main--auth]="!isLoggedIn()"
   [class.fs-safe-bottom]="isLoggedIn()"
 >
+  <!--
+    La puerta a la configuración en el teléfono, arriba a la derecha de cada pantalla. La barra
+    inferior no tiene hueco para ella, y sin esto solo se llegaba desde el saludo del inicio.
+    No sale en el inicio, que ya la lleva en el saludo, ni dentro de la propia configuración.
+  -->
+  @if (showsMe()) {
+    <a class="fs-me" routerLink="/account" aria-label="Configuración">
+      <fs-avatar
+        class="fs-me__avatar"
+        [avatar]="user()?.avatar"
+        [name]="user()?.displayName"
+        [email]="user()?.email"
+      />
+    </a>
+  }
   <router-outlet [fsSlide]="destinations" />
 </main>
 

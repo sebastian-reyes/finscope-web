@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { Component, DestroyRef, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -109,10 +109,18 @@ export class App {
     { path: '/transactions', label: 'Movimientos', icon: 'bi-arrow-left-right' },
   ];
 
-  // A la derecha, el plan del mes y la cuenta. El plan son los presupuestos y los fijos, que
-  // se miran cada mes; las categorías y los tags, que se configuran una vez, están dentro de
-  // la configuración y no se llevan un hueco de la barra.
+  /** El análisis: el dinero mirado hacia atrás y comparado. */
+  private readonly analysisNav: NavItem = {
+    path: '/analysis',
+    label: 'Análisis',
+    icon: 'bi-bar-chart-line',
+  };
+
+  // A la derecha, el análisis y el plan del mes. El plan son los presupuestos y los fijos, que
+  // se miran cada mes. La configuración no tiene hueco: se entra poco, y en el teléfono se
+  // llega tocando la imagen del saludo del inicio.
   protected readonly rightNav: NavItem[] = [
+    this.analysisNav,
     // Los fijos no tienen hueco propio: comparten el del plan, y sin contarlos aquí la barra
     // no marcaba ninguna sección estando en ellos.
     {
@@ -120,14 +128,6 @@ export class App {
       label: 'Plan',
       icon: 'bi-clipboard-check',
       covers: ['/recurring'],
-    },
-    // La configuración es un menú con sus pantallas debajo, y en todas ellas se sigue
-    // estando en la cuenta.
-    {
-      path: '/account',
-      label: 'Perfil',
-      icon: 'bi-person',
-      covers: ACCOUNT_SECTIONS,
     },
   ];
 
@@ -140,6 +140,7 @@ export class App {
    */
   protected readonly sideNav: (NavItem | NavGroup)[] = [
     ...this.leftNav,
+    this.analysisNav,
     {
       path: '/budgets',
       label: 'Plan',
@@ -161,6 +162,12 @@ export class App {
       })),
     },
   ];
+
+  /** Si va el avatar que lleva a la configuración: en todas menos el inicio y la propia. */
+  protected readonly showsMe = computed(() => {
+    const url = this.url().split('?')[0];
+    return this.isLoggedIn() && !url.startsWith('/dashboard') && !url.startsWith('/account');
+  });
 
   /**
    * Si un grupo del menú lateral contiene la pantalla abierta, que es cuando se despliega.
@@ -185,6 +192,7 @@ export class App {
   protected readonly destinations = [
     '/dashboard',
     '/transactions',
+    '/analysis',
     '/budgets',
     '/recurring',
     '/account',

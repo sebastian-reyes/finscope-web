@@ -1,18 +1,31 @@
 <!--
   El saludo, como en el diseño: la cara de la cuenta y su nombre antes que cualquier cifra.
   El mes va debajo, con sus flechas, porque es lo que se cambia; el saludo solo acompaña.
+
+  En el teléfono es además la puerta a la configuración: la barra inferior no tiene hueco para
+  ella —se lo lleva el análisis—, y se entra poco. Por eso la imagen lleva ahí, y al lado va un
+  engranaje para quien no lo adivine. En escritorio el engranaje sobra: está el menú lateral.
 -->
 <header class="fs-hello">
-  <fs-avatar
-    class="fs-hello__avatar"
-    [avatar]="user()?.avatar"
-    [name]="user()?.displayName"
-    [email]="user()?.email"
-  />
+  <a class="fs-hello__me" routerLink="/account" aria-label="Configuración">
+    <fs-avatar
+      class="fs-hello__avatar"
+      [avatar]="user()?.avatar"
+      [name]="user()?.displayName"
+      [email]="user()?.email"
+    />
+  </a>
   <div class="fs-hello__text">
     <h1 class="fs-hello__title">{{ greeting() }}</h1>
     <p class="fs-hello__hint">Aquí tienes un resumen de tu mes.</p>
   </div>
+  <a
+    class="fs-btn fs-btn--icon fs-hello__settings"
+    routerLink="/account"
+    aria-label="Configuración"
+  >
+    <i class="bi bi-gear" aria-hidden="true"></i>
+  </a>
 </header>
 
 <div class="fs-period">

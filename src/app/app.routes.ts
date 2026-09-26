@@ -42,6 +42,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/transactions/transactions').then((m) => m.TransactionsPage),
   },
+  {
+    path: 'analysis',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/analysis/analysis').then((m) => m.AnalysisPage),
+  },
   // Categorías y tags viven ahora en la configuración. Las direcciones de antes siguen
   // llevando a su sitio: puede haber enlaces guardados o una pestaña abierta con ellas.
   { path: 'categories', redirectTo: '/account/categories' },

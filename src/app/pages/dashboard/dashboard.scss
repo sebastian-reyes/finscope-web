@@ -291,6 +291,22 @@
   height: 3rem;
 }
 
+.fs-hello__me {
+  flex: none;
+  border-radius: 50%;
+}
+
+.fs-hello__settings {
+  margin-left: auto;
+  font-size: 1.15rem;
+}
+
+@media (min-width: 992px) {
+  .fs-hello__settings {
+    display: none;
+  }
+}
+
 .fs-hello__title {
   margin: 0;
   font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.75rem);

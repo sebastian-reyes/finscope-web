@@ -1,0 +1,282 @@
+<div class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Análisis</h1>
+    <p class="fs-head__hint">Cómo va tu dinero comparado con {{ versus() }}.</p>
+  </div>
+  <div class="fs-head__actions">
+    <div class="fs-seg" role="group" aria-label="Tamaño del periodo">
+      @for (option of scopes; track option.value) {
+        <button
+          type="button"
+          class="fs-seg__btn"
+          [class.is-active]="period().scope === option.value"
+          [attr.aria-pressed]="period().scope === option.value"
+          (click)="setScope(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    @if (offersUsd()) {
+      <div class="fs-money-switch" role="group" aria-label="Moneda de las cifras">
+        @for (option of currencies; track option) {
+          <button
+            type="button"
+            class="fs-money-switch__btn"
+            [class.is-active]="shownCurrency() === option"
+            [attr.aria-pressed]="shownCurrency() === option"
+            [attr.aria-label]="currencyName(option)"
+            (click)="setCurrency(option)"
+          >
+            {{ currencySign(option) }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<header class="fs-period">
+  <button
+    class="fs-period__step"
+    type="button"
+    (click)="shift(-1)"
+    [attr.aria-label]="period().scope === 'year' ? 'Año anterior' : 'Mes anterior'"
+  >
+    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+  </button>
+  <h2 class="fs-period__title">
+    <span class="visually-hidden">Análisis de {{ title() }}</span>
+    @if (period().scope === 'month') {
+      <fs-date-field
+        variant="plain"
+        ariaLabel="Mes que se analiza"
+        mode="month"
+        [value]="monthValue()"
+        (valueChange)="setMonthValue($event)"
+      />
+    } @else {
+      <span aria-hidden="true">{{ title() }}</span>
+    }
+  </h2>
+  <button
+    class="fs-period__step"
+    type="button"
+    (click)="shift(1)"
+    [disabled]="isCurrent()"
+    [attr.aria-label]="period().scope === 'year' ? 'Año siguiente' : 'Mes siguiente'"
+  >
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+  </button>
+</header>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudo cargar el análisis</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (figures(); as f) {
+  <!--
+    Las cuatro cifras del periodo, cada una con cuánto cambió. El color del cambio dice si es
+    buena o mala noticia, no hacia dónde va: que el gasto baje es verde.
+  -->
+  <section class="fs-kpis" aria-label="Resumen del periodo">
+    <div class="fs-panel fs-kpi">
+      <p class="fs-kpi__label">
+        <i class="bi bi-arrow-up-right fs-income" aria-hidden="true"></i>Ingresos
+      </p>
+      <p class="fs-kpi__value">
+        <fs-amount [amount]="f.income" [currency]="shownCurrency()" code="INCOME" />
+      </p>
+      @if (f.incomeChange; as c) {
+        <p class="fs-kpi__change {{ tone(c, 'up') }}">
+          <i class="bi {{ arrow(c) }}" aria-hidden="true"></i>{{ c.percent }} % vs. {{ versus() }}
+        </p>
+      }
+    </div>
+
+    <div class="fs-panel fs-kpi">
+      <p class="fs-kpi__label">
+        <i class="bi bi-arrow-down-left fs-expense" aria-hidden="true"></i>Egresos
+      </p>
+      <p class="fs-kpi__value">
+        <fs-amount [amount]="f.expense" [currency]="shownCurrency()" code="EXPENSE" />
+      </p>
+      @if (f.expenseChange; as c) {
+        <p class="fs-kpi__change {{ tone(c, 'down') }}">
+          <i class="bi {{ arrow(c) }}" aria-hidden="true"></i>{{ c.percent }} % vs. {{ versus() }}
+        </p>
+      }
+    </div>
+
+    <div class="fs-panel fs-kpi">
+      <p class="fs-kpi__label"><i class="bi bi-wallet2" aria-hidden="true"></i>Balance</p>
+      <p class="fs-kpi__value">
+        <fs-amount [amount]="f.net" [currency]="shownCurrency()" [signed]="true" />
+      </p>
+    </div>
+
+    <div class="fs-panel fs-kpi">
+      <p class="fs-kpi__label"><i class="bi bi-piggy-bank" aria-hidden="true"></i>Ahorro</p>
+      <p class="fs-kpi__value fs-num">{{ f.rate === null ? '—' : f.rate + ' %' }}</p>
+      @if (f.rateDelta !== null) {
+        <p
+          class="fs-kpi__change"
+          [class.is-good]="f.rateDelta > 0"
+          [class.is-bad]="f.rateDelta < 0"
+          [class.is-flat]="f.rateDelta === 0"
+        >
+          {{ f.rateDelta > 0 ? '+' : '' }}{{ f.rateDelta }} pts vs. {{ versus() }}
+        </p>
+      } @else if (f.rate === null) {
+        <p class="fs-kpi__change is-flat">Sin ingresos en el periodo</p>
+      }
+    </div>
+  </section>
+
+  <!--
+    Dos columnas que crecen cada una por su cuenta, y no una rejilla que alinea filas: con pocas
+    categorías la tarjeta del reparto es mucho más baja que la de la evolución, y alineadas por
+    filas dejaban un hueco en medio de la página. En el teléfono las columnas se disuelven y las
+    tarjetas se ordenan por lo que importa: reparto, evolución, tags y monedas.
+  -->
+  <div class="fs-analysis">
+    <div class="fs-analysis__col">
+      <section class="fs-panel fs-card fs-analysis__categories" aria-labelledby="categoriesTitle">
+        <h2 class="fs-card__title" id="categoriesTitle">
+          <i class="bi bi-grid-1x2" aria-hidden="true"></i>Gastos por categoría
+        </h2>
+
+        @if (categories().length) {
+          <ul class="fs-bars">
+            @for (row of categories(); track row.categoryId) {
+              <li>
+                <a
+                  class="fs-bar"
+                  [routerLink]="categoryLink(row.categoryId) ? ['/transactions'] : null"
+                  [queryParams]="categoryLink(row.categoryId)"
+                  [class.is-static]="!categoryLink(row.categoryId)"
+                >
+                  <span class="fs-bar__name">
+                    <i class="bi {{ iconOf(row.name) }}" aria-hidden="true"></i>
+                    <span class="text-truncate">{{ row.name }}</span>
+                  </span>
+                  <span class="fs-bar__amount">
+                    <fs-amount [amount]="row.expense" [currency]="shownCurrency()" />
+                  </span>
+                  <span class="fs-bar__track" aria-hidden="true">
+                    <span class="fs-bar__fill" [style.width.%]="row.bar"></span>
+                  </span>
+                  <span class="fs-bar__meta">
+                    {{ row.share }} %
+                    @if (row.change; as c) {
+                      <span class="{{ tone(c, 'down') }}">
+                        <i class="bi {{ arrow(c) }}" aria-hidden="true"></i>{{ c.percent }} %
+                      </span>
+                    } @else if (previous()) {
+                      <span class="is-flat">nueva</span>
+                    }
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="fs-empty">No hubo gastos en {{ title().toLowerCase() }}.</p>
+        }
+      </section>
+
+      @if (tags().length) {
+        <section class="fs-panel fs-card fs-analysis__tags" aria-labelledby="tagsTitle">
+          <h2 class="fs-card__title" id="tagsTitle">
+            <i class="bi bi-tags" aria-hidden="true"></i>Con qué tags gastas más
+          </h2>
+          <ul class="fs-plain">
+            @for (row of tags(); track row.tag) {
+              <li>
+                <fs-tag-chip [name]="row.tag!" [count]="row.transactionCount" />
+                <fs-amount [amount]="row.expense" [currency]="shownCurrency()" />
+              </li>
+            }
+          </ul>
+          <p class="fs-note">
+            Un movimiento puede llevar varios tags, así que estas cifras se solapan y no suman el
+            gasto del periodo.
+          </p>
+        </section>
+      }
+    </div>
+
+    <div class="fs-analysis__col">
+      <section class="fs-panel fs-card fs-analysis__trend" aria-labelledby="trendTitle">
+        <h2 class="fs-card__title" id="trendTitle">
+          <i class="bi bi-graph-up" aria-hidden="true"></i>
+          {{ period().scope === 'year' ? 'Mes a mes' : 'Últimos 12 meses' }}
+        </h2>
+
+        @if (trend(); as t) {
+          <fs-trend-chart [series]="t" [currency]="shownCurrency()" />
+        }
+
+        @if (stats(); as s) {
+          <dl class="fs-stats">
+            <div>
+              <dt>Gasto medio al mes</dt>
+              <dd><fs-amount [amount]="s.averageExpense" [currency]="shownCurrency()" /></dd>
+            </div>
+            @if (s.topExpense; as top) {
+              <div>
+                <dt>Mes con más gasto</dt>
+                <dd>
+                  {{ monthOf(top) }} ·
+                  <fs-amount [amount]="top.expense" [currency]="shownCurrency()" />
+                </dd>
+              </div>
+            }
+            @if (s.bestNet; as best) {
+              <div>
+                <dt>Mejor balance</dt>
+                <dd>
+                  {{ monthOf(best) }} ·
+                  <fs-amount [amount]="best.net" [currency]="shownCurrency()" [signed]="true" />
+                </dd>
+              </div>
+            }
+          </dl>
+        }
+      </section>
+
+      @if (byCurrency().length) {
+        <section class="fs-panel fs-card fs-analysis__currency" aria-labelledby="currencyTitle">
+          <h2 class="fs-card__title" id="currencyTitle">
+            <i class="bi bi-currency-exchange" aria-hidden="true"></i>Por moneda
+          </h2>
+          <ul class="fs-plain">
+            @for (row of byCurrency(); track row.currency) {
+              <li>
+                <span>{{ currencyName(row.currency) }}</span>
+                <span class="fs-plain__pair">
+                  <fs-amount [amount]="row.income" [currency]="row.currency" code="INCOME" />
+                  <fs-amount [amount]="row.expense" [currency]="row.currency" code="EXPENSE" />
+                </span>
+              </li>
+            }
+          </ul>
+          <p class="fs-note">Lo que se movió en cada moneda, sin convertir.</p>
+        </section>
+      }
+    </div>
+  </div>
+} @else if (loading()) {
+  <div class="fs-kpis" aria-hidden="true">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="fs-panel fs-kpi"><div class="fs-skeleton"></div></div>
+    }
+  </div>
+}

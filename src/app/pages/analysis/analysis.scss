@@ -1,0 +1,258 @@
+@use '../../../styles/tokens' as t;
+
+// Análisis. Las piezas —tarjeta, título, periodo, cabecera— salen de la capa base; aquí solo
+// va lo propio de esta pantalla: las cuatro cifras, las barras y la rejilla.
+
+.fs-head__actions {
+  flex-wrap: wrap;
+}
+
+// --- Las cuatro cifras --------------------------------------------------------------------
+// Dos por fila en el teléfono y cuatro en cuanto hay sitio: son la respuesta rápida, y tienen
+// que caber de un vistazo antes de bajar a los detalles.
+.fs-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: t.$fs-bp-md) {
+  .fs-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.fs-kpi {
+  padding: 1rem 1.1rem;
+  min-width: 0;
+}
+
+.fs-kpi__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-kpi__value {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.125rem, 0.9rem + 1vw, 1.5rem);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-kpi__change {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0.35rem 0 0;
+  font-size: var(--fs-text-xs);
+}
+
+// El tono del cambio dice si es buena noticia, no hacia dónde va.
+.is-good {
+  color: var(--fs-income);
+}
+
+.is-bad {
+  color: var(--fs-expense);
+}
+
+.is-flat {
+  color: var(--fs-ink-faint);
+}
+
+// --- Las columnas -------------------------------------------------------------------------
+// En el teléfono las columnas no existen (`display: contents`): sus tarjetas pasan a ser
+// hijas directas de la lista y se ordenan con `order`. En escritorio son dos pilas que crecen
+// cada una a su aire, así que una tarjeta baja no deja hueco debajo esperando a la de al lado.
+.fs-analysis {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fs-analysis__col {
+  display: contents;
+}
+
+.fs-analysis__categories {
+  order: 1;
+}
+
+.fs-analysis__trend {
+  order: 2;
+}
+
+.fs-analysis__tags {
+  order: 3;
+}
+
+.fs-analysis__currency {
+  order: 4;
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  .fs-analysis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .fs-analysis__col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+}
+
+.fs-card {
+  padding: 1.25rem;
+}
+
+// --- Gasto por categoría ------------------------------------------------------------------
+// Barras y no un anillo: aquí se comparan categorías entre sí, y el largo de una barra se
+// compara de un vistazo; el ángulo de una porción, no.
+.fs-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.3rem 0.75rem;
+  padding: 0.55rem 0.6rem;
+  margin-inline: -0.6rem;
+  border-radius: var(--fs-radius-control-sm);
+  color: var(--fs-ink);
+  text-decoration: none;
+
+  &:not(.is-static):hover {
+    background-color: var(--fs-hover);
+  }
+}
+
+.fs-bar__name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: var(--fs-text-base);
+  font-weight: 550;
+
+  i {
+    flex: none;
+    color: var(--fs-ink-muted);
+  }
+}
+
+.fs-bar__amount {
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+  text-align: right;
+}
+
+.fs-bar__track {
+  height: 0.45rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-shade);
+  overflow: hidden;
+}
+
+.fs-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--fs-brand);
+}
+
+.fs-bar__meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+  white-space: nowrap;
+
+  i {
+    font-size: 0.7rem;
+  }
+}
+
+// --- Evolución ----------------------------------------------------------------------------
+.fs-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fs-line);
+
+  dt {
+    font-size: var(--fs-text-xs);
+    color: var(--fs-ink-muted);
+  }
+
+  dd {
+    margin: 0.2rem 0 0;
+    font-size: var(--fs-text-sm);
+    font-weight: 600;
+  }
+}
+
+// --- Listas sencillas: tags y monedas -----------------------------------------------------
+.fs-plain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--fs-line);
+    font-size: var(--fs-text-base);
+  }
+
+  // La ficha del tag cede sitio al importe antes que partirlo en dos líneas.
+  fs-tag-chip {
+    min-width: 0;
+  }
+
+  li:last-child {
+    border-bottom: 0;
+  }
+}
+
+.fs-plain__pair {
+  display: flex;
+  gap: 1rem;
+  font-weight: 600;
+}
+
+.fs-empty {
+  margin: 0;
+  padding: 1rem 0;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-kpi .fs-skeleton {
+  height: 3.25rem;
+}

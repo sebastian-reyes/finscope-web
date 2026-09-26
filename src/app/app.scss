@@ -307,7 +307,37 @@
 
 // El contenido respira un poco más en escritorio, donde hay sitio.
 .fs-main {
+  position: relative;
   padding-block: 1rem;
+}
+
+// El avatar que lleva a la configuración, arriba a la derecha de cada pantalla del teléfono.
+// Va en el flujo de la página y no fijo: se queda arriba y se va al desplazar, como el título
+// junto al que se lee. Centrado con la primera fila de cada pantalla, que mide lo mismo que él.
+.fs-me {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  right: 1rem;
+  border-radius: 50%;
+}
+
+.fs-me__avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-me {
+    right: 1.5rem;
+  }
+}
+
+// En escritorio sobra: la configuración está en el menú lateral.
+@media (min-width: t.$fs-bp-lg) {
+  .fs-me {
+    display: none;
+  }
 }
 
 // Sin sesión no hay barra, ni ancho de página, ni relleno: las pantallas públicas se pintan
