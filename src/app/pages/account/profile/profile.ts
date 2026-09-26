@@ -29,7 +29,9 @@ import { AvatarComponent } from '../../../shared/ui/avatar';
       confirmarlo solo añadiría un paso.
     -->
     <section class="fs-panel fs-block" aria-labelledby="imagenTitle">
-      <p class="fs-section" id="imagenTitle">Tu imagen</p>
+      <h2 class="fs-card__title" id="imagenTitle">
+        <i class="bi bi-emoji-smile" aria-hidden="true"></i>Tu imagen
+      </h2>
 
       <div class="fs-avatars" role="group" aria-labelledby="imagenTitle">
         @for (choice of choices; track choice.id) {
@@ -55,7 +57,9 @@ import { AvatarComponent } from '../../../shared/ui/avatar';
     </section>
 
     <section class="fs-panel fs-block" aria-labelledby="nombreTitle">
-      <p class="fs-section" id="nombreTitle">Nombre</p>
+      <h2 class="fs-card__title" id="nombreTitle">
+        <i class="bi bi-person" aria-hidden="true"></i>Nombre
+      </h2>
 
       <form class="fs-form" (submit)="onSubmit($event)">
         <div>

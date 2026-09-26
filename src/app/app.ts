@@ -18,7 +18,7 @@ import { PullRefreshComponent } from './shared/ui/pull-refresh';
 import { SegmentedDirective } from './shared/ui/segmented';
 import { SlideOutletDirective } from './shared/ui/slide-outlet';
 import { TransactionEditorComponent } from './shared/ui/transaction-editor';
-import { ACCOUNT_SECTIONS } from './pages/account/sections';
+import { ACCOUNT_SECTIONS, SECTIONS } from './pages/account/sections';
 
 /**
  * Lo que puede envejecer la copia del usuario antes de volver a preguntarla al recuperar el
@@ -36,11 +36,20 @@ interface NavItem {
   covers?: readonly string[];
 }
 
+/** Grupo del menú lateral: una fila que despliega sus pantallas debajo. */
+interface NavGroup {
+  /** Adónde lleva la fila del grupo: su primera pantalla. */
+  path: string;
+  label: string;
+  icon: string;
+  children: readonly NavItem[];
+}
+
 /**
  * Carcasa de la aplicación.
  *
  * La navegación cambia de forma según el sitio: en móvil es una barra inferior al alcance
- * del pulgar y en escritorio una barra superior. El registro de un movimiento no es un
+ * del pulgar y en escritorio un menú lateral. El registro de un movimiento no es un
  * destino más, sino el botón central, porque es lo que se viene a hacer a la aplicación.
  * Nada de esto se dibuja sin sesión, para que el acceso quede limpio.
  */
@@ -122,7 +131,51 @@ export class App {
     },
   ];
 
-  protected readonly allNav = [...this.leftNav, ...this.rightNav];
+  /**
+   * Los destinos del menú lateral de escritorio.
+   *
+   * Los mismos cuatro huecos que la barra inferior, para que la aplicación se ordene igual en
+   * el teléfono y en el ordenador. La diferencia es que aquí hay sitio para enseñar lo que hay
+   * dentro de cada grupo, así que el plan y la configuración despliegan sus pantallas debajo.
+   */
+  protected readonly sideNav: (NavItem | NavGroup)[] = [
+    ...this.leftNav,
+    {
+      path: '/budgets',
+      label: 'Plan',
+      icon: 'bi-clipboard-check',
+      children: [
+        { path: '/budgets', label: 'Presupuestos', icon: 'bi-clipboard-check' },
+        { path: '/recurring', label: 'Fijos', icon: 'bi-arrow-repeat' },
+      ],
+    },
+    {
+      path: '/account',
+      label: 'Configuración',
+      icon: 'bi-gear',
+      children: SECTIONS.map((section) => ({
+        path: section.tabs?.[0].path ?? `/account/${section.slug}`,
+        label: section.title,
+        icon: section.icon,
+        covers: section.tabs?.map((tab) => tab.path),
+      })),
+    },
+  ];
+
+  /**
+   * Si un grupo del menú lateral contiene la pantalla abierta, que es cuando se despliega.
+   *
+   * @param group grupo del menú
+   * @return si alguna de sus pantallas está abierta, o su propia dirección
+   */
+  protected isGroupActive(group: NavGroup): boolean {
+    return this.url().split('?')[0] === group.path || group.children.some((c) => this.isActive(c));
+  }
+
+  /** El destino como grupo, o nulo si es una fila suelta. Para distinguirlos en la plantilla. */
+  protected asGroup(item: NavItem | NavGroup): NavGroup | null {
+    return 'children' in item ? item : null;
+  }
 
   /**
    * Los destinos en el orden en que se leen, para que la pantalla nueva entre por el lado

@@ -50,9 +50,9 @@
   </section>
 } @else if (items().length) {
   <section class="fs-panel fs-block fs-sum" aria-labelledby="recurringTotalTitle">
-    <p class="fs-section" id="recurringTotalTitle">
+    <h2 class="fs-card__title" id="recurringTotalTitle">
       <i class="bi bi-arrow-repeat" aria-hidden="true"></i>{{ title() }}
-    </p>
+    </h2>
     @if (totals().pendingCount) {
       <p class="fs-sum__figure">
         <span class="fs-num fs-sum__amount">{{ totals().pendingExpense }}</span>
@@ -207,9 +207,9 @@
 
   @if (resting().length) {
     <section class="fs-panel fs-block fs-rest" aria-labelledby="restingTitle">
-      <p class="fs-section" id="restingTitle">
+      <h2 class="fs-card__title" id="restingTitle">
         <i class="bi bi-pause-circle" aria-hidden="true"></i>Este mes no tocan
-      </p>
+      </h2>
       <ul class="fs-rest__list">
         @for (item of resting(); track item.id) {
           <li class="fs-rest__item">

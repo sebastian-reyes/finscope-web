@@ -197,6 +197,11 @@
   padding: 1rem 1.25rem 0.5rem;
 }
 
+// El título va en la fila del orden, que ya pone su propio aire debajo.
+.fs-list__head .fs-card__title {
+  margin: 0;
+}
+
 .fs-list__sort {
   min-width: 10rem;
 }
@@ -715,7 +720,7 @@
   }
 
   // El orden se elige con un desplegable estrecho y el recuento no se parte en dos líneas.
-  .fs-list__head .fs-section {
+  .fs-list__head .fs-card__title {
     white-space: nowrap;
   }
 

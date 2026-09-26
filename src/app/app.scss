@@ -1,65 +1,307 @@
 @use '../styles/tokens' as t;
 
-// Barra superior. Solo existe entera en escritorio; en móvil la navegación vive abajo.
+// La franja de arriba, solo en el teléfono. Es la zona segura —su alto es cero fuera de una
+// aplicación instalada— y está para que lo que se desplaza por debajo no se lea detrás de la
+// hora ni de la isla dinámica.
+//
+// Opaca y sin desenfoque. En el iPhone, Safari puede dejar la capa del desenfoque de un
+// elemento pegado con un tamaño viejo —la zona segura se resuelve un instante después del
+// primer pintado—, y entonces emborronaba lo de debajo hasta que un desplazamiento la
+// obligaba a recalcularse. En una franja que solo está detrás de la hora el desenfoque no
+// aportaba nada que compensara eso.
 .fs-topbar {
   position: sticky;
   top: 0;
   z-index: 1020;
-  // Alto fijo, y no el que resulte de su contenido: el lienzo pinta esa misma franja detrás
-  // para que la barra no se corte donde empieza la barra de desplazamiento, y si los dos
-  // números no coinciden se ve el escalón.
-  //
-  // Instalada en un iPhone, la barra de estado se pinta encima de la página: el relleno
-  // baja la fila bajo la isla dinámica y el alto crece lo mismo, de modo que el fondo
-  // translúcido llega hasta arriba en vez de dejar una banda de papel sobre la barra.
-  // En el navegador la zona segura vale cero y esto queda exactamente como estaba.
   height: var(--fs-topbar-total);
-  padding-top: var(--fs-safe-top);
-  // Translúcida y con desenfoque: el contenido se ve pasar por debajo en lugar de morir
-  // contra una franja opaca, que es lo que hace que la barra se lea como una capa y no como
-  // el borde superior de la página.
-  background-color: color-mix(in srgb, var(--fs-surface) 78%, transparent);
-  border-bottom: 1px solid var(--fs-line);
-  backdrop-filter: saturate(1.6) blur(14px);
+  background-color: var(--fs-surface);
 }
 
-// Sin soporte de desenfoque no puede quedarse translúcida: se leería el texto de debajo a
-// través del título.
+// Sin soporte de desenfoque la barra inferior no puede quedarse translúcida: se leería el
+// texto de debajo a través de los rótulos.
 @supports not (backdrop-filter: blur(1px)) {
-  .fs-topbar,
   .fs-tabbar {
     background-color: var(--fs-surface);
   }
 }
 
-// La fila de la barra: marca, navegación y acciones. Antes eran cuatro utilidades sueltas
-// en la plantilla; aquí se lee de una vez lo que hace.
-.fs-topbar__inner {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: 1rem;
-}
-
-.fs-topbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-// En el teléfono la barra se queda en la franja de la zona segura —su alto es cero fuera de
-// una aplicación instalada—: sin fila, sin línea, y solo con el fondo translúcido para que lo
-// que se desplaza por debajo no se lea detrás de la hora ni de la isla dinámica. Lo que
-// llevaba ya tiene otro sitio: la navegación abajo y el tema y la salida en la configuración.
-// Va detrás de la regla de la fila, que tiene la misma especificidad y si no la pisaría.
-@media (max-width: #{t.$fs-bp-lg - 0.02px}) {
+@media (min-width: t.$fs-bp-lg) {
   .fs-topbar {
-    border-bottom: 0;
+    display: none;
+  }
+}
+
+// --- Menú lateral de escritorio -----------------------------------------------------------
+// Fijo a la izquierda y de alto completo; el contenido le deja su ancho con el relleno de
+// `body` (en `_base.scss`), de modo que todo lo que se centra en la página se centra en el
+// hueco que queda y no en la ventana entera.
+.fs-sidebar {
+  display: none;
+}
+
+@media (min-width: t.$fs-bp-lg) {
+  .fs-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1020;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: var(--fs-sidebar-width);
+    padding: 1.25rem 0.75rem 1rem;
+    border-right: 1px solid var(--fs-line);
+    background-color: var(--fs-surface);
+    overflow-y: auto;
+  }
+}
+
+.fs-sidebar__brand {
+  padding: 0.25rem 0.6rem;
+}
+
+.fs-sidebar__record {
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+// La columna de destinos. Lo activo lleva su fondo puesto, sin la pastilla que se desliza en
+// la barra inferior: aquí las filas se despliegan y se recogen, y una pastilla que persigue a
+// una fila que se está moviendo llega siempre tarde.
+.fs-sidenav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.fs-sidenav__link {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--fs-radius-control);
+  font-size: var(--fs-text-base);
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+
+  i {
+    flex: none;
+    width: 1.25rem;
+    font-size: 1.05rem;
+    text-align: center;
   }
 
-  .fs-topbar__inner {
+  &:hover:not(.is-active) {
+    background-color: var(--fs-hover);
+    color: var(--fs-ink);
+  }
+
+  &.is-active {
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-weight: 600;
+  }
+
+  // El grupo abierto se tiñe en la letra y no en el fondo: el fondo es de la pantalla que se
+  // está mirando, que es una de las de debajo.
+  &.is-current {
+    color: var(--fs-ink);
+    font-weight: 600;
+  }
+
+  &.is-current > i:first-child {
+    color: var(--fs-brand);
+  }
+}
+
+.fs-sidenav__link .fs-sidenav__chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--fs-ink-faint);
+  transition: transform 0.2s ease;
+
+  &.is-open {
+    transform: rotate(180deg);
+  }
+}
+
+// Las pantallas del grupo, colgadas de una línea que baja desde su icono: es lo que dice de
+// quién son sin repetir el icono de cada una.
+.fs-sidenav__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.15rem 0 0.35rem 1.35rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--fs-line);
+  animation: fs-sidenav-open 0.2s ease both;
+}
+
+.fs-sidenav__child {
+  display: block;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--fs-radius-control-sm);
+  font-size: var(--fs-text-sm);
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover:not(.is-active) {
+    background-color: var(--fs-hover);
+    color: var(--fs-ink);
+  }
+
+  &.is-active {
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-weight: 600;
+  }
+}
+
+@keyframes fs-sidenav-open {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-sidenav__sub {
+    animation: none;
+  }
+}
+
+// Quién ha entrado, abajo del todo: su imagen y su nombre llevan a sus datos, y al lado van el
+// tema y la salida, que antes estaban en la barra de arriba.
+// Todo en una fila: el perfil se estira y los dos botones se quedan a su derecha, centrados
+// con la imagen.
+.fs-sidebar__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-sidebar__actions {
+  display: flex;
+  flex: none;
+  gap: 0.1rem;
+}
+
+.fs-user {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.4rem;
+  border-radius: var(--fs-radius-control);
+  color: var(--fs-ink);
+  text-decoration: none;
+
+  &:hover {
+    background-color: var(--fs-hover);
+  }
+}
+
+.fs-user__avatar {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.fs-user__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-user__name {
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+}
+
+.fs-user__mail {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+}
+
+// Entre 992 y 1280 el menú se queda en iconos: ahí un portátil no tiene ancho que regalar.
+// Los rótulos no se quitan, se esconden a la vista —el lector de pantalla los sigue leyendo—,
+// y el `title` de cada fila los enseña al pasar el ratón.
+@media (min-width: t.$fs-bp-lg) and (max-width: #{t.$fs-bp-xl - 0.02px}) {
+  .fs-sidebar {
+    align-items: center;
+    padding-inline: 0.625rem;
+  }
+
+  .fs-sidebar__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .fs-sidebar__brand {
+    padding-inline: 0;
+  }
+
+  .fs-sidebar__record {
+    width: 2.75rem;
+    padding-inline: 0;
+  }
+
+  .fs-sidenav {
+    align-self: stretch;
+  }
+
+  .fs-sidenav__link {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  // Sin rótulos no hay dónde colgar las pantallas de un grupo: la fila del grupo lleva a la
+  // primera, y dentro se cambia con el conmutador de la propia página. El grupo abierto toma
+  // entonces el fondo de lo activo, porque es lo único que queda a la vista.
+  .fs-sidenav__sub,
+  .fs-sidenav__link .fs-sidenav__chevron {
     display: none;
+  }
+
+  .fs-sidenav__link.is-current {
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+  }
+
+  // Sin rótulos no hay ancho para una fila: imagen y botones se apilan.
+  .fs-sidebar__foot {
+    flex-direction: column;
+    align-self: stretch;
+    gap: 0.5rem;
+  }
+
+  .fs-user {
+    flex: none;
+  }
+
+  .fs-sidebar__actions {
+    flex-direction: column;
   }
 }
 
@@ -138,87 +380,6 @@
   flex: none;
   width: 1.625rem;
   height: 1.625rem;
-}
-
-// La navegación de arriba y la de abajo son la misma decisión tomada dos veces: en escritorio
-// manda esta, y en cuanto la pantalla se estrecha la releva la barra inferior, al alcance del
-// pulgar. Nunca se ven las dos.
-// La navegación de escritorio es el mismo control segmentado que los filtros y el catálogo,
-// y por la misma razón: son pocas opciones excluyentes y la pastilla que se desliza de una a
-// otra dice de dónde vienes. Sin caja alrededor —ni borde ni fondo— porque aquí el marco lo
-// pone la propia barra; lo único que se ve es la pastilla.
-.fs-topnav {
-  display: none;
-  margin-left: 1.25rem;
-  padding: 0;
-  border-color: transparent;
-  background: none;
-}
-
-@media (min-width: t.$fs-bp-lg) {
-  .fs-topnav {
-    display: inline-flex;
-  }
-}
-
-.fs-topnav::before {
-  background-color: var(--fs-brand-tint);
-  box-shadow: none;
-}
-
-.fs-topnav__link {
-  gap: 0.45rem;
-  padding: 0.45rem 0.85rem;
-  text-decoration: none;
-
-  &:hover {
-    color: var(--fs-ink);
-  }
-
-  &.is-active {
-    color: var(--fs-brand);
-    font-weight: 550;
-  }
-
-  i {
-    font-size: 0.95rem;
-  }
-}
-
-// Quién ha entrado: su imagen y su nombre, que llevan a sus datos. En un teléfono no se
-// dibuja —la barra de arriba no existe ahí—, y en una ventana estrecha el nombre se va y
-// queda la imagen, que ya dice lo mismo.
-.fs-user {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  max-width: 16rem;
-  padding: 0.2rem 0.6rem 0.2rem 0.2rem;
-  border-radius: 999px;
-  font-size: var(--fs-text-sm);
-  color: var(--fs-ink-muted);
-  text-decoration: none;
-
-  &:hover {
-    background-color: var(--fs-hover);
-    color: var(--fs-ink);
-  }
-}
-
-.fs-user__avatar {
-  width: 1.9rem;
-  height: 1.9rem;
-}
-
-.fs-user__name {
-  display: none;
-}
-
-@media (min-width: t.$fs-bp-sm) {
-  .fs-user__name {
-    display: block;
-  }
 }
 
 // Barra inferior de móvil. Cinco huecos iguales con el registro en el centro, que es la

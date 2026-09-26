@@ -35,10 +35,10 @@
   </section>
 } @else if (tags().length) {
   <section class="fs-panel fs-block">
-    <p class="fs-section">
-      Tu catálogo
+    <h2 class="fs-card__title">
+      <i class="bi bi-tags" aria-hidden="true"></i>Tu catálogo
       <span class="fs-count">{{ tags().length }}</span>
-    </p>
+    </h2>
 
     <ul class="fs-rows">
       @for (tag of tags(); track tag.id) {

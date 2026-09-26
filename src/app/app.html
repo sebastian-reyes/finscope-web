@@ -1,25 +1,109 @@
 @if (isLoggedIn()) {
-  <header class="fs-topbar">
-    <div class="fs-page fs-topbar__inner">
-      <a class="fs-brand" routerLink="/dashboard">
-        <fs-logo class="fs-brand__mark" />
-        <span>FinScope</span>
-      </a>
+  <!--
+    En el teléfono no lleva nada: es la franja que tapa la hora y la isla dinámica cuando la
+    aplicación va instalada. En escritorio no existe; la navegación va en el menú lateral.
+  -->
+  <div class="fs-topbar" aria-hidden="true"></div>
 
-      <nav class="fs-seg fs-topnav" aria-label="Secciones">
-        @for (item of allNav; track item.path) {
+  <!--
+    El menú lateral de escritorio. Por debajo de 992 px no se dibuja y lo releva la barra
+    inferior. Entre 992 y 1280 se queda en iconos para no quitarle ancho al contenido; los
+    rótulos siguen ahí para el lector de pantalla, y el `title` los enseña al pasar el ratón.
+  -->
+  <aside class="fs-sidebar">
+    <a class="fs-brand fs-sidebar__brand" routerLink="/dashboard" title="FinScope">
+      <fs-logo class="fs-brand__mark" />
+      <span class="fs-sidebar__text">FinScope</span>
+    </a>
+
+    <button
+      class="fs-btn fs-btn--solid fs-sidebar__record"
+      type="button"
+      (click)="openEditor()"
+      title="Registrar movimiento"
+    >
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>
+      <span class="fs-sidebar__text">Registrar</span>
+    </button>
+
+    <!--
+      Los grupos son los mismos que en la barra inferior. El de la pantalla abierta despliega
+      las suyas debajo; pulsar un grupo cerrado lleva a su primera pantalla, y con eso se abre.
+    -->
+    <nav class="fs-sidenav" aria-label="Navegación principal">
+      @for (item of sideNav; track item.label) {
+        @let group = asGroup(item);
+        @if (group) {
+          @let open = isGroupActive(group);
+          <div class="fs-sidenav__group">
+            <a
+              class="fs-sidenav__link"
+              [routerLink]="group.path"
+              [class.is-current]="open"
+              [title]="group.label"
+            >
+              <i class="bi {{ group.icon }}" aria-hidden="true"></i>
+              <span class="fs-sidebar__text">{{ group.label }}</span>
+              <i
+                class="bi bi-chevron-down fs-sidenav__chevron"
+                [class.is-open]="open"
+                aria-hidden="true"
+              ></i>
+            </a>
+
+            @if (open) {
+              <div class="fs-sidenav__sub">
+                @for (child of group.children; track child.path) {
+                  <a
+                    class="fs-sidenav__child"
+                    [routerLink]="child.path"
+                    [class.is-active]="isActive(child)"
+                    [attr.aria-current]="isActive(child) ? 'page' : null"
+                  >
+                    {{ child.label }}
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        } @else {
           <a
-            class="fs-seg__btn fs-topnav__link"
+            class="fs-sidenav__link"
             [routerLink]="item.path"
             [class.is-active]="isActive(item)"
             [attr.aria-current]="isActive(item) ? 'page' : null"
+            [title]="item.label"
           >
-            <i class="bi {{ item.icon }}" aria-hidden="true"></i>{{ item.label }}
+            <i class="bi {{ item.icon }}" aria-hidden="true"></i>
+            <span class="fs-sidebar__text">{{ item.label }}</span>
           </a>
         }
-      </nav>
+      }
+    </nav>
 
-      <div class="fs-topbar__actions">
+    <div class="fs-sidebar__foot">
+      <a
+        class="fs-user"
+        routerLink="/account/profile"
+        [title]="user()?.displayName || user()?.email || 'Tus datos'"
+      >
+        <fs-avatar
+          class="fs-user__avatar"
+          [avatar]="user()?.avatar"
+          [name]="user()?.displayName"
+          [email]="user()?.email"
+        />
+        <span class="fs-sidebar__text fs-user__who">
+          <span class="fs-user__name text-truncate">
+            {{ user()?.displayName || user()?.email }}
+          </span>
+          @if (user()?.displayName) {
+            <span class="fs-user__mail text-truncate">{{ user()?.email }}</span>
+          }
+        </span>
+      </a>
+
+      <div class="fs-sidebar__actions">
         <button
           class="fs-btn fs-btn--icon"
           type="button"
@@ -27,6 +111,7 @@
           [attr.aria-label]="
             resolvedTheme() === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
           "
+          [title]="resolvedTheme() === 'dark' ? 'Tema claro' : 'Tema oscuro'"
         >
           <i
             class="bi"
@@ -36,30 +121,19 @@
           ></i>
         </button>
 
-        <a class="fs-user" routerLink="/account/profile" aria-label="Tus datos">
-          <fs-avatar
-            class="fs-user__avatar"
-            [avatar]="user()?.avatar"
-            [name]="user()?.displayName"
-            [email]="user()?.email"
-          />
-          <span class="fs-user__name text-truncate">
-            {{ user()?.displayName || user()?.email }}
-          </span>
-        </a>
-
         <button
           class="fs-btn fs-btn--icon"
           type="button"
           (click)="logout()"
           [disabled]="loggingOut()"
           aria-label="Cerrar sesión"
+          title="Cerrar sesión"
         >
           <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
         </button>
       </div>
     </div>
-  </header>
+  </aside>
 
   <!--
     El gesto de recargar vive aquí, en el marco: el dedo no arrastra una pantalla concreta,

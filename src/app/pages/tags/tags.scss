@@ -116,12 +116,8 @@
   margin: 0.5rem 0 0;
 }
 
-// La cabecera, el rótulo de sección, el estado vacío y el esqueleto salen de la capa base;
+// La cabecera, el título de la tarjeta, el estado vacío y el esqueleto salen de la capa base;
 // aquí solo se ajusta lo que esta pantalla necesita distinto.
-.fs-section {
-  margin-bottom: 0.5rem;
-}
-
 .fs-skeleton {
   height: 1.75rem;
   margin-bottom: 0.75rem;

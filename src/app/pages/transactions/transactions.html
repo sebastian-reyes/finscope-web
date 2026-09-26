@@ -399,14 +399,15 @@
 
 <section class="fs-panel fs-list">
   <div class="fs-list__head">
-    <p class="fs-section">
+    <h2 class="fs-card__title">
+      <i class="bi bi-list-ul" aria-hidden="true"></i>
       @if (summary(); as totals) {
         {{ totals.transactionCount }}
         {{ totals.transactionCount === 1 ? 'movimiento' : 'movimientos' }}
       } @else {
         Movimientos
       }
-    </p>
+    </h2>
 
     <fs-select-field
       class="fs-list__sort"

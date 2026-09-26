@@ -92,7 +92,9 @@ $fs-page-width: 75rem;
 
 // --- Puntos de quiebre -------------------------------------------------------------------
 // Los tres que la aplicación usa de verdad: el teléfono estrecho, el punto en el que las
-// hojas dejan de subir desde abajo y el escritorio con navegación arriba.
+// hojas dejan de subir desde abajo y el escritorio con menú lateral.
 $fs-bp-sm: 576px;
 $fs-bp-md: 768px;
 $fs-bp-lg: 992px;
+// Desde aquí el menú lateral de escritorio lleva sus rótulos; por debajo, solo iconos.
+$fs-bp-xl: 1280px;

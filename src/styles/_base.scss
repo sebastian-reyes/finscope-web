@@ -127,10 +127,14 @@
   --fs-chip-7-ink: #454f5c;
 
   --fs-tabbar-height: #{t.$fs-tabbar-height};
-  // Alto exacto de la barra superior. Es un valor y no lo que midan sus contenidos porque el
-  // lienzo tiene que pintar esa misma franja detrás de ella, y los dos números no se pueden
-  // separar sin que se note.
-  --fs-topbar-height: 3.75rem;
+  // Alto de la barra superior sin contar la zona segura. Es cero: en el teléfono la barra es
+  // solo la franja de la hora y en escritorio no existe —la navegación va en el menú
+  // lateral—. Se queda como variable porque todo lo que se coloca debajo de la barra —el
+  // indicador de recargar, lo que se pega arriba al desplazar— se mide contra
+  // `--fs-topbar-total`, y así sigue cuadrando sin tocarlo.
+  --fs-topbar-height: 0px;
+  // Ancho del menú lateral de escritorio: con rótulos desde 1280 px y solo iconos por debajo.
+  --fs-sidebar-width: 4.5rem;
   // Lo que el sistema se reserva arriba: la barra de estado y la isla dinámica de un iPhone
   // cuando la aplicación corre instalada, a pantalla completa. En el navegador vale cero y
   // no cambia nada. Depende de `viewport-fit=cover` en el index: sin eso siempre es cero,
@@ -145,14 +149,18 @@
   --fs-fab-rise: 1.5rem;
 }
 
-// En el teléfono la barra de arriba no lleva nada: la navegación está abajo, y el tema y el
-// cierre de sesión, en la configuración. Queda solo la franja de la zona segura, que es lo
-// que impide que el contenido pase por detrás de la hora y de la isla dinámica. Se anula el
-// alto y no la barra entera para que todo lo que se mide contra `--fs-topbar-total` —el
-// indicador de recargar, el lienzo— siga cuadrando sin tocarlo.
-@media (max-width: #{t.$fs-bp-lg - 0.02px}) {
+@media (min-width: t.$fs-bp-xl) {
   :root {
-    --fs-topbar-height: 0px;
+    --fs-sidebar-width: 15rem;
+  }
+}
+
+// El hueco del menú lateral. Va en `body` y no en `main` para que la página siga centrándose
+// sola —con su ancho máximo y sus márgenes automáticos— en lo que queda a la derecha del menú.
+// Solo con sesión: sin ella no hay menú, y el acceso se pinta de borde a borde.
+@media (min-width: t.$fs-bp-lg) {
+  body:has(.fs-sidebar) {
+    padding-left: var(--fs-sidebar-width);
   }
 }
 
@@ -237,44 +245,24 @@ body {
   overscroll-behavior-y: none;
 }
 
-// La franja de la barra de desplazamiento, pintada a la altura de la barra superior.
+// La franja de la hora, pintada también en el lienzo.
 //
-// Esa franja está reservada siempre para que la ventana no cambie de ancho al pasar de una
-// pantalla con desplazamiento a otra sin él, pero queda fuera de la caja del contenido: la
-// barra superior no puede llegar hasta ahí por mucho que se estire, y se veía cortada con un
-// trozo de papel a su derecha.
+// La franja de la barra de desplazamiento queda fuera de la caja del contenido, y la barra de
+// arriba no llega hasta ahí por mucho que se estire. Lo que sí llega es el fondo de `body`,
+// que el navegador propaga al lienzo entero, así que el lienzo lleva un degradado fijo a la
+// ventana del color de la superficie a la altura de la barra y del papel a partir de ahí.
 //
-// Lo que sí llega es el fondo de `body`, que el navegador propaga al lienzo entero —franja
-// incluida—. Así que el lienzo lleva un degradado fijo a la ventana que es del color de la
-// superficie los primeros centímetros, con su línea inferior, y del color del papel a partir
-// de ahí. Debajo de la barra no se ve —la tapa ella—, y en la franja continúa la barra.
-//
-// El degradado solo existe cuando existe la barra: sin sesión no hay ninguna, y una franja
-// pintada arriba sin nada al lado se vería peor que el hueco.
-//
-// En el teléfono la franja es solo la zona segura y no lleva línea: pintada sobre la hora se
-// leería como una raya suelta.
-body:has(.fs-topbar) {
-  background-image: linear-gradient(
-    to bottom,
-    var(--fs-surface) 0,
-    var(--fs-surface) var(--fs-topbar-total),
-    transparent var(--fs-topbar-total)
-  );
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-}
-
-@media (min-width: t.$fs-bp-lg) {
+// Solo en el teléfono, que es donde hay franja: en escritorio la barra no existe.
+@media (max-width: #{t.$fs-bp-lg - 0.02px}) {
   body:has(.fs-topbar) {
     background-image: linear-gradient(
       to bottom,
       var(--fs-surface) 0,
-      var(--fs-surface) calc(var(--fs-topbar-total) - 1px),
-      var(--fs-line) calc(var(--fs-topbar-total) - 1px),
-      var(--fs-line) var(--fs-topbar-total),
+      var(--fs-surface) var(--fs-topbar-total),
       transparent var(--fs-topbar-total)
     );
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
 }
 
@@ -431,22 +419,49 @@ body:has(.fs-topbar) {
   opacity: 0.4;
 }
 
-// El rótulo de sección no es un título: es una etiqueta que ordena. Va en versalita, apagado
-// y pequeño, para que no compita con el dato que encabeza.
-.fs-section {
+// El título de una tarjeta, el mismo en todas las pantallas: su icono en una pastilla teñida
+// y el nombre al lado. Nació en el inicio, donde distingue de un vistazo una tarjeta de otra
+// cuando hay cuatro apiladas; el resto de pantallas llevaban un rótulo en versalita y verde, y
+// eso hacía que pareciesen de otra aplicación.
+.fs-card__title {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  font-size: var(--fs-text-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  // El acento. Un rótulo de sección no compite con nada —no es un botón ni un importe— y
-  // hay uno en cada panel, así que es el sitio donde el segundo color se ve por toda la
-  // aplicación sin estorbar. Va en su tono ajustado, no crudo: así se lee sobre el papel
-  // aunque lo elegido fuera un amarillo.
-  color: var(--fs-accent);
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  font-size: var(--fs-text-base);
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  color: var(--fs-ink);
+
+  > i {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+    background-color: var(--fs-brand-tint);
+    color: var(--fs-brand);
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+}
+
+// Cabecera de tarjeta con mando: el título a la izquierda y el conmutador o el orden a la
+// derecha. En cuanto la tarjeta se estrecha, el mando baja de línea entero en lugar de
+// estrujar el título.
+.fs-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.fs-card__head .fs-card__title {
+  margin-bottom: 0;
 }
 
 .fs-count {

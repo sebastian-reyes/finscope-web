@@ -88,49 +88,6 @@
   padding: 1.25rem;
 }
 
-// Cabecera de tarjeta con mando: el rótulo a la izquierda y el conmutador a la derecha. En
-// cuanto la tarjeta se estrecha, el conmutador baja de línea entero en lugar de estrujar el
-// título.
-.fs-card__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 0.75rem;
-  margin-bottom: 1.1rem;
-}
-
-.fs-card__head .fs-card__title {
-  margin-bottom: 0;
-}
-
-// El rótulo de una tarjeta lleva su icono en la pastilla teñida de la capa base: es lo que
-// distingue de un vistazo una tarjeta de otra cuando hay cuatro apiladas.
-.fs-card__title {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0 0 1.1rem;
-  font-size: var(--fs-text-base);
-  font-weight: 620;
-  letter-spacing: -0.01em;
-  color: var(--fs-ink);
-
-  i {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 0.65rem;
-    background-color: var(--fs-brand-tint);
-    color: var(--fs-brand);
-    font-size: 0.95rem;
-    line-height: 1;
-  }
-}
-
 // El balance es el número por el que se abre la aplicación: ocupa el sitio y el tamaño que
 // le corresponde, y los desgloses quedan debajo en tipografía normal.
 .fs-balance {
