@@ -182,6 +182,29 @@
   color: var(--fs-expense);
 }
 
+// --- Pie de autoría --------------------------------------------------------------------------
+
+.fs-credits {
+  padding: 0.25rem 0.75rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  text-align: center;
+}
+
+.fs-credits p {
+  margin: 0;
+}
+
+.fs-credits a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fs-credits a:hover {
+  color: var(--fs-ink-muted);
+}
+
 // --- Pantalla hija -------------------------------------------------------------------------
 
 .fs-detail-head {

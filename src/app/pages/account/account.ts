@@ -70,6 +70,9 @@ export class AccountPage {
   /** Si se está volviendo a preguntar quién es el usuario, que es lo que se recarga aquí. */
   protected readonly refreshing = signal(false);
 
+  /** Año de los derechos de autor del pie: desde el primero del proyecto hasta el actual. */
+  protected readonly year = `2025–${new Date().getFullYear()}`;
+
   /** Los datos se abren desde la tarjeta de arriba; el resto, desde el menú. */
   protected readonly menu = SECTIONS.filter((section) => section.slug !== 'profile');
 
