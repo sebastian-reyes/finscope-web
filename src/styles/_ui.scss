@@ -243,6 +243,67 @@
   color: var(--fs-expense);
 }
 
+// --- Buscador --------------------------------------------------------------------------
+// El de `fs-search-field`. Vive aquí y no en la pantalla de movimientos porque lo comparten
+// los movimientos, los fijos y los presupuestos.
+.fs-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fs-search__icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--fs-ink-faint);
+  pointer-events: none;
+}
+
+.fs-search__input {
+  padding-left: 2.25rem;
+  padding-right: 2.25rem;
+}
+
+// El buscador nativo ya trae su propia aspa, que ni sigue el tema ni avisa a la aplicación
+// de que se ha vaciado el campo. Se quita y se pone la nuestra.
+.fs-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.fs-search__clear {
+  position: absolute;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fs-ink-faint);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.fs-search__clear:hover {
+  background-color: var(--fs-hover);
+  color: var(--fs-ink);
+}
+
+// El buscador suelto encima de una lista, en las pantallas que no tienen tarjeta de filtros.
+.fs-finder {
+  margin-bottom: 1rem;
+}
+
+// Se dice con palabras que la búsqueda no encontró nada: una lista vacía sin más se lee como
+// un mes sin datos.
+.fs-finder__empty {
+  margin: 0 0 1rem;
+  text-align: center;
+  color: var(--fs-ink-muted);
+}
+
 // --- Avisos ------------------------------------------------------------------------------
 // Sin fondo saturado ni borde grueso: un tinte y un icono bastan para que se lea como una
 // advertencia sin que la pantalla parezca rota.

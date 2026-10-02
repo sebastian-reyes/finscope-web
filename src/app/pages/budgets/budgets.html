@@ -101,8 +101,24 @@
     }
   </section>
 
+  <fs-search-field
+    class="fs-finder"
+    inputId="budgetSearch"
+    label="Buscar presupuestos por categoría"
+    placeholder="Buscar categoría"
+    [(value)]="query"
+  />
+
+  @if (!shown().length) {
+    <p class="fs-panel fs-block fs-finder__empty">
+      Ninguna categoría presupuestada en {{ title().toLowerCase() }} encaja con «{{
+        query().trim()
+      }}».
+    </p>
+  }
+
   <ul class="fs-buds">
-    @for (budget of budgets(); track budget.id) {
+    @for (budget of shown(); track budget.id) {
       <li class="fs-panel fs-block fs-buds__item">
         @if (confirmingId() === budget.id) {
           <div class="fs-buds__confirm" animate.enter="fs-anim-expand">

@@ -16,6 +16,7 @@ import {
   formatMoney,
 } from '../../core/format/money';
 import { iconFor } from '../../core/format/icons';
+import { matchesSearch } from '../../core/format/search';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { chipIcon } from '../../core/format/icon-choices';
 import {
@@ -29,6 +30,7 @@ import {
 import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
+import { SearchFieldComponent } from '../../shared/ui/search-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
 import { SelectOption } from '../../shared/ui/select-field';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
@@ -113,6 +115,7 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
     BottomSheetComponent,
     CategoryPickerComponent,
     DateFieldComponent,
+    SearchFieldComponent,
     SegmentedDirective,
     TagsFieldComponent,
     TagChipComponent,
@@ -237,6 +240,35 @@ export class RecurringPage {
     this.due().filter((item) => item.status === 'PENDING' || item.status === 'OVERDUE'),
   );
 
+  /**
+   * Lo escrito en el buscador.
+   *
+   * Sobrevive al cambio de mes a propósito: buscar «Netflix» y pasar de mes en mes es como se
+   * revisa cuándo se pagó un fijo concreto.
+   */
+  protected readonly query = signal('');
+
+  /**
+   * Los que vencen este mes y encajan con la búsqueda, que son los que se pintan.
+   * Busca en el nombre, la categoría y los tags: es lo que se ve de cada fila, y lo que se
+   * recuerda de un fijo cuando no se recuerda cómo se le llamó.
+   */
+  protected readonly shownDue = computed(() => this.due().filter((item) => this.matches(item)));
+
+  /** Lo mismo con los que este mes no tocan, que también se buscan para reanudarlos. */
+  protected readonly shownResting = computed(() =>
+    this.resting().filter((item) => this.matches(item)),
+  );
+
+  /** Si se está buscando y nada del mes encaja, que es cuando hay que decirlo. */
+  protected readonly noMatches = computed(
+    () => this.query().trim() !== '' && !this.shownDue().length && !this.shownResting().length,
+  );
+
+  /**
+   * Los totales son del mes entero y no de lo que se ve: buscar acota la lista, pero no cambia
+   * lo que queda por pagar.
+   */
   protected readonly totals = computed<RecurringTotals>(() => {
     const due = this.due();
     const pending = this.pending();
@@ -531,6 +563,10 @@ export class RecurringPage {
     this.run(this.api.deleteRecurring(item.id), () =>
       this.toasts.success(`«${item.description}» ya no es un fijo`),
     );
+  }
+
+  private matches(item: RecurringOccurrenceResponse): boolean {
+    return matchesSearch(this.query(), [item.description, item.category, ...item.tags]);
   }
 
   // --- Rótulos ----------------------------------------------------------------------------

@@ -263,4 +263,23 @@ describe('BudgetsPage', () => {
 
     expect(host().querySelector('.fs-blank__title')!.textContent).toContain('Julio');
   });
+  it('el buscador acota la lista por categoría sin tocar el total del mes', () => {
+    settle();
+
+    const field = host().querySelector<HTMLInputElement>('#budgetSearch')!;
+    field.value = 'transpórte';
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(host().querySelectorAll('fs-budget-bar')).toHaveLength(1);
+    expect(host().querySelector('.fs-buds')!.textContent).not.toContain('Comida');
+    expect(host().querySelector('.fs-total__reading')!.textContent).toContain('74.50');
+
+    field.value = 'viajes';
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(host().querySelectorAll('fs-budget-bar')).toHaveLength(0);
+    expect(host().querySelector('.fs-finder__empty')!.textContent).toContain('«viajes»');
+  });
 });

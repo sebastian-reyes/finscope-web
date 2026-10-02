@@ -5,7 +5,6 @@ import { PreferenceOwner, clearPreference, readPreference, writePreference } fro
 import { ColorRamp, NeutralRamp, buildNeutrals, buildRamp, normalizeHex } from './format/color';
 import { ChipColors, chipPalette } from './format/chip-palette';
 import { ChartPalette, chartPalette } from './format/chart-palette';
-import { markDataUrl } from './format/logo-mark';
 
 const COLORS_KEY = 'finscope.colors';
 
@@ -151,10 +150,10 @@ export class PaletteService {
   }
 
   /**
-   * Escribe las escalas en el documento y reteñe el icono de la pestaña.
+   * Escribe las escalas en el documento.
    *
    * @param ramps las dos escalas derivadas
-   * @param theme aspecto en curso, que decide el fondo de la baldosa del favicon
+   * @param theme aspecto en curso, que decide la opacidad del anillo de foco
    */
   private apply(ramps: Palette, theme: 'light' | 'dark'): void {
     const style = document.documentElement.style;
@@ -168,8 +167,6 @@ export class PaletteService {
       '--fs-focus-tint',
       `0 0 0 3px rgba(${ramps.brand.rgb}, ${theme === 'dark' ? 0.24 : 0.16})`,
     );
-
-    updateFavicon(ramps.brand.base, ramps.accent.base, theme === 'dark' ? '#171d25' : '#ffffff');
   }
 }
 
@@ -222,26 +219,6 @@ function writeChips(style: CSSStyleDeclaration, chips: ChipColors[]): void {
     style.setProperty(`--fs-chip-${index}-bg`, chip.bg);
     style.setProperty(`--fs-chip-${index}-ink`, chip.ink);
   });
-}
-
-/**
- * Repinta el icono de la pestaña con los colores en curso.
- *
- * El enlace se crea si no está y se reutiliza si ya está, porque añadir uno nuevo en cada
- * cambio dejaría la cabecera llena de iconos viejos y el navegador eligiendo el último por
- * su cuenta. El `favicon.ico` del `index` se queda como está: es el respaldo para quien no
- * sepa leer SVG, y ahí el color no puede seguir a nadie.
- */
-function updateFavicon(primary: string, secondary: string, background: string): void {
-  let link = document.querySelector<HTMLLinkElement>('link#fsFavicon');
-  if (!link) {
-    link = document.createElement('link');
-    link.id = 'fsFavicon';
-    link.rel = 'icon';
-    link.type = 'image/svg+xml';
-    document.head.appendChild(link);
-  }
-  link.href = markDataUrl(primary, secondary, background);
 }
 
 /** Lee la pareja de un usuario, cayendo a la de fábrica ante cualquier cosa rara. */

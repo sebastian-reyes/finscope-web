@@ -93,12 +93,9 @@
   letter-spacing: -0.015em;
 }
 
-// Sobre la pared el icono va en blanco, como en el acceso: de su color sería azul sobre azul.
 .fs-tour__mark {
   width: 1.5rem;
   height: 1.5rem;
-  --fs-brand: #ffffff;
-  --fs-accent: #{rgba(#fff, 0.72)};
 }
 
 .fs-tour__skip {

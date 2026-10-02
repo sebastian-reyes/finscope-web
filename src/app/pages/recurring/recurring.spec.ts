@@ -461,6 +461,56 @@ describe('RecurringPage', () => {
     settle();
   });
 
+  /** Escribe en el buscador de la lista, como se hace a mano. */
+  function search(text: string): void {
+    const field = host().querySelector<HTMLInputElement>('#recurringSearch')!;
+    field.value = text;
+    field.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+  }
+
+  it('el buscador acota la lista por nombre, categoría o tag, sin tildes', () => {
+    settle();
+
+    search('netflix');
+    expect(host().querySelectorAll('.fs-fix__item')).toHaveLength(1);
+    expect(row('Netflix')).toBeTruthy();
+    // El seguro anual no encaja, así que su sección desaparece en lugar de quedarse vacía.
+    expect(host().querySelector('.fs-rest__list')).toBeNull();
+
+    // Por tag: solo el internet lleva «teletrabajo».
+    search('TELETRABAJO');
+    expect(host().querySelectorAll('.fs-fix__item')).toHaveLength(1);
+    expect(row('Internet')).toBeTruthy();
+
+    // Las palabras se suman: «servicios» trae los cuatro y «auto» deja solo el seguro.
+    search('servícios auto');
+    expect(host().querySelectorAll('.fs-fix__item')).toHaveLength(0);
+    expect(host().querySelector('.fs-rest__list')!.textContent).toContain('Seguro del auto');
+  });
+
+  it('buscar no cambia lo que queda por pagar en el mes', () => {
+    settle();
+
+    search('alquiler');
+
+    expect(host().querySelector('.fs-sum__amount')!.textContent).toContain('225.00');
+  });
+
+  it('dice con palabras que la búsqueda no encontró nada, y el aspa lo deshace', () => {
+    settle();
+
+    search('gimnasio');
+    expect(host().querySelector('.fs-finder__empty')!.textContent).toContain('«gimnasio»');
+    expect(host().querySelectorAll('.fs-fix__item')).toHaveLength(0);
+
+    host().querySelector<HTMLButtonElement>('.fs-search__clear')!.click();
+    fixture.detectChanges();
+
+    expect(host().querySelector('.fs-finder__empty')).toBeNull();
+    expect(host().querySelectorAll('.fs-fix__item')).toHaveLength(3);
+  });
+
   it('cambiar de mes vuelve a preguntar por el mes nuevo', () => {
     settle();
 

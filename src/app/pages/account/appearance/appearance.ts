@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { COLOR_PRESETS, PaletteService } from '../../../core/palette.service';
 import { ThemeService } from '../../../core/theme.service';
 import { ToastService } from '../../../core/toast.service';
-import { LogoComponent } from '../../../shared/ui/logo';
 import { SegmentedDirective } from '../../../shared/ui/segmented';
 import { THEME_OPTIONS, ThemeOption } from '../theme-options';
 
@@ -25,7 +24,7 @@ interface ColorSlot {
 @Component({
   selector: 'app-account-appearance',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LogoComponent, SegmentedDirective],
+  imports: [SegmentedDirective],
   templateUrl: './appearance.html',
   styleUrls: ['../settings-shared.scss', './appearance.scss'],
 })

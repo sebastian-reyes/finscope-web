@@ -93,14 +93,6 @@
   height: 1.875rem;
 }
 
-// Sobre la pared de marca el icono no puede ir de su color: sería azul sobre azul. Se le
-// cambian las dos variables de las que tira —no el dibujo— y pasa a blanco, con las barras
-// un punto por debajo para que se sigan distinguiendo del aro.
-.fs-auth__brand .fs-auth__mark {
-  --fs-brand: #ffffff;
-  --fs-accent: #{rgba(#fff, 0.72)};
-}
-
 .fs-auth__logo--compact .fs-auth__mark {
   width: 1.75rem;
   height: 1.75rem;

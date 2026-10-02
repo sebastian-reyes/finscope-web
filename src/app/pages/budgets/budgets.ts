@@ -19,12 +19,14 @@ import {
   currencySymbol,
   formatMoney,
 } from '../../core/format/money';
+import { matchesSearch } from '../../core/format/search';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { BudgetResponse, CategoryResponse, Currency } from '../../core/models';
 import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { BudgetBarComponent } from '../../shared/ui/budget-bar';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { DateFieldComponent } from '../../shared/ui/date-field';
+import { SearchFieldComponent } from '../../shared/ui/search-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
 import { SelectOption } from '../../shared/ui/select-field';
 
@@ -63,6 +65,7 @@ interface BudgetTotals {
     BudgetBarComponent,
     CategoryChipComponent,
     DateFieldComponent,
+    SearchFieldComponent,
     SegmentedDirective,
   ],
   templateUrl: './budgets.html',
@@ -231,6 +234,17 @@ export class BudgetsPage {
 
   /** Si el mes tiene planes en mas de una moneda, que es cuando hay que rotularlas. */
   protected readonly hasSeveralCurrencies = computed(() => this.totals().length > 1);
+
+  /** Lo escrito en el buscador. Sobrevive al cambio de mes, como en los fijos. */
+  protected readonly query = signal('');
+
+  /**
+   * Los presupuestos que encajan con la búsqueda, que son los que se pintan.
+   * El total del mes sigue hablando de todos: buscar acota la lista, no el plan.
+   */
+  protected readonly shown = computed(() =>
+    this.budgets().filter((budget) => matchesSearch(this.query(), [budget.category])),
+  );
 
   /** Los que ya se pasaron del límite, que son los que hay que mirar primero. */
   protected readonly overspent = computed(() =>

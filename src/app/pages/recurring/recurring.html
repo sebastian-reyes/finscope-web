@@ -79,8 +79,22 @@
     </p>
   </section>
 
+  <fs-search-field
+    class="fs-finder"
+    inputId="recurringSearch"
+    label="Buscar fijos por nombre, categoría o tag"
+    placeholder="Buscar: Netflix, Servicios, casa…"
+    [(value)]="query"
+  />
+
+  @if (noMatches()) {
+    <p class="fs-panel fs-block fs-finder__empty">
+      Ningún fijo de {{ title().toLowerCase() }} encaja con «{{ query().trim() }}».
+    </p>
+  }
+
   <ul class="fs-fix">
-    @for (item of due(); track item.id) {
+    @for (item of shownDue(); track item.id) {
       <li class="fs-panel fs-block fs-fix__item" [attr.data-status]="item.status">
         <div class="fs-fix__row">
           <span class="fs-fix__icon" aria-hidden="true"><i class="bi {{ icon(item) }}"></i></span>
@@ -205,13 +219,13 @@
     }
   </ul>
 
-  @if (resting().length) {
+  @if (shownResting().length) {
     <section class="fs-panel fs-block fs-rest" aria-labelledby="restingTitle">
       <h2 class="fs-card__title" id="restingTitle">
         <i class="bi bi-pause-circle" aria-hidden="true"></i>Este mes no tocan
       </h2>
       <ul class="fs-rest__list">
-        @for (item of resting(); track item.id) {
+        @for (item of shownResting(); track item.id) {
           <li class="fs-rest__item">
             <span class="text-truncate">{{ item.description }}</span>
             <span class="fs-rest__state">{{ stateLabel(item) }}</span>
