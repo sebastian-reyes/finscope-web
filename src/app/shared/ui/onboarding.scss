@@ -1,13 +1,12 @@
 @use '../../../styles/tokens' as t;
-@use '../../../styles/wall';
 
 // El recorrido de bienvenida.
 //
 // Cuatro formas según el sitio, porque no hay una que valga para todos:
-// - Teléfono en vertical: a pantalla completa, la pared con el dibujo arriba y el texto
+// - Teléfono en vertical: a pantalla completa, el escenario con el dibujo arriba y el texto
 //   abajo, con los botones al alcance del pulgar.
 // - Tableta o ventana estrecha: la misma columna, pero como tarjeta centrada; a pantalla
-//   completa en un monitor la pared sería un cartel.
+//   completa en un monitor el escenario sería un cartel.
 // - Escritorio: dibujo y texto lado a lado, que es como se lee algo ancho.
 // - Teléfono en horizontal: también lado a lado y a pantalla completa. En vertical no cabría:
 //   con 360 px de alto la columna deja al dibujo sin sitio.
@@ -59,7 +58,10 @@
   overscroll-behavior: contain;
 }
 
-// --- La pared -----------------------------------------------------------------------------
+// --- El escenario -------------------------------------------------------------------------
+// Claro y tranquilo: el papel de la aplicación con un velo del color de marca que entra desde
+// la esquina, el mismo que lleva «Lo que destaca» en el análisis. El dibujo de encima es lo
+// único con peso, y así se lee primero.
 
 .fs-tour__stage {
   // El dibujo se mide contra el hueco que le deja el texto, no contra la ventana: en un
@@ -67,18 +69,20 @@
   container-type: size;
   position: relative;
   flex: 1 1 0;
-  min-height: 12rem;
+  min-height: 9rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: calc(var(--fs-safe-top) + 3.5rem) 1.25rem 1.5rem;
   overflow: hidden;
-  @include wall.background;
-  @include wall.grain;
+  border-bottom: 1px solid var(--fs-line);
+  background-image: linear-gradient(
+    150deg,
+    color-mix(in oklab, var(--fs-brand-tint) 85%, var(--fs-surface)) 0%,
+    var(--fs-surface-sunken) 70%
+  );
 }
 
-// Con la pared delante en el selector: el grano pone a los hijos directos de la pared en
-// `position: relative`, y con el atributo de encapsulado esa regla pesa más que una clase sola.
 .fs-tour__stage .fs-tour__logo {
   // Fuera del flujo, en su esquina, para que el dibujo quede centrado de verdad.
   position: absolute;
@@ -91,6 +95,7 @@
   font-size: var(--fs-text-md);
   font-weight: 620;
   letter-spacing: -0.015em;
+  color: var(--fs-ink);
 }
 
 .fs-tour__mark {
@@ -105,22 +110,24 @@
   z-index: 2;
   min-height: 2.25rem;
   padding: 0.35rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--fs-line);
   border-radius: t.$fs-radius-pill;
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background-color: var(--fs-surface);
+  color: var(--fs-ink-muted);
   font-size: var(--fs-text-sm);
   font-weight: 500;
-  backdrop-filter: blur(8px);
-  transition: background-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--fs-hover);
+    color: var(--fs-ink);
   }
 
   &:focus-visible {
-    outline: 2px solid #fff;
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--fs-focus-tint);
   }
 }
 
@@ -130,22 +137,37 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  gap: 1.1rem;
+  padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
 }
 
 .fs-tour__read {
-  // Reserva el alto del paso más largo. Sin esto, la pared de arriba cambiaba de tamaño en
-  // cada paso según las líneas del texto, y el dibujo daba un salto al tiempo que entraba.
-  min-height: 11.5rem;
+  // Reserva el alto del paso más largo. Sin esto, el escenario de arriba cambiaba de tamaño
+  // en cada paso según las líneas del texto, y el dibujo daba un salto al tiempo que entraba.
+  min-height: 17rem;
 }
 
 .fs-tour__text {
   animation: fs-tour-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.fs-tour__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.fs-tour__progress {
+  margin: 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  white-space: nowrap;
+}
+
 .fs-tour__eyebrow {
-  margin: 0 0 0.4rem;
+  margin: 0;
   font-size: var(--fs-text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -166,9 +188,65 @@
 .fs-tour__body {
   margin: 0;
   font-size: var(--fs-text-base);
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--fs-ink-muted);
   text-wrap: pretty;
+}
+
+// Los consejos: lo que se puede hacer nada más cerrar el recorrido. Cada uno con su icono en
+// un disco del tinte de marca, que es lo que deja leerlos de un vistazo como una lista.
+.fs-tour__points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: var(--fs-text-sm);
+    line-height: 1.45;
+    color: var(--fs-ink);
+  }
+}
+
+.fs-tour__point-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: -0.1rem;
+  border-radius: 50%;
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+  font-size: 0.8rem;
+}
+
+// Dónde vive lo que se enseña, con el icono y el nombre de su pestaña.
+.fs-tour__where {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+.fs-tour__where-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--fs-line);
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-surface-sunken);
+  color: var(--fs-ink-muted);
+  font-weight: 550;
 }
 
 .fs-tour__foot {
@@ -177,7 +255,7 @@
   justify-content: space-between;
   gap: 1rem;
   // El alto del pie del último paso, que lleva dos botones apilados: reservado desde el
-  // primero, la pared no encoge de golpe al llegar al final.
+  // primero, el escenario no encoge de golpe al llegar al final.
   min-height: calc(1.5rem + 1rem + 2 * 2.625rem + 0.5rem);
 }
 
@@ -255,7 +333,7 @@
 
   .fs-tour {
     width: min(28rem, 100%);
-    height: min(46rem, 100%);
+    height: min(50rem, 100%);
     border-radius: t.$fs-radius-lg;
     box-shadow: var(--fs-shadow-raised);
   }
@@ -307,7 +385,7 @@
     min-height: 0;
   }
 
-  // Aquí el texto y la pared no se reparten el alto, así que no hay nada que reservar.
+  // Aquí el texto y el escenario no se reparten el alto, así que no hay nada que reservar.
   .fs-tour__foot {
     min-height: 0;
   }
@@ -323,22 +401,11 @@
     margin-left: -0.5rem;
   }
 
-  // «Omitir» queda sobre el papel y no sobre la pared: pierde el cristal y pasa a ser un
-  // botón discreto, como los demás que no son la acción principal.
+  // Sobre el papel y no sobre el escenario: «Omitir» pierde el borde y queda como un botón
+  // discreto más.
   .fs-tour__skip {
     border-color: transparent;
     background-color: transparent;
-    color: var(--fs-ink-muted);
-    backdrop-filter: none;
-
-    &:hover {
-      background-color: var(--fs-hover);
-    }
-
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--fs-focus-tint);
-    }
   }
 }
 
@@ -346,13 +413,13 @@
   @include side-by-side;
 
   .fs-tour {
-    width: min(56rem, 100%);
-    height: min(34rem, 100%);
+    width: min(58rem, 100%);
+    height: min(38rem, 100%);
   }
 
   .fs-tour__copy {
-    width: 24rem;
-    padding: 3.75rem 2.25rem 2rem;
+    width: 26rem;
+    padding: 3.5rem 2.25rem 2rem;
   }
 
   .fs-tour__title {

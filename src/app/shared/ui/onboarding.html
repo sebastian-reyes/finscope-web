@@ -11,11 +11,11 @@
   (pointercancel)="onPointerCancel()"
 >
   <!--
-    La pared con el dibujo de cada paso. Decorativa entera —las cifras son de ejemplo y lo que
-    enseñan está dicho en el texto de al lado—, así que no se anuncia.
+    El escenario con el dibujo de cada paso. Decorativo entero —las cifras son de ejemplo y lo
+    que enseñan está dicho en el texto de al lado—, así que no se anuncia.
   -->
   <div class="fs-tour__stage" aria-hidden="true">
-    <p class="fs-tour__logo"><fs-logo class="fs-tour__mark" surface="dark" />FinScope</p>
+    <p class="fs-tour__logo"><fs-logo class="fs-tour__mark" />FinScope</p>
 
     <fs-onboarding-art [slide]="slide().id" />
   </div>
@@ -32,11 +32,32 @@
     <div class="fs-tour__read" aria-live="polite">
       @for (current of [slide()]; track current.id) {
         <div class="fs-tour__text">
-          <p class="fs-tour__eyebrow">
-            {{ isFirst() ? greeting() : current.eyebrow }}
-          </p>
+          <div class="fs-tour__meta">
+            <p class="fs-tour__eyebrow">
+              {{ isFirst() ? greeting() : current.eyebrow }}
+            </p>
+            <p class="fs-tour__progress">{{ progress() }}</p>
+          </div>
           <h2 class="fs-tour__title" id="tourTitle">{{ current.title }}</h2>
           <p class="fs-tour__body" id="tourText">{{ current.text }}</p>
+          <ul class="fs-tour__points">
+            @for (point of current.points; track point.text) {
+              <li>
+                <span class="fs-tour__point-icon" aria-hidden="true">
+                  <i class="bi {{ point.icon }}"></i>
+                </span>
+                <span>{{ point.text }}</span>
+              </li>
+            }
+          </ul>
+          @if (current.where; as where) {
+            <p class="fs-tour__where">
+              <span class="fs-tour__where-label">Dónde:</span>
+              <span class="fs-tour__where-chip">
+                <i class="bi {{ where.icon }}" aria-hidden="true"></i>{{ where.text }}
+              </span>
+            </p>
+          }
         </div>
       }
     </div>

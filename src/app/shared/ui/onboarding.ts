@@ -18,59 +18,123 @@ import { TransactionEditorService } from '../../core/transaction-editor.service'
 import { LogoComponent } from './logo';
 import { OnboardingArtComponent } from './onboarding-art';
 
+/** Un consejo concreto de un paso: qué tocar o qué mirar, con su icono. */
+export interface OnboardingPoint {
+  icon: string;
+  text: string;
+}
+
 /** Cada una de las cosas que se enseñan, con el dibujo que la acompaña. */
 export interface OnboardingSlide {
-  id: 'welcome' | 'record' | 'insight' | 'budgets' | 'recurring' | 'yours';
+  id: 'welcome' | 'record' | 'history' | 'insight' | 'budgets' | 'recurring' | 'yours';
   /** Rótulo corto sobre el título, del color secundario como el resto de rótulos. */
   eyebrow: string;
   title: string;
   text: string;
+  /** Dos o tres cosas que se pueden hacer ahí, dichas como se harían. */
+  points: readonly OnboardingPoint[];
+  /** Dónde vive en la aplicación, con el icono de su pestaña; nulo si no es un sitio. */
+  where: OnboardingPoint | null;
 }
 
 /**
- * Lo que enseña el recorrido, en el orden en que se usa la aplicación: apuntar, entender en
- * qué se va, ponerle límite, dejar lo fijo resuelto y, al final, hacerla propia.
+ * Lo que enseña el recorrido, en el orden en que se usa la aplicación: apuntar, encontrar lo
+ * apuntado, entender en qué se va, ponerle límite, dejar lo fijo resuelto y hacerla propia.
  *
- * Son seis y no una por pantalla. Las categorías y los tags no tienen paso aparte porque se
- * entienden al ver el reparto, que es para lo que existen. Cada texto dice dónde vive lo que
- * enseña —el inicio, Plan, Configuración— para que después se encuentre sin buscarlo.
+ * Cada paso dice una idea en su título y la aterriza en dos o tres consejos que se pueden
+ * hacer nada más cerrar el recorrido. La etiqueta de «dónde» lleva el mismo icono y el mismo
+ * nombre que la pestaña de la barra, para que después se encuentre sin buscarlo.
  */
 export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
   {
     id: 'welcome',
     eyebrow: 'Bienvenida',
     title: 'Tu dinero, claro y en un solo sitio',
-    text: 'Lo que entra, lo que sale y lo que ya tiene dueño antes de que empiece el mes. Te enseñamos lo esencial en menos de un minuto.',
+    text: 'FinScope te ayuda a saber en qué se te va el dinero sin hojas de cálculo. Te enseñamos lo esencial en un minuto.',
+    points: [
+      { icon: 'bi-plus-circle', text: 'Apunta lo que gastas y lo que te entra.' },
+      { icon: 'bi-bar-chart-line', text: 'Mira en qué se te va y cómo cambia cada mes.' },
+      { icon: 'bi-clipboard-check', text: 'Planifica con presupuestos y pagos fijos.' },
+    ],
+    where: null,
   },
   {
     id: 'record',
     eyebrow: 'Registrar',
     title: 'Apunta un gasto en segundos',
-    text: 'Toca + desde cualquier pantalla, o usa el formulario rápido del inicio en el ordenador. Monto, categoría y listo. ¿Pagaste en dólares? También se guarda en USD.',
+    text: 'Importe, categoría y listo. Todo lo demás es opcional.',
+    points: [
+      { icon: 'bi-plus-lg', text: 'Toca + desde cualquier pantalla del teléfono.' },
+      {
+        icon: 'bi-currency-dollar',
+        text: '¿Pagaste en dólares? Guárdalo en USD con su tipo de cambio.',
+      },
+      { icon: 'bi-tags', text: 'Añade tags como «viaje» o «familia» para darle contexto.' },
+    ],
+    where: { icon: 'bi-plus-lg', text: 'Botón +' },
+  },
+  {
+    id: 'history',
+    eyebrow: 'Movimientos',
+    title: 'Encuentra cualquier movimiento',
+    text: 'Todo lo que apuntas queda en tu historial, ordenado por día.',
+    points: [
+      { icon: 'bi-search', text: 'Busca por descripción, categoría o tag: «dentista», «Salud».' },
+      { icon: 'bi-funnel', text: 'Filtra por mes, categoría, tag o moneda.' },
+      { icon: 'bi-pencil', text: 'Toca un movimiento para corregirlo o borrarlo.' },
+    ],
+    where: { icon: 'bi-arrow-left-right', text: 'Movimientos' },
   },
   {
     id: 'insight',
     eyebrow: 'Entender',
     title: 'Mira en qué se te va',
-    text: 'El inicio reparte tus gastos por categoría y te dice si gastas más o menos que el mes pasado. ¿Tienes soles y dólares? Míralo todo junto en una moneda, o cada una por separado.',
+    text: 'El inicio te cuenta cómo va el mes; Análisis lo compara con antes.',
+    points: [
+      { icon: 'bi-pie-chart', text: 'Tus gastos repartidos por categoría.' },
+      { icon: 'bi-speedometer2', text: 'Si vas por encima o por debajo del mes pasado.' },
+      { icon: 'bi-stars', text: '«Lo que destaca» te dice por qué cambió tu gasto.' },
+    ],
+    where: { icon: 'bi-bar-chart-line', text: 'Inicio y Análisis' },
   },
   {
     id: 'budgets',
     eyebrow: 'Presupuestos',
     title: 'Ponle un límite a cada categoría',
-    text: 'En Plan fijas cuánto gastar al mes y la barra te dice cuánto te queda libre de verdad, descontando lo que tus pagos fijos ya se van a llevar.',
+    text: 'Decide cuánto quieres gastar al mes y la barra te dice cuánto te queda.',
+    points: [
+      { icon: 'bi-bullseye', text: 'Un límite por categoría, solo en las que quieras.' },
+      { icon: 'bi-arrow-down-up', text: 'Copia el plan del mes anterior con un toque.' },
+      { icon: 'bi-lock', text: 'Lo que tus pagos fijos se van a llevar ya sale reservado.' },
+    ],
+    where: { icon: 'bi-clipboard-check', text: 'Plan → Presupuestos' },
   },
   {
     id: 'recurring',
     eyebrow: 'Pagos fijos',
     title: 'Lo de cada mes, sin olvidos',
-    text: 'Alquiler, streaming, el gimnasio: los das de alta una vez en Plan y cada mes los confirmas de un toque. Con los avisos activos, te los recordamos el día antes.',
+    text: 'Alquiler, streaming, el sueldo: los das de alta una vez y no se te pasan.',
+    points: [
+      { icon: 'bi-check2-circle', text: 'Cada mes los marcas como pagados de un toque.' },
+      { icon: 'bi-bell', text: 'Activa los avisos y te los recordamos el día antes.' },
+      { icon: 'bi-pause-circle', text: '¿Lo dejaste de pagar? Ponlo en pausa.' },
+    ],
+    where: { icon: 'bi-arrow-repeat', text: 'Plan → Fijos' },
   },
   {
     id: 'yours',
     eyebrow: 'Hazla tuya',
     title: 'Todo listo para empezar',
-    text: 'En Configuración eliges tu imagen —un zorro, una llama…—, los colores y el tema, y le das a cada categoría su color y su icono. Instálala en tu teléfono: lo último sigue a mano aunque te quedes sin red.',
+    text: 'Ajusta FinScope a tu gusto cuando quieras.',
+    points: [
+      { icon: 'bi-palette', text: 'Elige tu imagen, tus colores y el tema claro u oscuro.' },
+      { icon: 'bi-grid', text: 'Dale a cada categoría y tag su color y su icono.' },
+      {
+        icon: 'bi-phone',
+        text: 'Instálala en tu teléfono: funciona aunque te quedes sin red.',
+      },
+    ],
+    where: { icon: 'bi-gear', text: 'Configuración' },
   },
 ];
 
@@ -82,6 +146,10 @@ export type OnboardingExit = 'skip' | 'done' | 'record';
 
 /**
  * El recorrido de bienvenida, en diapositivas sobre toda la aplicación.
+ *
+ * Es sobrio a propósito: fondo claro con un velo del color de marca, un dibujo sencillo de la
+ * pantalla de la que habla y, al lado, una idea, unos consejos y dónde encontrarlo. Lo que se
+ * busca es que se entienda y se recuerde, no que deslumbre.
  *
  * Son diapositivas y no un foco que va señalando botones de verdad a propósito: la navegación
  * cambia de forma entre el teléfono —barra inferior con el botón de registrar en medio— y el
@@ -122,6 +190,9 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   protected readonly direction = signal<1 | -1>(1);
 
   protected readonly slide = computed(() => this.slides[this.index()]);
+
+  /** «Paso 3 de 7»: los puntos dicen dónde se está, esto dice cuánto queda. */
+  protected readonly progress = computed(() => `Paso ${this.index() + 1} de ${this.slides.length}`);
   protected readonly isFirst = computed(() => this.index() === 0);
   protected readonly isLast = computed(() => this.index() === this.slides.length - 1);
 

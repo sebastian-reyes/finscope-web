@@ -1,7 +1,7 @@
 import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
@@ -9,16 +9,18 @@ import { MoneyViewService } from '../../core/money-view.service';
 import { RefreshService } from '../../core/refresh.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { describeError } from '../../core/api-error';
-import { CURRENCIES, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
-import { bucketLabel, monthLabel } from '../../core/format/period';
+import { CURRENCIES, CURRENCY_NAMES, currencySymbol, formatMoney } from '../../core/format/money';
+import { bucketLabel, dayGroupLabel, monthLabel } from '../../core/format/period';
 import {
   Currency,
   SummaryBucketResponse,
   SummaryConversion,
   SummarySeriesResponse,
+  TransactionResponse,
   TransactionSummaryResponse,
 } from '../../core/models';
 import { AmountComponent } from '../../shared/ui/amount';
+import { CategoryChipComponent } from '../../shared/ui/category-chip';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SegmentedDirective } from '../../shared/ui/segmented';
 import { TagChipComponent } from '../../shared/ui/tag-chip';
@@ -26,11 +28,15 @@ import { TrendChartComponent } from '../dashboard/trend-chart';
 import {
   AnalysisPeriod,
   AnalysisScope,
+  CategorySide,
   Change,
   categoryRows,
   change,
   fillMonths,
+  insights,
   isCurrentPeriod,
+  largestExpenses,
+  pace,
   periodFilters,
   previousPeriod,
   savingsRate,
@@ -38,9 +44,19 @@ import {
   trendFilters,
   trendStats,
 } from './analysis-report';
+import { PaceChartComponent } from './pace-chart';
 
 /** Cuántos tags se enseñan: son contexto, no reparto, y una lista larga no dice nada más. */
 const TOP_TAGS = 5;
+
+/** Cuántos gastos grandes se enseñan: los que se recuerdan, no un segundo historial. */
+const LARGEST = 5;
+
+/** Las dos series diarias del ritmo: el mes que se mira y el anterior. */
+interface PaceSeries {
+  current: SummarySeriesResponse;
+  previous: SummarySeriesResponse;
+}
 
 /**
  * Análisis: el dinero mirado hacia atrás.
@@ -57,7 +73,9 @@ const TOP_TAGS = 5;
   selector: 'app-analysis',
   imports: [
     AmountComponent,
+    CategoryChipComponent,
     DateFieldComponent,
+    PaceChartComponent,
     RouterLink,
     SegmentedDirective,
     TagChipComponent,
@@ -70,11 +88,27 @@ export class AnalysisPage {
   private readonly api = inject(FinscopeService);
   private readonly rates = inject(ExchangeRateService);
   private readonly styles = inject(CatalogueStylesService);
+  private readonly editor = inject(TransactionEditorService);
 
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
   /** El periodo anterior. Si no se pudo pedir, las cifras se enseñan sin comparar. */
   protected readonly previous = signal<TransactionSummaryResponse | null>(null);
   protected readonly series = signal<SummarySeriesResponse | null>(null);
+
+  /** Las series diarias del ritmo. Solo en la vista mensual; nulas si no se pudieron pedir. */
+  private readonly paceSeries = signal<PaceSeries | null>(null);
+
+  /** Los más grandes de cada moneda, tal y como llegan; nulo si no se pudieron pedir. */
+  private readonly largestByCurrency = signal<TransactionResponse[][] | null>(null);
+
+  /**
+   * Identificador del tipo «egreso», que es como el listado filtra los gastos.
+   * Se pide una vez: el catálogo de tipos no cambia mientras se usa la pantalla.
+   */
+  private expenseTypeId: number | null = null;
+
+  /** Qué reparte la tarjeta de categorías: lo que se gastó, que es lo normal, o lo que entró. */
+  protected readonly side = signal<CategorySide>('expense');
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
@@ -154,8 +188,76 @@ export class AnalysisPage {
   });
 
   protected readonly categories = computed(() =>
-    categoryRows(this.summary()?.byCategory ?? [], this.previous()?.byCategory ?? null),
+    categoryRows(
+      this.summary()?.byCategory ?? [],
+      this.previous()?.byCategory ?? null,
+      this.side(),
+    ),
   );
+
+  /** Las conclusiones de la tarjeta «Lo que destaca». */
+  protected readonly highlights = computed(() => {
+    const now = this.summary();
+    return now
+      ? insights(now, this.previous(), this.shownCurrency(), this.versus(), !this.isCurrent())
+      : [];
+  });
+
+  /** El ritmo del mes contra el anterior. Solo existe en la vista mensual. */
+  protected readonly pace = computed(() => {
+    const series = this.paceSeries();
+    return series && this.period().scope === 'month'
+      ? pace(series.current, series.previous, this.period())
+      : null;
+  });
+
+  /** Cómo se llama el mes anterior en la leyenda del ritmo: «Septiembre». */
+  protected readonly previousTitle = computed(() => {
+    const before = previousPeriod(this.period());
+    return monthLabel(before.month, before.year);
+  });
+
+  /**
+   * El ritmo dicho con palabras, debajo del gráfico.
+   *
+   * En el mes en curso compara con el anterior **el mismo día** y dice cómo cerraría a este
+   * paso; en uno cerrado, cómo cerró cada uno. La diferencia va aparte porque es lo que lleva
+   * el color: ir por encima del mes pasado es la mala noticia.
+   */
+  protected readonly paceReading = computed(() => {
+    const p = this.pace();
+    if (!p) {
+      return null;
+    }
+    const money = (amount: number) => formatMoney(amount, this.shownCurrency());
+    const previousTotal = p.previous[p.previous.length - 1] ?? 0;
+    const compared = p.projection === null ? previousTotal : p.previousAtDay;
+    const diff = p.spent - compared;
+    const closed = p.projection === null;
+    const lead = closed
+      ? `${this.title()} cerró en ${money(p.spent)}; ${this.versus()}, en ${money(previousTotal)}.`
+      : `Al día ${p.day} llevas ${money(p.spent)}. En ${this.versus()}, a estas alturas, llevabas ${money(p.previousAtDay)}.`;
+    let gap = '';
+    if (compared > 0 && Math.abs(diff) >= 0.01) {
+      if (closed) {
+        gap = diff > 0 ? `Fueron ${money(diff)} más.` : `Fueron ${money(-diff)} menos.`;
+      } else {
+        gap = diff > 0 ? `Vas ${money(diff)} por encima.` : `Vas ${money(-diff)} por debajo.`;
+      }
+    }
+    return {
+      lead,
+      gap,
+      over: diff > 0,
+      projection: p.projection === null ? null : money(p.projection),
+    };
+  });
+
+  /** Los gastos más grandes del periodo, comparados en la moneda en que se lee la pantalla. */
+  protected readonly largest = computed(() => {
+    const lists = this.largestByCurrency();
+    return lists ? largestExpenses(lists, this.shownCurrency(), this.usdRate(), LARGEST) : [];
+  });
 
   /** Los tags en los que más se gastó. Sus cifras se solapan y por eso no llevan porcentaje. */
   protected readonly tags = computed(() =>
@@ -203,10 +305,9 @@ export class AnalysisPage {
 
     inject(DestroyRef).onDestroy(inject(RefreshService).register(() => this.load(), this.loading));
 
-    // Lo que se registra desde el botón central cambia las cifras que se están mirando.
-    inject(TransactionEditorService)
-      .changes$.pipe(takeUntilDestroyed())
-      .subscribe(() => this.load());
+    // Lo que se registra desde el botón central —o se corrige desde un gasto grande— cambia
+    // las cifras que se están mirando.
+    this.editor.changes$.pipe(takeUntilDestroyed()).subscribe(() => this.load());
   }
 
   protected setScope(scope: AnalysisScope): void {
@@ -248,11 +349,16 @@ export class AnalysisPage {
         .getSummary(periodFilters(previousPeriod(period)), conversion)
         .pipe(catchError(() => of(null))),
       series: this.api.getSummarySeries(trendFilters(period), 'MONTH', conversion),
+      // Lo que sigue es complementario: si falla, su tarjeta no sale y el resto se ve igual.
+      pace: this.loadPace(period, conversion),
+      largest: this.loadLargest(period).pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ summary, previous, series }) => {
+      next: ({ summary, previous, series, pace, largest }) => {
         this.summary.set(summary);
         this.previous.set(previous);
         this.series.set(series);
+        this.paceSeries.set(pace);
+        this.largestByCurrency.set(largest);
         this.loading.set(false);
       },
       error: (error) => {
@@ -260,6 +366,75 @@ export class AnalysisPage {
         this.loading.set(false);
       },
     });
+  }
+
+  /**
+   * Las dos series diarias del ritmo. En la vista anual no se piden: treinta puntos por mes
+   * durante doce meses no dicen nada que no diga ya la evolución.
+   */
+  private loadPace(
+    period: AnalysisPeriod,
+    conversion: SummaryConversion,
+  ): Observable<PaceSeries | null> {
+    if (period.scope !== 'month') {
+      return of(null);
+    }
+    return forkJoin({
+      current: this.api.getSummarySeries(periodFilters(period), 'DAY', conversion),
+      previous: this.api.getSummarySeries(periodFilters(previousPeriod(period)), 'DAY', conversion),
+    }).pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Los gastos más grandes de cada moneda.
+   *
+   * Una petición por moneda y no una sola: el listado ordena por el importe tal cual, sin
+   * convertir, y mezclando monedas cien dólares quedarían por detrás de doscientos soles. Lo
+   * más grande de todo está seguro entre lo más grande de cada una.
+   */
+  private loadLargest(period: AnalysisPeriod): Observable<TransactionResponse[][]> {
+    const typeId$ =
+      this.expenseTypeId !== null
+        ? of(this.expenseTypeId)
+        : this.api
+            .listTransactionTypes()
+            .pipe(map((types) => types.find((type) => type.code === 'EXPENSE')?.id ?? null));
+    return typeId$.pipe(
+      switchMap((typeId) => {
+        this.expenseTypeId = typeId;
+        if (typeId === null) {
+          return of([]);
+        }
+        return forkJoin(
+          CURRENCIES.map((currency) =>
+            this.api
+              .listTransactions({
+                ...periodFilters(period),
+                transactionTypeId: typeId,
+                currency,
+                page: 0,
+                size: LARGEST,
+                sort: 'amount,desc',
+              })
+              .pipe(map((page) => page.content)),
+          ),
+        );
+      }),
+    );
+  }
+
+  protected setSide(side: CategorySide): void {
+    this.side.set(side);
+  }
+
+  /** Abre un gasto grande en el editor, que es donde se corrige si estaba mal apuntado. */
+  protected openTransaction(transaction: TransactionResponse): void {
+    this.editor.openEdit(transaction);
+  }
+
+  /** «Hoy», «Ayer» o la fecha, como en el resto de listas de movimientos. */
+  protected dayOf(transaction: TransactionResponse): string {
+    return dayGroupLabel(transaction.date);
   }
 
   /**

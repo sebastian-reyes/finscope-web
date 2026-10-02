@@ -139,6 +139,44 @@ describe('OnboardingComponent', () => {
     expect(exits).toEqual(['record', 'done']);
   });
 
+  it('dice en qué paso se está y cuántos quedan', () => {
+    const progress = () => host().querySelector('.fs-tour__progress')!.textContent!.trim();
+
+    expect(progress()).toBe(`Paso 1 de ${ONBOARDING_SLIDES.length}`);
+    press('ArrowRight');
+    expect(progress()).toBe(`Paso 2 de ${ONBOARDING_SLIDES.length}`);
+  });
+
+  it('cada paso trae consejos concretos y dice dónde encontrarlo', () => {
+    const points = () =>
+      Array.from(host().querySelectorAll('.fs-tour__points li')).map((li) =>
+        li.textContent!.trim(),
+      );
+
+    // La bienvenida no es un sitio de la aplicación, así que no dice dónde.
+    expect(points().length).toBeGreaterThan(1);
+    expect(host().querySelector('.fs-tour__where')).toBeNull();
+
+    const recurring = ONBOARDING_SLIDES.findIndex((slide) => slide.id === 'recurring');
+    host().querySelectorAll<HTMLButtonElement>('.fs-tour__dot')[recurring].click();
+    fixture.detectChanges();
+
+    expect(points()).toEqual(ONBOARDING_SLIDES[recurring].points.map((point) => point.text));
+    expect(host().querySelector('.fs-tour__where')!.textContent).toContain('Plan → Fijos');
+  });
+
+  it('enseña todo lo que hay: registrar, movimientos, análisis, plan y configuración', () => {
+    expect(ONBOARDING_SLIDES.map((slide) => slide.id)).toEqual([
+      'welcome',
+      'record',
+      'history',
+      'insight',
+      'budgets',
+      'recurring',
+      'yours',
+    ]);
+  });
+
   it('bloquea el desplazamiento de la página mientras está abierto', () => {
     expect(document.body.style.overflow).toBe('hidden');
 

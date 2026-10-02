@@ -9,8 +9,9 @@ import type { OnboardingSlide } from './onboarding';
  *
  * No son capturas: una imagen no seguiría a la paleta ni al tema elegidos, pesaría más que
  * todo esto junto y se vería borrosa o diminuta según la pantalla. Son las piezas de la
- * aplicación —la tarjeta de balance, la barra de presupuesto, la fila de un fijo— dibujadas en
- * cristal sobre la pared de marca, con cifras de ejemplo.
+ * aplicación —la tarjeta de balance, la barra de presupuesto, la fila de un fijo— dibujadas
+ * como tarjetas iguales a las de verdad, con cifras de ejemplo. Así, al cerrar el recorrido,
+ * lo que se ve ya resulta conocido.
  *
  * Todo mide en `em` y la base la pone el hueco que le deja el texto, así que el dibujo encoge
  * entero en un teléfono bajo en lugar de montarse sobre el título.
@@ -31,4 +32,11 @@ export class OnboardingArtComponent {
 
   /** Unas cuantas de las imágenes de perfil, con la llama delante como la elegida. */
   protected readonly avatars = ['llama', 'fox', 'cat', 'piggy', 'owl'];
+
+  /** El reparto de ejemplo del paso de entender, con las barras ya medidas contra la mayor. */
+  protected readonly categories = [
+    { name: 'Comida', icon: 'bi-cup-hot', share: 38, bar: 100 },
+    { name: 'Hogar', icon: 'bi-house', share: 27, bar: 71 },
+    { name: 'Transporte', icon: 'bi-bus-front', share: 18, bar: 47 },
+  ];
 }

@@ -87,16 +87,24 @@
   order: 1;
 }
 
-.fs-analysis__trend {
+.fs-analysis__pace {
   order: 2;
 }
 
-.fs-analysis__tags {
+.fs-analysis__trend {
   order: 3;
 }
 
-.fs-analysis__currency {
+.fs-analysis__largest {
   order: 4;
+}
+
+.fs-analysis__tags {
+  order: 5;
+}
+
+.fs-analysis__currency {
+  order: 6;
 }
 
 @media (min-width: t.$fs-bp-lg) {
@@ -116,6 +124,251 @@
 
 .fs-card {
   padding: 1.25rem;
+}
+
+// --- Lo que destaca -----------------------------------------------------------------------
+// Un panel como los demás, pero con un velo del color de marca que entra desde la esquina:
+// basta para que se distinga de las tarjetas de alrededor sin gritar. Dentro, una ficha por
+// conclusión con la cifra en grande y una etiqueta que dice con palabras si es buena o mala
+// noticia: el color ayuda, pero no es lo único que lo cuenta.
+.fs-insights {
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--fs-brand-tint) 80%, var(--fs-surface)) 0%,
+    var(--fs-surface) 55%
+  );
+}
+
+.fs-insights__head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.fs-insights__spark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background-color: var(--fs-brand-tint);
+  color: var(--fs-brand);
+  font-size: 1rem;
+}
+
+.fs-insights__title {
+  margin: 0;
+  font-size: var(--fs-text-base);
+  font-weight: 620;
+  line-height: 1.2;
+}
+
+.fs-insights__sub {
+  margin: 0.1rem 0 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+}
+
+// Una columna en el teléfono, y en cuanto hay sitio tantas como quepan: con tres fichas el
+// escritorio las pone en fila, que es como se comparan.
+.fs-insights__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fs-insight {
+  --fs-insight-tone: var(--fs-ink-muted);
+  --fs-insight-tint: var(--fs-shade);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.9rem 1rem 1rem;
+  overflow: hidden;
+  border: 1px solid var(--fs-line);
+  border-radius: var(--fs-radius);
+  background-color: var(--fs-surface);
+  animation: fs-insight-in 0.35s ease-out both;
+  animation-delay: calc(var(--fs-insight-i, 0) * 60ms);
+
+  // Un filo de color a la izquierda: dice el tono antes de leer nada.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background-color: var(--fs-insight-tone);
+  }
+
+  &.is-good {
+    --fs-insight-tone: var(--fs-income);
+    --fs-insight-tint: var(--fs-income-tint);
+  }
+
+  &.is-bad {
+    --fs-insight-tone: var(--fs-expense);
+    --fs-insight-tint: var(--fs-expense-tint);
+  }
+}
+
+@keyframes fs-insight-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-insight {
+    animation: none;
+  }
+}
+
+.fs-insight__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.fs-insight__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background-color: var(--fs-insight-tint);
+  color: var(--fs-insight-tone);
+  font-size: 0.9rem;
+}
+
+.fs-insight__tag {
+  padding: 0.1rem 0.5rem;
+  border-radius: t.$fs-radius-pill;
+  background-color: var(--fs-insight-tint);
+  color: var(--fs-insight-tone);
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+}
+
+.fs-insight__figure {
+  margin: 0;
+  font-size: clamp(1.35rem, 1.15rem + 0.8vw, 1.7rem);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-insight__label {
+  margin: 0.3rem 0 0;
+  font-size: var(--fs-text-sm);
+  line-height: 1.35;
+  color: var(--fs-ink-muted);
+}
+
+// El detalle se separa con una raya y va abajo del todo, así las fichas de una misma fila
+// alinean sus pies aunque sus rótulos tengan largos distintos.
+.fs-insight__detail {
+  margin: auto 0 0;
+  padding-top: 0.6rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+
+  &::before {
+    content: '';
+    display: block;
+    margin-bottom: 0.5rem;
+    border-top: 1px solid var(--fs-line);
+  }
+}
+
+// El selector Gastos / Ingresos va al lado del título, así que es más bajo que el de arriba.
+.fs-seg--sm .fs-seg__btn {
+  padding: 0.2rem 0.7rem;
+  font-size: var(--fs-text-sm);
+}
+
+// --- Ritmo del mes ------------------------------------------------------------------------
+.fs-pace__reading {
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fs-line);
+  font-size: var(--fs-text-sm);
+  line-height: 1.5;
+  color: var(--fs-ink-muted);
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+// --- Gastos más grandes -------------------------------------------------------------------
+// Filas que se pulsan enteras: abrir el gasto es lo único que se hace con ellas.
+.fs-largest {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li + li {
+    border-top: 1px solid var(--fs-line);
+  }
+}
+
+.fs-largest__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: calc(100% + 1.2rem);
+  margin-inline: -0.6rem;
+  padding: 0.6rem;
+  border: 0;
+  border-radius: var(--fs-radius-control-sm);
+  background: none;
+  color: var(--fs-ink);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--fs-hover);
+  }
+
+  fs-category-chip {
+    flex: none;
+    line-height: 0;
+  }
+}
+
+.fs-largest__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.fs-largest__name {
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+}
+
+.fs-largest__meta {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
 }
 
 // --- Gasto por categoría ------------------------------------------------------------------
@@ -177,6 +430,11 @@
   height: 100%;
   border-radius: inherit;
   background-color: var(--fs-brand);
+
+  // Repartiendo ingresos la barra va en verde: así se ve sin leer el título qué se reparte.
+  &.is-income {
+    background-color: var(--fs-income);
+  }
 }
 
 .fs-bar__meta {

@@ -141,17 +141,79 @@
   </section>
 
   <!--
+    Las cifras de arriba dicen cuánto; esto dice por qué, y lleva un velo del color de marca
+    para que se distinga de las tarjetas de alrededor sin gritar. Cada
+    conclusión es una ficha con su cifra en grande; la frase entera la lee el lector de
+    pantalla, y lo dibujado se le oculta para que no la oiga dos veces.
+  -->
+  @if (highlights().length) {
+    <section class="fs-panel fs-insights" aria-labelledby="insightsTitle">
+      <header class="fs-insights__head">
+        <span class="fs-insights__spark" aria-hidden="true">
+          <i class="bi bi-stars"></i>
+        </span>
+        <div>
+          <h2 class="fs-insights__title" id="insightsTitle">Lo que destaca</h2>
+          <p class="fs-insights__sub">{{ title() }} de un vistazo</p>
+        </div>
+      </header>
+      <ul class="fs-insights__list">
+        @for (item of highlights(); track item.text; let i = $index) {
+          <li class="fs-insight is-{{ item.tone }}" [style.--fs-insight-i]="i">
+            <p class="visually-hidden">{{ item.text }}</p>
+            <div class="fs-insight__top" aria-hidden="true">
+              <span class="fs-insight__icon"><i class="bi {{ item.icon }}"></i></span>
+              <span class="fs-insight__tag">
+                {{ item.tone === 'good' ? 'A favor' : item.tone === 'bad' ? 'Ojo' : 'Dato' }}
+              </span>
+            </div>
+            <p class="fs-insight__figure fs-num" aria-hidden="true">{{ item.figure }}</p>
+            <p class="fs-insight__label" aria-hidden="true">{{ item.label }}</p>
+            @if (item.detail) {
+              <p class="fs-insight__detail" aria-hidden="true">{{ item.detail }}</p>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <!--
     Dos columnas que crecen cada una por su cuenta, y no una rejilla que alinea filas: con pocas
     categorías la tarjeta del reparto es mucho más baja que la de la evolución, y alineadas por
     filas dejaban un hueco en medio de la página. En el teléfono las columnas se disuelven y las
-    tarjetas se ordenan por lo que importa: reparto, evolución, tags y monedas.
+    tarjetas se ordenan por lo que importa: reparto, ritmo, evolución, gastos grandes, tags y
+    monedas.
   -->
   <div class="fs-analysis">
     <div class="fs-analysis__col">
       <section class="fs-panel fs-card fs-analysis__categories" aria-labelledby="categoriesTitle">
-        <h2 class="fs-card__title" id="categoriesTitle">
-          <i class="bi bi-grid-1x2" aria-hidden="true"></i>Gastos por categoría
-        </h2>
+        <div class="fs-card__head">
+          <h2 class="fs-card__title" id="categoriesTitle">
+            <i class="bi bi-grid-1x2" aria-hidden="true"></i>
+            {{ side() === 'expense' ? 'Gastos' : 'Ingresos' }} por categoría
+          </h2>
+          <div class="fs-seg fs-seg--sm" role="group" aria-label="Qué se reparte">
+            <button
+              type="button"
+              class="fs-seg__btn"
+              [class.is-active]="side() === 'expense'"
+              [attr.aria-pressed]="side() === 'expense'"
+              (click)="setSide('expense')"
+            >
+              Gastos
+            </button>
+            <button
+              type="button"
+              class="fs-seg__btn"
+              [class.is-active]="side() === 'income'"
+              [attr.aria-pressed]="side() === 'income'"
+              (click)="setSide('income')"
+            >
+              Ingresos
+            </button>
+          </div>
+        </div>
 
         @if (categories().length) {
           <ul class="fs-bars">
@@ -168,15 +230,19 @@
                     <span class="text-truncate">{{ row.name }}</span>
                   </span>
                   <span class="fs-bar__amount">
-                    <fs-amount [amount]="row.expense" [currency]="shownCurrency()" />
+                    <fs-amount [amount]="row.amount" [currency]="shownCurrency()" />
                   </span>
                   <span class="fs-bar__track" aria-hidden="true">
-                    <span class="fs-bar__fill" [style.width.%]="row.bar"></span>
+                    <span
+                      class="fs-bar__fill"
+                      [class.is-income]="side() === 'income'"
+                      [style.width.%]="row.bar"
+                    ></span>
                   </span>
                   <span class="fs-bar__meta">
                     {{ row.share }} %
                     @if (row.change; as c) {
-                      <span class="{{ tone(c, 'down') }}">
+                      <span class="{{ tone(c, side() === 'expense' ? 'down' : 'up') }}">
                         <i class="bi {{ arrow(c) }}" aria-hidden="true"></i>{{ c.percent }} %
                       </span>
                     } @else if (previous()) {
@@ -188,9 +254,49 @@
             }
           </ul>
         } @else {
-          <p class="fs-empty">No hubo gastos en {{ title().toLowerCase() }}.</p>
+          <p class="fs-empty">
+            No hubo {{ side() === 'expense' ? 'gastos' : 'ingresos' }} en
+            {{ title().toLowerCase() }}.
+          </p>
         }
       </section>
+
+      <!--
+        Los gastos sueltos que más pesaron. Cada uno se abre en el editor: si uno de estos está
+        mal apuntado, descuadra todo lo demás, y aquí es donde salta a la vista.
+      -->
+      @if (largest().length) {
+        <section class="fs-panel fs-card fs-analysis__largest" aria-labelledby="largestTitle">
+          <h2 class="fs-card__title" id="largestTitle">
+            <i class="bi bi-sort-down" aria-hidden="true"></i>Los gastos más grandes
+          </h2>
+          <ul class="fs-largest">
+            @for (item of largest(); track item.id) {
+              <li>
+                <button
+                  type="button"
+                  class="fs-largest__item"
+                  (click)="openTransaction(item)"
+                  [attr.aria-label]="
+                    'Abrir ' + (item.description || item.category.name) + ', ' + dayOf(item)
+                  "
+                >
+                  <fs-category-chip [name]="item.category.name" [iconOnly]="true" />
+                  <span class="fs-largest__body">
+                    <span class="fs-largest__name text-truncate">
+                      {{ item.description || item.category.name }}
+                    </span>
+                    <span class="fs-largest__meta text-truncate">
+                      {{ item.category.name }} · {{ dayOf(item) }}
+                    </span>
+                  </span>
+                  <fs-amount [amount]="item.amount" [currency]="item.currency" code="EXPENSE" />
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+      }
 
       @if (tags().length) {
         <section class="fs-panel fs-card fs-analysis__tags" aria-labelledby="tagsTitle">
@@ -214,6 +320,35 @@
     </div>
 
     <div class="fs-analysis__col">
+      <!--
+        El ritmo solo existe mes a mes: es la respuesta a «¿voy mejor o peor que el mes
+        pasado?», y mientras el mes no termina la única comparación justa es a la misma altura.
+      -->
+      @if (pace(); as p) {
+        <section class="fs-panel fs-card fs-analysis__pace" aria-labelledby="paceTitle">
+          <h2 class="fs-card__title" id="paceTitle">
+            <i class="bi bi-speedometer2" aria-hidden="true"></i>Ritmo del mes
+          </h2>
+          <fs-pace-chart
+            [pace]="p"
+            [currency]="shownCurrency()"
+            [currentLabel]="title()"
+            [previousLabel]="previousTitle()"
+          />
+          @if (paceReading(); as r) {
+            <p class="fs-pace__reading">
+              {{ r.lead }}
+              @if (r.gap) {
+                <strong [class.is-bad]="r.over" [class.is-good]="!r.over">{{ r.gap }}</strong>
+              }
+              @if (r.projection) {
+                A este ritmo cerrarías el mes en unos {{ r.projection }}.
+              }
+            </p>
+          }
+        </section>
+      }
+
       <section class="fs-panel fs-card fs-analysis__trend" aria-labelledby="trendTitle">
         <h2 class="fs-card__title" id="trendTitle">
           <i class="bi bi-graph-up" aria-hidden="true"></i>

@@ -1,10 +1,14 @@
 import {
   CategorySummaryResponse,
+  Currency,
   SummaryBucketResponse,
   SummarySeriesResponse,
   TransactionFilters,
+  TransactionResponse,
+  TransactionSummaryResponse,
 } from '../../core/models';
 import { endOfDay, startOfDay } from '../../core/format/period';
+import { formatMoney, toBaseCurrency } from '../../core/format/money';
 
 /**
  * Las cuentas de la pantalla de análisis, sin plantilla ni peticiones.
@@ -34,16 +38,20 @@ export interface Change {
   direction: 'up' | 'down' | 'same';
 }
 
-/** Una fila del gasto por categoría. */
+/** Qué lado del dinero se reparte por categoría: lo que salió o lo que entró. */
+export type CategorySide = 'expense' | 'income';
+
+/** Una fila del reparto por categoría. */
 export interface CategoryRow {
   categoryId: number;
   name: string;
-  expense: number;
-  /** Parte del gasto del periodo, de 0 a 100. */
+  /** Importe del lado que se reparte: el gasto, o el ingreso. */
+  amount: number;
+  /** Parte del total del periodo, de 0 a 100. */
   share: number;
-  /** Largo de la barra, de 0 a 100, relativo a la categoría que más gastó. */
+  /** Largo de la barra, de 0 a 100, relativo a la categoría con más importe. */
   bar: number;
-  /** Cambio frente al periodo anterior; nulo si allí no hubo gasto en ella. */
+  /** Cambio frente al periodo anterior; nulo si allí no hubo importe en ella. */
   change: Change | null;
 }
 
@@ -229,30 +237,33 @@ export function savingsRate(income: number, expense: number): number | null {
 }
 
 /**
- * Las filas del gasto por categoría, de la que más a la que menos.
+ * Las filas del reparto por categoría, de la que más a la que menos.
  *
- * Solo entran las que tuvieron gasto: una categoría de ingresos no reparte nada de lo que se
- * fue. La comparación va por identificador y no por nombre, que se puede cambiar.
+ * Solo entran las que tuvieron importe en el lado que se mira: una categoría de ingresos no
+ * reparte nada de lo que se fue, ni una de gastos nada de lo que entró. La comparación va por
+ * identificador y no por nombre, que se puede cambiar.
  *
  * @param current  desglose del periodo que se mira
  * @param previous desglose del periodo anterior, si se pudo pedir
+ * @param side     qué se reparte: el gasto, que es lo normal, o el ingreso
  * @return las filas listas para pintar
  */
 export function categoryRows(
   current: readonly CategorySummaryResponse[],
   previous: readonly CategorySummaryResponse[] | null,
+  side: CategorySide = 'expense',
 ): CategoryRow[] {
-  const spent = current.filter((row) => row.expense > 0).sort((a, b) => b.expense - a.expense);
-  const total = spent.reduce((sum, row) => sum + row.expense, 0);
-  const top = spent[0]?.expense ?? 0;
-  const before = new Map((previous ?? []).map((row) => [row.categoryId, row.expense]));
-  return spent.map((row) => ({
+  const rows = current.filter((row) => row[side] > 0).sort((a, b) => b[side] - a[side]);
+  const total = rows.reduce((sum, row) => sum + row[side], 0);
+  const top = rows[0]?.[side] ?? 0;
+  const before = new Map((previous ?? []).map((row) => [row.categoryId, row[side]]));
+  return rows.map((row) => ({
     categoryId: row.categoryId,
     name: row.category,
-    expense: row.expense,
-    share: total ? Math.round((row.expense / total) * 100) : 0,
-    bar: top ? (row.expense / top) * 100 : 0,
-    change: previous ? change(row.expense, before.get(row.categoryId)) : null,
+    amount: row[side],
+    share: total ? Math.round((row[side] / total) * 100) : 0,
+    bar: top ? (row[side] / top) * 100 : 0,
+    change: previous ? change(row[side], before.get(row.categoryId)) : null,
   }));
 }
 
@@ -277,6 +288,278 @@ export function trendStats(series: SummarySeriesResponse): TrendStats {
     topExpense: topExpense && topExpense.expense > 0 ? topExpense : null,
     bestNet: pick((a, b) => a.net > b.net),
   };
+}
+
+/**
+ * Una conclusión de la tarjeta «Lo que destaca».
+ *
+ * Va dos veces: entera en `text`, que es lo que lee un lector de pantalla, y partida en cifra,
+ * rótulo y detalle, que es como se dibuja. La cifra va en grande porque es lo que se ve desde
+ * lejos; el rótulo dice qué es esa cifra, y el detalle, de dónde sale.
+ */
+export interface Insight {
+  icon: string;
+  /** Si es una buena noticia, una mala o solo un dato. Decide el color y la etiqueta. */
+  tone: 'good' | 'bad' | 'neutral';
+  /** La frase entera. */
+  text: string;
+  /** La cifra protagonista: «+S/ 300.00», «25 %». */
+  figure: string;
+  /** Qué es esa cifra, en minúscula y sin punto: «más de gasto que en agosto». */
+  label: string;
+  /** De dónde sale, si hay algo que añadir: «Sobre todo Comida, +S/ 200.00». */
+  detail: string | null;
+}
+
+/** Cuántas conclusiones se enseñan como mucho: más de tres ya no se leen de un vistazo. */
+export const MAX_INSIGHTS = 3;
+
+/** A partir de qué parte del gasto una sola categoría merece decirse. */
+const CONCENTRATION_SHARE = 35;
+
+/**
+ * Lo que hay que saber del periodo, dicho en frases y no en cifras.
+ *
+ * Las tarjetas de arriba dicen cuánto cambió el gasto; esto dice por qué, que es lo que se
+ * queda uno preguntando al ver un «+18 %». Cada frase sale de una cuenta concreta y se omite
+ * si no hay datos para decirla bien:
+ *
+ * - **El motor del cambio**: la categoría que más explica que el gasto subiera o bajara. Solo
+ *   con periodos cerrados, porque un mes a medias contra uno entero siempre sale «gastaste
+ *   menos», y eso no es una conclusión sino un calendario. Para el mes en curso está el ritmo.
+ * - **El ahorro**: qué parte de lo que entró se quedó, o cuánto se gastó por encima.
+ * - **La concentración**: si una sola categoría se lleva buena parte del gasto.
+ *
+ * @param now      resumen del periodo que se mira
+ * @param before   resumen del periodo anterior, si se pudo pedir
+ * @param currency moneda en la que vienen las cifras
+ * @param versus   con qué se compara, ya escrito: «agosto», «2025»
+ * @param closed   si el periodo ya terminó, que es cuando la comparación es justa
+ * @return las conclusiones, de la más a la menos importante
+ */
+export function insights(
+  now: TransactionSummaryResponse,
+  before: TransactionSummaryResponse | null,
+  currency: Currency,
+  versus: string,
+  closed: boolean,
+): Insight[] {
+  const money = (amount: number) => formatMoney(amount, currency);
+  const found: Insight[] = [];
+
+  if (closed && before && before.expense > 0 && now.expense !== before.expense) {
+    const diff = now.expense - before.expense;
+    const rose = diff > 0;
+    const driver = biggestMove(now.byCategory, before.byCategory, rose);
+    const head = rose
+      ? `Gastaste ${money(diff)} más que en ${versus}.`
+      : `Gastaste ${money(-diff)} menos que en ${versus}.`;
+    let tail = '';
+    let detail: string | null = null;
+    if (driver && rose) {
+      tail = ` Lo que más subió: ${driver.name} (+${money(driver.delta)}).`;
+      detail = `Lo que más subió: ${driver.name}, +${money(driver.delta)}`;
+    } else if (driver) {
+      tail = ` Donde más bajó: ${driver.name} (−${money(-driver.delta)}).`;
+      detail = `Donde más bajó: ${driver.name}, −${money(-driver.delta)}`;
+    }
+    found.push({
+      icon: rose ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow',
+      tone: rose ? 'bad' : 'good',
+      text: head + tail,
+      figure: `${rose ? '+' : '−'}${money(Math.abs(diff))}`,
+      label: `${rose ? 'más' : 'menos'} de gasto que en ${versus}`,
+      detail,
+    });
+  }
+
+  const rate = savingsRate(now.income, now.expense);
+  if (rate !== null && rate < 0) {
+    const over = money(now.expense - now.income);
+    found.push({
+      icon: 'bi-exclamation-triangle',
+      tone: 'bad',
+      text: `Gastaste ${over} más de lo que entró.`,
+      figure: over,
+      label: 'gastado por encima de lo que entró',
+      detail: `Entraron ${money(now.income)} y salieron ${money(now.expense)}`,
+    });
+  } else if (rate !== null && now.expense > 0) {
+    found.push({
+      icon: 'bi-piggy-bank',
+      tone: rate >= 20 ? 'good' : 'neutral',
+      text: `Te quedaste con el ${rate} % de lo que entró: ${money(now.net)}.`,
+      figure: `${rate} %`,
+      label: 'de lo que entró se quedó contigo',
+      detail: `${money(now.net)} sin gastar`,
+    });
+  }
+
+  const top = categoryRows(now.byCategory, null)[0];
+  if (top && top.share >= CONCENTRATION_SHARE) {
+    found.push({
+      icon: 'bi-pie-chart',
+      tone: 'neutral',
+      text: `${top.name} se lleva el ${top.share} % de lo que gastaste.`,
+      figure: `${top.share} %`,
+      label: `de tu gasto se fue en ${top.name}`,
+      detail: money(top.amount),
+    });
+  }
+
+  return found.slice(0, MAX_INSIGHTS);
+}
+
+/**
+ * La categoría cuyo gasto más se movió en el sentido del total.
+ *
+ * Si el gasto subió interesa la que más subió, aunque otra bajara más: lo que se busca es la
+ * explicación de lo que pasó, no el mayor cambio a secas.
+ *
+ * @param now    desglose del periodo que se mira
+ * @param before desglose del periodo anterior
+ * @param rose   si el gasto total subió
+ * @return la categoría y cuánto cambió, o nulo si ninguna se movió en ese sentido
+ */
+function biggestMove(
+  now: readonly CategorySummaryResponse[],
+  before: readonly CategorySummaryResponse[],
+  rose: boolean,
+): { name: string; delta: number } | null {
+  const deltas = new Map<number, { name: string; delta: number }>();
+  for (const row of before) {
+    deltas.set(row.categoryId, { name: row.category, delta: -row.expense });
+  }
+  for (const row of now) {
+    const earlier = deltas.get(row.categoryId)?.delta ?? 0;
+    deltas.set(row.categoryId, { name: row.category, delta: row.expense + earlier });
+  }
+  let best: { name: string; delta: number } | null = null;
+  for (const entry of deltas.values()) {
+    const moved = rose ? entry.delta > 0 : entry.delta < 0;
+    if (moved && (!best || Math.abs(entry.delta) > Math.abs(best.delta))) {
+      best = entry;
+    }
+  }
+  return best;
+}
+
+/** El gasto acumulado día a día de un mes y del anterior, listo para dibujar y contar. */
+export interface Pace {
+  /** Días del mes que se mira, del 1 al último. */
+  days: number[];
+  /** Gasto acumulado del mes; nulo en los días que aún no han llegado. */
+  current: (number | null)[];
+  /** Gasto acumulado del mes anterior, alargado con su total si tenía menos días. */
+  previous: number[];
+  /** Último día con dato: hoy en el mes en curso, el último del mes si ya cerró. */
+  day: number;
+  /** Lo gastado hasta ese día. */
+  spent: number;
+  /** Lo que el mes anterior llevaba gastado el mismo día. */
+  previousAtDay: number;
+  /** Cómo cerraría el mes si siguiera al ritmo de hasta ahora; nulo si ya cerró. */
+  projection: number | null;
+}
+
+/**
+ * El ritmo de gasto de un mes contra el anterior, día a día y acumulado.
+ *
+ * Acumulado y no diario: el gasto de un día suelto es puro ruido —el alquiler un día, nada
+ * los tres siguientes— y lo que se quiere saber es si a estas alturas se va por delante o por
+ * detrás. Comparar el mes en curso con el anterior **el mismo día** es la única comparación
+ * justa mientras el mes no ha terminado.
+ *
+ * @param current  serie diaria del mes que se mira
+ * @param previous serie diaria del mes anterior
+ * @param period   mes que se mira
+ * @param today    hoy, que se recibe para poder probarlo
+ * @return el ritmo listo para pintar
+ */
+export function pace(
+  current: SummarySeriesResponse,
+  previous: SummarySeriesResponse,
+  period: AnalysisPeriod,
+  today = new Date(),
+): Pace {
+  const length = daysIn(period.year, period.month);
+  const before = previousPeriod(period);
+  const previousLength = daysIn(before.year, before.month);
+  const inProgress = period.year === today.getFullYear() && period.month === today.getMonth() + 1;
+  const day = inProgress ? today.getDate() : length;
+
+  const currentRun = accumulate(dailyExpense(current, length));
+  const previousRun = accumulate(dailyExpense(previous, previousLength));
+
+  const days = Array.from({ length }, (_, i) => i + 1);
+  const spent = currentRun[day - 1];
+  return {
+    days,
+    current: days.map((d) => (d <= day ? currentRun[d - 1] : null)),
+    previous: days.map((d) => previousRun[Math.min(d, previousLength) - 1]),
+    day,
+    spent,
+    previousAtDay: previousRun[Math.min(day, previousLength) - 1],
+    projection: inProgress ? (spent / day) * length : null,
+  };
+}
+
+/** El gasto de cada día de un mes, con cero en los que no tuvieron movimientos. */
+function dailyExpense(series: SummarySeriesResponse, length: number): number[] {
+  const daily = new Array<number>(length).fill(0);
+  for (const bucket of series.buckets) {
+    const day = Number(bucket.periodStart.slice(8, 10));
+    if (day >= 1 && day <= length) {
+      daily[day - 1] += bucket.expense;
+    }
+  }
+  return daily;
+}
+
+function accumulate(values: number[]): number[] {
+  let total = 0;
+  return values.map((value) => (total += value));
+}
+
+function daysIn(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+/**
+ * Los gastos más grandes del periodo, de todas las monedas.
+ *
+ * Llegan en una lista por moneda, cada una ordenada por su importe, y no se pueden mezclar
+ * por el número a secas: cien dólares pesan más que doscientos soles. Se comparan pasados a
+ * la moneda en la que se lee la pantalla, pero cada uno se sigue enseñando en la suya.
+ *
+ * @param lists   los más grandes de cada moneda
+ * @param shown   moneda en la que se lee la pantalla
+ * @param usdRate tipo de referencia del dólar, para lo que no trae el suyo
+ * @param limit   cuántos quedarse
+ * @return los movimientos, del más grande al más pequeño
+ */
+export function largestExpenses(
+  lists: ReadonlyArray<readonly TransactionResponse[]>,
+  shown: Currency,
+  usdRate: number | null,
+  limit: number,
+): TransactionResponse[] {
+  const weight = (transaction: TransactionResponse): number => {
+    if (transaction.currency === shown) {
+      return transaction.amount;
+    }
+    const rate = transaction.exchangeRate ?? usdRate;
+    if (shown === 'PEN') {
+      return toBaseCurrency(transaction.amount, rate);
+    }
+    return rate ? transaction.amount / rate : transaction.amount;
+  };
+  return lists
+    .flat()
+    .map((transaction) => ({ transaction, weight: weight(transaction) }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, limit)
+    .map((entry) => entry.transaction);
 }
 
 function pad(value: number): string {

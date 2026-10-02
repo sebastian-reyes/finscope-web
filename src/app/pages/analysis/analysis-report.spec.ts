@@ -4,7 +4,10 @@ import {
   categoryRows,
   change,
   fillMonths,
+  insights,
   isCurrentPeriod,
+  largestExpenses,
+  pace,
   periodFilters,
   previousPeriod,
   savingsRate,
@@ -12,7 +15,12 @@ import {
   trendFilters,
   trendStats,
 } from './analysis-report';
-import { SummaryBucketResponse, SummarySeriesResponse } from '../../core/models';
+import {
+  SummaryBucketResponse,
+  SummarySeriesResponse,
+  TransactionResponse,
+  TransactionSummaryResponse,
+} from '../../core/models';
 
 const march: AnalysisPeriod = { scope: 'month', month: 3, year: 2026 };
 const year2025: AnalysisPeriod = { scope: 'year', month: 3, year: 2025 };
@@ -170,5 +178,191 @@ describe('gasto por categoría', () => {
 
     expect(rows[0].change).toEqual({ percent: 50, direction: 'up' });
     expect(rows[1].change).toBeNull();
+  });
+});
+
+describe('reparto de ingresos por categoría', () => {
+  it('reparte lo que entró y deja fuera las categorías sin ingresos', () => {
+    const rows = categoryRows(
+      [
+        { categoryId: 1, category: 'Comida', income: 0, expense: 300, transactionCount: 5 },
+        { categoryId: 2, category: 'Sueldo', income: 3000, expense: 0, transactionCount: 1 },
+        { categoryId: 4, category: 'Freelance', income: 1000, expense: 0, transactionCount: 2 },
+      ],
+      null,
+      'income',
+    );
+
+    expect(rows.map((row) => [row.name, row.amount, row.share])).toEqual([
+      ['Sueldo', 3000, 75],
+      ['Freelance', 1000, 25],
+    ]);
+  });
+});
+
+function summary(
+  income: number,
+  expense: number,
+  byCategory: TransactionSummaryResponse['byCategory'] = [],
+): TransactionSummaryResponse {
+  return {
+    currency: 'PEN',
+    income,
+    expense,
+    net: income - expense,
+    transactionCount: 1,
+    byCurrency: [],
+    byCategory,
+    byTag: [],
+  };
+}
+
+function cat(categoryId: number, category: string, expense: number) {
+  return { categoryId, category, income: 0, expense, transactionCount: 1 };
+}
+
+describe('lo que destaca', () => {
+  it('explica una subida del gasto con la categoría que más subió', () => {
+    const now = summary(3000, 1500, [
+      cat(1, 'Comida', 700),
+      cat(2, 'Ocio', 500),
+      cat(3, 'Casa', 300),
+    ]);
+    const before = summary(3000, 1200, [
+      cat(1, 'Comida', 500),
+      cat(2, 'Ocio', 300),
+      cat(3, 'Casa', 400),
+    ]);
+
+    const [first] = insights(now, before, 'PEN', 'agosto', true);
+
+    // Comida y Ocio suben 200 cada una; gana la primera que llega, y Casa, que bajó, no cuenta.
+    expect(first.tone).toBe('bad');
+    expect(first).toMatchObject({
+      figure: '+S/ 300.00',
+      label: 'más de gasto que en agosto',
+      detail: 'Lo que más subió: Comida, +S/ 200.00',
+    });
+    expect(first.text).toBe(
+      'Gastaste S/ 300.00 más que en agosto. Lo que más subió: Comida (+S/ 200.00).',
+    );
+  });
+
+  it('una bajada se cuenta con la categoría donde más se recortó', () => {
+    const now = summary(3000, 900, [
+      cat(1, 'Comida', 400),
+      cat(2, 'Ocio', 100),
+      cat(3, 'Casa', 400),
+    ]);
+    const before = summary(3000, 1200, [
+      cat(1, 'Comida', 500),
+      cat(2, 'Ocio', 300),
+      cat(3, 'Casa', 400),
+    ]);
+
+    const [first] = insights(now, before, 'PEN', 'agosto', true);
+
+    expect(first.tone).toBe('good');
+    expect(first.text).toContain('Donde más bajó: Ocio (−S/ 200.00)');
+  });
+
+  it('con el periodo a medias no compara el gasto, que siempre saldría a la baja', () => {
+    const now = summary(3000, 400, [cat(1, 'Comida', 400)]);
+    const before = summary(3000, 1200, [cat(1, 'Comida', 1200)]);
+
+    const texts = insights(now, before, 'PEN', 'agosto', false).map((item) => item.text);
+
+    expect(texts.join(' ')).not.toContain('menos que en agosto');
+  });
+
+  it('dice cuánto se ahorró, o cuánto se gastó por encima de lo que entró', () => {
+    const saved = insights(summary(2000, 1500, [cat(1, 'Comida', 1500)]), null, 'PEN', '', true);
+    expect(
+      saved.some((item) => item.text === 'Te quedaste con el 25 % de lo que entró: S/ 500.00.'),
+    ).toBe(true);
+
+    const over = insights(summary(1000, 1300, [cat(1, 'Comida', 1300)]), null, 'PEN', '', true);
+    expect(over[0]).toMatchObject({ tone: 'bad', text: 'Gastaste S/ 300.00 más de lo que entró.' });
+  });
+
+  it('avisa si una sola categoría se lleva buena parte del gasto, y nunca dice más de tres cosas', () => {
+    const now = summary(3000, 1000, [cat(1, 'Alquiler', 600), cat(2, 'Comida', 400)]);
+    const before = summary(3000, 800, [cat(1, 'Alquiler', 600), cat(2, 'Comida', 200)]);
+
+    const found = insights(now, before, 'PEN', 'agosto', true);
+
+    expect(found).toHaveLength(3);
+    expect(found[2].text).toBe('Alquiler se lleva el 60 % de lo que gastaste.');
+  });
+});
+
+function day(date: string, expense: number): SummaryBucketResponse {
+  return {
+    periodStart: `${date}T00:00:00`,
+    income: 0,
+    expense,
+    net: -expense,
+    transactionCount: 1,
+  };
+}
+
+function daily(...buckets: SummaryBucketResponse[]): SummarySeriesResponse {
+  return { currency: 'PEN', granularity: 'DAY', buckets };
+}
+
+describe('ritmo del mes', () => {
+  const october: AnalysisPeriod = { scope: 'month', month: 10, year: 2026 };
+
+  it('en el mes en curso compara con el anterior el mismo día y proyecta el cierre', () => {
+    const result = pace(
+      daily(day('2026-10-01', 100), day('2026-10-05', 50)),
+      daily(day('2026-09-02', 40), day('2026-09-20', 500)),
+      october,
+      new Date(2026, 9, 10),
+    );
+
+    expect(result.days).toHaveLength(31);
+    expect(result.day).toBe(10);
+    expect(result.spent).toBe(150);
+    expect(result.previousAtDay).toBe(40);
+    // 150 en diez días son 15 al día: 465 en los 31 de octubre.
+    expect(result.projection).toBe(465);
+    // Lo que todavía no ha pasado no es un cero.
+    expect(result.current[9]).toBe(150);
+    expect(result.current[10]).toBeNull();
+  });
+
+  it('alarga el mes anterior con su total cuando tenía menos días', () => {
+    const result = pace(daily(), daily(day('2026-09-30', 80)), october, new Date(2026, 11, 1));
+
+    // Septiembre tiene 30 días: el 31 de octubre se compara con su cierre.
+    expect(result.previous[30]).toBe(80);
+    expect(result.projection).toBeNull();
+    expect(result.day).toBe(31);
+  });
+});
+
+describe('gastos más grandes', () => {
+  function tx(id: number, amount: number, currency: 'PEN' | 'USD', exchangeRate?: number) {
+    return { id, amount, currency, exchangeRate } as TransactionResponse;
+  }
+
+  it('compara monedas distintas convertidas y no por el número a secas', () => {
+    const result = largestExpenses(
+      [[tx(1, 300, 'PEN'), tx(2, 200, 'PEN')], [tx(3, 100, 'USD', 3.7)]],
+      'PEN',
+      3.5,
+      2,
+    );
+
+    // Los cien dólares son S/ 370: pasan por delante de los 300 soles.
+    expect(result.map((item) => item.id)).toEqual([3, 1]);
+  });
+
+  it('viendo en dólares, pasa los soles con el tipo de referencia', () => {
+    const result = largestExpenses([[tx(1, 300, 'PEN')], [tx(2, 90, 'USD')]], 'USD', 3, 2);
+
+    // 300 soles son 100 dólares, más que los 90.
+    expect(result.map((item) => item.id)).toEqual([1, 2]);
   });
 });
