@@ -27,6 +27,10 @@ import {
 import { CURRENCIES, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
 import { CatalogueStylesService } from '../../core/catalogue-styles.service';
 import { mediaQuery } from '../../core/viewport';
+import { ExportService, exportJob } from '../../core/export/export.service';
+import { reportMonth } from '../../core/export/report';
+import { buildTransactionsReport } from '../../core/export/transactions-report';
+import { ExportPanelComponent, ExportRequest } from '../../shared/ui/export-panel';
 import { AmountComponent } from '../../shared/ui/amount';
 import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
 import { CategoryChipComponent } from '../../shared/ui/category-chip';
@@ -61,6 +65,13 @@ interface ActiveFilter {
 /** Cómo se escribe un día suelto en el resumen del rango: «1 ago». */
 const SHORT_DAY = new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short' });
 
+/** Un día en la cabecera de un informe, con su año: un archivo se abre años después. */
+const REPORT_DAY = new Intl.DateTimeFormat('es-PE', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+
 /** Movimientos de un mismo día, con el rótulo bajo el que se agrupan. */
 interface DayGroup {
   /** Vacío cuando la lista no va ordenada por fecha y agrupar por día no significaría nada. */
@@ -92,6 +103,7 @@ interface DayGroup {
     BottomSheetComponent,
     CategoryChipComponent,
     DateFieldComponent,
+    ExportPanelComponent,
     SearchFieldComponent,
     SegmentedDirective,
     SelectFieldComponent,
@@ -105,6 +117,7 @@ export class TransactionsPage {
   private readonly styles = inject(CatalogueStylesService);
   private readonly route = inject(ActivatedRoute);
   private readonly editor = inject(TransactionEditorService);
+  private readonly exporter = inject(ExportService);
 
   /**
    * Si la pantalla es la de un teléfono. Ahí los filtros se recogen en una barra y una hoja;
@@ -115,6 +128,13 @@ export class TransactionsPage {
 
   /** Si la hoja de filtros está abierta. */
   protected readonly filtersOpen = signal(false);
+
+  /**
+   * Lo que se va a exportar, o nulo con la hoja cerrada.
+   * Se fija al abrirla: si la lista cambiara por debajo mientras se elige el formato, el
+   * archivo no diría lo que la hoja prometía.
+   */
+  protected readonly exportRequest = signal<ExportRequest | null>(null);
 
   protected readonly result = signal<TransactionPageResponse | null>(null);
   protected readonly summary = signal<TransactionSummaryResponse | null>(null);
@@ -678,6 +698,93 @@ export class TransactionsPage {
 
   protected openCreate(): void {
     this.editor.openCreate();
+  }
+
+  /**
+   * Abre la hoja de exportar con lo que hay puesto ahora mismo.
+   *
+   * El archivo lleva todas las filas que dejan pasar los filtros —no solo la página que se
+   * ve— y en el orden de la lista, y dice en su cabecera con qué filtros se sacó: un informe
+   * de «Comida en agosto» que no lo dijera se confundiría con uno de todo el mes.
+   */
+  protected openExport(): void {
+    const filters = this.filters();
+    const sort = this.sort();
+    const period = this.exportPeriod();
+    const refinements = this.exportFilters();
+    const colors = this.exporter.colors();
+    const total = this.result()?.totalElements;
+    this.exportRequest.set({
+      subject:
+        total === undefined
+          ? 'Tus movimientos'
+          : `${total} ${total === 1 ? 'movimiento' : 'movimientos'}`,
+      scope: [{ label: 'Periodo', value: period.label }, ...refinements],
+      run: () =>
+        exportJob(
+          (progress) => this.exporter.collectTransactions(filters, sort, progress),
+          (transactions) =>
+            buildTransactionsReport({
+              transactions,
+              period: period.label,
+              periodSlug: period.slug,
+              filters: refinements,
+              ...colors,
+            }),
+        ),
+    });
+  }
+
+  protected closeExport(): void {
+    this.exportRequest.set(null);
+  }
+
+  /** El periodo que se exporta, en palabras y para el nombre del archivo. */
+  private exportPeriod(): { label: string; slug: string } {
+    if (this.periodMode() === 'month') {
+      return {
+        label: reportMonth(this.month(), this.year()),
+        slug: `${this.year()}-${String(this.month()).padStart(2, '0')}`,
+      };
+    }
+    const from = this.from().slice(0, 10);
+    const to = this.to().slice(0, 10);
+    if (this.periodMode() === 'all' || (!from && !to)) {
+      return { label: 'Todo el historial', slug: 'historial' };
+    }
+    const day = (value: string) => REPORT_DAY.format(new Date(`${value}T00:00`));
+    if (from && to) {
+      return { label: `Del ${day(from)} al ${day(to)}`, slug: `${from}_${to}` };
+    }
+    return from
+      ? { label: `Desde el ${day(from)}`, slug: `desde-${from}` }
+      : { label: `Hasta el ${day(to)}`, slug: `hasta-${to}` };
+  }
+
+  /** Los filtros puestos, además del periodo, como pares rótulo/valor. */
+  private exportFilters(): { label: string; value: string }[] {
+    const filters: { label: string; value: string }[] = [];
+    const kind = this.filteredKind();
+    if (kind) {
+      filters.push({ label: 'Tipo', value: kind === 'INCOME' ? 'Ingresos' : 'Egresos' });
+    }
+    const category = this.categories().find((candidate) => candidate.id === this.categoryId());
+    if (category) {
+      filters.push({ label: 'Categoría', value: category.name });
+    }
+    const tag = this.tag();
+    if (tag) {
+      filters.push({ label: 'Tag', value: tag });
+    }
+    const currency = this.currency();
+    if (currency) {
+      filters.push({ label: 'Moneda', value: CURRENCY_NAMES[currency] });
+    }
+    const text = this.searchText();
+    if (text) {
+      filters.push({ label: 'Búsqueda', value: `«${text}»` });
+    }
+    return filters;
   }
 
   protected openEdit(transaction: TransactionResponse): void {

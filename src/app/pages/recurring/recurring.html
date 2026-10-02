@@ -26,6 +26,14 @@
     </p>
   </div>
   <div class="fs-head__actions">
+    <button
+      class="fs-btn fs-btn--outline"
+      type="button"
+      [disabled]="loading() || !items().length"
+      (click)="openExport()"
+    >
+      <i class="bi bi-download" aria-hidden="true"></i>Exportar
+    </button>
     <button class="fs-btn fs-btn--solid" type="button" (click)="openForm()">
       <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo fijo
     </button>
@@ -514,5 +522,16 @@
         Registrar
       </button>
     </div>
+  </fs-bottom-sheet>
+}
+
+@if (exportRequest(); as request) {
+  <fs-bottom-sheet
+    title="Exportar"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeExport()"
+  >
+    <fs-export-panel [request]="request" />
   </fs-bottom-sheet>
 }

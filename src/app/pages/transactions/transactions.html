@@ -16,6 +16,9 @@
     >
       <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
     </button>
+    <button class="fs-btn fs-btn--outline" type="button" (click)="openExport()">
+      <i class="bi bi-download" aria-hidden="true"></i>Exportar
+    </button>
     <button class="fs-btn fs-btn--solid" type="button" (click)="openCreate()">
       <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo movimiento
     </button>
@@ -191,6 +194,15 @@
         @if (activeFilters().length; as count) {
           <span class="fs-filters__count" [attr.aria-label]="count + ' puestos'">{{ count }}</span>
         }
+      </button>
+      <button
+        type="button"
+        class="fs-filters__open fs-filters__export"
+        aria-haspopup="dialog"
+        aria-label="Exportar"
+        (click)="openExport()"
+      >
+        <i class="bi bi-download" aria-hidden="true"></i>
       </button>
     </div>
 
@@ -663,5 +675,20 @@
         }
       </button>
     </div>
+  </fs-bottom-sheet>
+}
+
+@if (exportRequest(); as request) {
+  <!--
+    Exporta lo mismo que dejan pasar los filtros de arriba, todas las páginas y no solo la que
+    se ve. La hoja enseña qué filtros lleva antes de elegir el formato.
+  -->
+  <fs-bottom-sheet
+    title="Exportar"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeExport()"
+  >
+    <fs-export-panel [request]="request" />
   </fs-bottom-sheet>
 }

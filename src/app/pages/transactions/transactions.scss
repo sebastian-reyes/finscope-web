@@ -457,6 +457,14 @@
   }
 }
 
+// Exportar, al lado de «Filtros»: solo el icono, cuadrado, para no quitarle ancho a la búsqueda.
+.fs-filters__open.fs-filters__export {
+  justify-content: center;
+  width: var(--fs-field-height);
+  padding: 0;
+  font-size: 1rem;
+}
+
 .fs-filters__open {
   position: relative;
   display: inline-flex;

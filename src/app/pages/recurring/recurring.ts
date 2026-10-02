@@ -1,7 +1,7 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { RefreshService } from '../../core/refresh.service';
 import { FinscopeService } from '../../core/finscope.service';
@@ -27,7 +27,11 @@ import {
   TransactionTypeCode,
   TransactionTypeResponse,
 } from '../../core/models';
+import { ExportService, exportJob } from '../../core/export/export.service';
+import { buildRecurringReport } from '../../core/export/recurring-report';
+import { reportMonth } from '../../core/export/report';
 import { BottomSheetComponent } from '../../shared/ui/bottom-sheet';
+import { ExportPanelComponent, ExportRequest } from '../../shared/ui/export-panel';
 import { CategoryPickerComponent } from '../../shared/ui/category-picker';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { SearchFieldComponent } from '../../shared/ui/search-field';
@@ -115,6 +119,7 @@ const RHYTHMS: ReadonlyArray<readonly [string, string]> = [
     BottomSheetComponent,
     CategoryPickerComponent,
     DateFieldComponent,
+    ExportPanelComponent,
     SearchFieldComponent,
     SegmentedDirective,
     TagsFieldComponent,
@@ -129,6 +134,10 @@ export class RecurringPage {
   private readonly rates = inject(ExchangeRateService);
   private readonly toasts = inject(ToastService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly exporter = inject(ExportService);
+
+  /** Lo que se va a exportar, o nulo con la hoja cerrada. */
+  protected readonly exportRequest = signal<ExportRequest | null>(null);
 
   protected readonly items = signal<RecurringOccurrenceResponse[]>([]);
   protected readonly categories = signal<CategoryResponse[]>([]);
@@ -563,6 +572,44 @@ export class RecurringPage {
     this.run(this.api.deleteRecurring(item.id), () =>
       this.toasts.success(`«${item.description}» ya no es un fijo`),
     );
+  }
+
+  /**
+   * Abre la hoja de exportar con el mes que se está mirando.
+   *
+   * Lleva lo mismo que la lista —los que vencen y los que no tocan, acotados por la búsqueda
+   * si hay algo escrito— y no pide nada: el mes ya está cargado entero.
+   */
+  protected openExport(): void {
+    const { month, year } = this.period();
+    const items = [...this.shownDue(), ...this.shownResting()];
+    const search = this.query().trim();
+    const period = reportMonth(month!, year!);
+    const colors = this.exporter.colors();
+    this.exportRequest.set({
+      subject: `${items.length} ${items.length === 1 ? 'fijo' : 'fijos'}`,
+      scope: [
+        { label: 'Mes', value: period },
+        ...(search ? [{ label: 'Búsqueda', value: `«${search}»` }] : []),
+      ],
+      run: () =>
+        exportJob(
+          () => of(items),
+          (shown) =>
+            buildRecurringReport({
+              items: shown,
+              month: month!,
+              year: year!,
+              period,
+              search,
+              ...colors,
+            }),
+        ),
+    });
+  }
+
+  protected closeExport(): void {
+    this.exportRequest.set(null);
   }
 
   private matches(item: RecurringOccurrenceResponse): boolean {
