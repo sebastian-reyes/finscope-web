@@ -1,0 +1,42 @@
+# Comprobación de que los tipos del frontend siguen al contrato de la API.
+#
+# `models.ts` se escribe a mano y el contrato vive en otro repositorio, así que se pueden
+# separar sin que nada falle: el backend compila contra el contrato, pero aquí un campo nuevo
+# o renombrado solo se notaba en el navegador. `scripts/check-contract.mjs` los compara.
+#
+# Va aparte de `ci.yml` por el disparador semanal: el contrato cambia en el repositorio de la
+# API, y si en este nadie empuja nada, la comprobación de cada empujón no llegaría a correr.
+# Con la ejecución de los lunes, una versión nueva del contrato avisa en una semana como mucho.
+name: Contrato
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Solo hace falta `typescript`, que es con lo que el script lee `models.ts`, pero `npm ci`
+      # es la forma de tenerlo exactamente en la versión del lockfile.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Sin argumento compara contra el contrato de `master` de finscope-api.
+      - name: Comparar models.ts con el contrato
+        run: node scripts/check-contract.mjs

@@ -486,7 +486,7 @@ npm test           # las 336 pruebas
 ## Pruebas y CI
 
 ```bash
-npx ng test --no-watch     # 43 archivos · 336 pruebas
+npx ng test --no-watch     # 58 archivos · 471 pruebas
 ```
 
 > [!CAUTION]
@@ -501,6 +501,19 @@ npx ng test --no-watch     # 43 archivos · 336 pruebas
    de tipos de las plantillas con AOT. Un `@if` sobre una propiedad que ya no existe pasa las
    pruebas de los componentes que no la montan y muere aquí.
 3. `ng test --no-watch`.
+
+[`.github/workflows/contract.yml`](.github/workflows/contract.yml) compara
+[`core/models.ts`](src/app/core/models.ts) con el contrato publicado en `master` de
+[finscope-api](https://github.com/sebastian-reyes/finscope-api): los mismos campos, los mismos
+obligatorios, las mismas enumeraciones y la misma versión que `CONTRACT_VERSION`. Los tipos se
+escriben a mano y el contrato vive en otro repositorio, así que sin esto podían separarse sin que
+fallara nada. Corre en cada empujón, en cada pull request y **los lunes**, para que una versión
+nueva del contrato avise aunque aquí nadie toque nada.
+
+```bash
+node scripts/check-contract.mjs                       # contra el contrato de master
+node scripts/check-contract.mjs ../finscope-api/src/main/resources/openapi/finscope-api.yaml
+```
 
 ---
 
@@ -517,9 +530,39 @@ sirviéndose tal cual.
 backend de sitio es cambiar un registro DNS y no volver a compilar la aplicación —que, con un
 trabajador de servicio instalado en los navegadores, tarda en llegar a todo el mundo—.
 
+### Cabeceras de seguridad
+
+La sesión vive en `localStorage`, así que lo que más importa es que en la página no llegue a
+ejecutarse un script ajeno. La **política de seguridad de contenido** va en una etiqueta `<meta>`
+de [`src/index.html`](src/index.html), versionada con el código: solo scripts del propio origen,
+nada en línea y conexiones solo a este origen y a la API. Por eso la compilación de producción
+lleva `inlineCritical: false`: con el CSS crítico en línea, Angular carga el resto con un
+`onload="…"` que la política bloquearía.
+
+Hay cabeceras que una etiqueta `<meta>` no puede poner, y van en el servidor. Se configuran en
+Cloudflare (*Rules → Transform Rules → Modify Response Header*) o en las cabeceras del sitio
+estático de Render:
+
+| Cabecera | Valor | Para qué |
+|---|---|---|
+| `Content-Security-Policy` | `frame-ancestors 'none'` | Que nadie pueda meter la aplicación en un marco y engañar al usuario para que pulse donde no ve (*clickjacking*). |
+| `X-Frame-Options` | `DENY` | Lo mismo, para navegadores que no entienden `frame-ancestors`. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Que las direcciones internas no salgan enteras hacia otros sitios. |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | La aplicación no usa nada de eso; si un script lo pidiera, no podría. |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Que el navegador no vuelva a intentar `http://`. |
+
+`X-Content-Type-Options: nosniff` ya lo pone Cloudflare. La API envía las suyas desde Spring
+Security.
+
+La `Content-Security-Policy` de la cabecera **se suma** a la de la etiqueta, no la sustituye: el
+navegador aplica las dos. Por eso basta con que la de la cabecera traiga solo `frame-ancestors`.
+
 ---
 
 ## Cómo cambiar algo
+
+**Una versión nueva del contrato** → actualiza [`core/models.ts`](src/app/core/models.ts) y su
+`CONTRACT_VERSION`; `node scripts/check-contract.mjs` dice qué falta.
 
 **Un endpoint nuevo** → el tipo en [`core/models.ts`](src/app/core/models.ts), la llamada en
 [`core/finscope.service.ts`](src/app/core/finscope.service.ts) y, si es un prefijo nuevo, la
@@ -528,9 +571,11 @@ lista de [`proxy.conf.mjs`](proxy.conf.mjs).
 **Una pantalla nueva** → una carpeta en `pages/`, una entrada `loadComponent` en
 [`app.routes.ts`](src/app/app.routes.ts) y su guard.
 
-**Mudar el backend** → [`src/environments/api-origin.ts`](src/environments/api-origin.ts) **y**
-los `dataGroups` de [`ngsw-config.json`](ngsw-config.json). Si los dos se separan, la caché sin
-conexión deja de emparejar en silencio; `data-cache.spec.ts` lo impide.
+**Mudar el backend** → [`src/environments/api-origin.ts`](src/environments/api-origin.ts), los
+`dataGroups` de [`ngsw-config.json`](ngsw-config.json) **y** el `connect-src` de la política en
+[`src/index.html`](src/index.html). Si se separan, la caché sin conexión deja de emparejar en
+silencio o el navegador bloquea las peticiones; `data-cache.spec.ts` y
+`content-security-policy.spec.ts` lo impiden.
 
 **Un diagrama** → edita el `.json` de `docs/` y vuelve a generar con
 [archify](https://github.com/tt-a1i/archify).

@@ -1,8 +1,14 @@
 /**
- * Tipos que reflejan los esquemas del contrato OpenAPI de FinScope (v6.7.0).
+ * Tipos que reflejan los esquemas del contrato OpenAPI de FinScope.
  * Se mantienen a mano y no generados para que el proyecto siga siendo sencillo de leer;
  * si el contrato cambia, este archivo es el único punto a tocar.
+ *
+ * Que sigan al contrato lo comprueba `scripts/check-contract.mjs` en cada CI: mismos campos,
+ * mismos obligatorios, mismas enumeraciones y la misma versión que `CONTRACT_VERSION`.
  */
+
+/** Versión del contrato con la que se comprobaron por última vez estos tipos. */
+export const CONTRACT_VERSION = '6.11.0';
 
 export interface UserResponse {
   id: number;

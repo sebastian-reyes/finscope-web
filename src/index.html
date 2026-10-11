@@ -2,6 +2,34 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <!--
+      Política de seguridad de contenido. La sesión vive en `localStorage`, así que cualquier
+      script ajeno que llegue a ejecutarse en esta página puede leer el token de refresco y
+      llevárselo. Esto no evita el fallo que lo inyecte, pero sí le quita casi todas las vías:
+      solo corre el JavaScript servido desde este origen —nada en línea, nada de `eval`— y solo
+      se habla con este origen y con la API.
+
+      Lo que exige cada excepción:
+      - `style-src 'unsafe-inline'`: Angular inserta los estilos de cada componente como
+        `<style>` al montarlo. Con un estático no hay forma de firmarlos con un nonce por
+        respuesta. Un estilo inyectado no ejecuta código.
+      - `img-src data:`: el favicon se genera en tiempo de ejecución como `data:` (sigue al
+        color elegido) y el fondo de la pantalla de acceso es un SVG en `data:`.
+      - `connect-src` con el origen de la API: en producción vive en otro dominio. Tiene que
+        ser el mismo que `API_ORIGIN`; si cambia uno y no el otro, la aplicación no puede
+        pedir nada. Lo comprueba `content-security-policy.spec.ts`.
+
+      Que no haya ningún script en línea depende de `inlineCritical: false` en `angular.json`:
+      con el CSS crítico en línea, Angular carga el resto con un `onload="…"`, que esta política
+      bloquea, y la página se queda con los estilos a medias.
+
+      `frame-ancestors` no se puede declarar en una etiqueta `<meta>`: el navegador lo ignora.
+      Esa y las demás cabeceras van en el servidor (ver README, «Cabeceras de seguridad»).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.fin-scope.app; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
     <title>FinScope</title>
     <base href="/" />
     <!--
