@@ -1,0 +1,605 @@
+<div class="fs-head">
+  <div>
+    <h1 class="fs-head__title">Préstamos</h1>
+    <p class="fs-head__hint">
+      Lo que prestaste y esperas que vuelva. No cuenta como gasto ni como ingreso: el dinero sigue
+      siendo tuyo, solo que lo tiene otra persona.
+    </p>
+  </div>
+  <div class="fs-head__actions">
+    <button class="fs-btn fs-btn--solid" type="button" (click)="openForm()">
+      <i class="bi bi-plus-lg" aria-hidden="true"></i>Nuevo préstamo
+    </button>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudieron cargar tus préstamos</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
+}
+
+@if (loading()) {
+  <section class="fs-panel fs-block">
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+    <div class="fs-skeleton"></div>
+  </section>
+} @else if (loans().length) {
+  <section class="fs-panel fs-block fs-sum" aria-labelledby="loansTotalTitle">
+    <h2 class="fs-card__title" id="loansTotalTitle">
+      <i class="bi bi-cash-coin" aria-hidden="true"></i>Por cobrar
+    </h2>
+    @if (totals().openCount) {
+      <p class="fs-sum__figure">
+        <span class="fs-num fs-sum__amount">{{ totals().outstanding }}</span>
+        <span class="fs-sum__of">
+          en {{ totals().openCount }}
+          {{ totals().openCount === 1 ? 'préstamo abierto' : 'préstamos abiertos' }}
+        </span>
+      </p>
+      <p class="fs-sum__reading">
+        @if (totals().overdue) {
+          <span class="fs-sum__late">{{ totals().overdue }} ya debió volver.</span>
+        }
+        @if (totals().interest) {
+          <span class="fs-sum__gain">Ganarás {{ totals().interest }} en intereses.</span>
+        }
+      </p>
+    } @else {
+      <p class="fs-sum__figure">
+        <span class="fs-sum__done"><i class="bi bi-check2-circle" aria-hidden="true"></i></span>
+        <span class="fs-sum__of">Nadie te debe nada ahora mismo</span>
+      </p>
+    }
+  </section>
+
+  <fs-search-field
+    class="fs-finder"
+    inputId="loanSearch"
+    label="Buscar préstamos por persona o nota"
+    placeholder="Buscar: Juan, auto…"
+    [(value)]="query"
+  />
+
+  @if (noMatches()) {
+    <p class="fs-panel fs-block fs-finder__empty">
+      Ningún préstamo encaja con «{{ query().trim() }}».
+    </p>
+  }
+
+  <ul class="fs-loan">
+    @for (loan of open(); track loan.id) {
+      <ng-container *ngTemplateOutlet="card; context: { $implicit: loan }" />
+    }
+  </ul>
+
+  @if (settled().length) {
+    <h2 class="fs-loan__section">Saldados y cerrados</h2>
+    <ul class="fs-loan">
+      @for (loan of settled(); track loan.id) {
+        <ng-container *ngTemplateOutlet="card; context: { $implicit: loan }" />
+      }
+    </ul>
+  }
+
+  <p class="fs-note fs-foot">
+    Lo que te devuelven se aplica primero a la cuota más antigua: si te pagan a medias o de más, el
+    resto se reparte solo. Te avisamos tres días antes de cada cuota, el mismo día y, si sigue
+    pendiente, al día siguiente.
+  </p>
+} @else {
+  <section class="fs-panel fs-block fs-blank">
+    <i class="bi bi-cash-coin" aria-hidden="true"></i>
+    <p class="fs-blank__title">No tienes préstamos registrados</p>
+    <p class="fs-blank__hint">
+      Apunta a quién le prestaste, cuánto y cuándo te lo devuelve. Te avisaremos cuando se acerque
+      el día de cada pago.
+    </p>
+  </section>
+}
+
+<ng-template #card let-loan>
+  <li class="fs-panel fs-block fs-loan__item" [attr.data-status]="loan.status">
+    <div class="fs-loan__row">
+      <span class="fs-loan__icon" aria-hidden="true"><i class="bi bi-person"></i></span>
+
+      <div class="fs-loan__body">
+        <p class="fs-loan__name text-truncate">{{ loan.borrowerName }}</p>
+        <p class="fs-loan__meta text-truncate">
+          Prestado el {{ date(loan.lentOn) }} ·
+          {{ loan.installments.length === 1 ? 'un pago' : loan.installments.length + ' cuotas' }}
+          @if (loan.interest > 0) {
+            · +{{ money(loan.interest, loan.currency) }} de interés
+          } @else {
+            · sin interés
+          }
+        </p>
+      </div>
+
+      <div class="fs-loan__figures">
+        <span class="fs-num fs-loan__amount">
+          {{ money(loan.status === 'PAID' ? loan.total : loan.outstanding, loan.currency) }}
+        </span>
+        <span class="fs-loan__state">{{ stateLabel(loan.status) }}</span>
+      </div>
+    </div>
+
+    <div
+      class="fs-loan__track"
+      role="progressbar"
+      [attr.aria-valuenow]="progress(loan)"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      [attr.aria-label]="
+        'Devolvió ' + money(loan.paid, loan.currency) + ' de ' + money(loan.total, loan.currency)
+      "
+    >
+      <span class="fs-loan__fill" [style.width.%]="progress(loan)"></span>
+    </div>
+    <p class="fs-loan__reading">
+      Devolvió {{ money(loan.paid, loan.currency) }} de {{ money(loan.total, loan.currency) }}
+      @if (loan.nextDueDate) {
+        <span class="fs-loan__next">
+          Próximo: {{ money(loan.nextDueAmount ?? 0, loan.currency) }} · {{ nextDue(loan) }}
+        </span>
+      }
+    </p>
+
+    @if (confirmingId() === loan.id) {
+      <div class="fs-loan__confirm" animate.enter="fs-anim-expand">
+        <span>
+          ¿Eliminar el préstamo a <strong>{{ loan.borrowerName }}</strong
+          >? Se pierde lo que registraste como devuelto. Si no lo vas a recuperar, mejor ciérralo.
+        </span>
+        <span class="text-nowrap">
+          <button
+            class="fs-btn fs-btn--sm fs-btn--danger"
+            type="button"
+            [disabled]="saving()"
+            (click)="remove(loan)"
+          >
+            Sí, eliminar
+          </button>
+          <button class="fs-btn fs-btn--sm fs-btn--ghost" type="button" (click)="cancelRemove()">
+            Cancelar
+          </button>
+        </span>
+      </div>
+    } @else {
+      <div class="fs-loan__actions">
+        @if (loan.status === 'ACTIVE' || loan.status === 'OVERDUE') {
+          <button
+            class="fs-btn fs-btn--sm fs-btn--soft"
+            type="button"
+            [disabled]="saving()"
+            (click)="startPayment(loan)"
+          >
+            <i class="bi bi-plus-circle" aria-hidden="true"></i>Registrar pago
+          </button>
+        }
+        <button
+          class="fs-btn fs-btn--sm fs-btn--ghost"
+          type="button"
+          [attr.aria-expanded]="expandedId() === loan.id"
+          (click)="toggleDetail(loan)"
+        >
+          {{ expandedId() === loan.id ? 'Ocultar detalle' : 'Ver detalle' }}
+        </button>
+
+        <span class="fs-loan__tools">
+          <button
+            class="fs-btn fs-btn--sm fs-btn--ghost"
+            type="button"
+            (click)="startEdit(loan)"
+            [attr.aria-label]="'Cambiar el préstamo a ' + loan.borrowerName"
+          >
+            <i class="bi bi-pencil" aria-hidden="true"></i>
+          </button>
+          @if (loan.status !== 'PAID') {
+            <button
+              class="fs-btn fs-btn--sm fs-btn--ghost"
+              type="button"
+              [disabled]="saving()"
+              (click)="toggleClosed(loan)"
+              [attr.aria-label]="
+                (loan.status === 'CLOSED'
+                  ? 'Reabrir el préstamo a '
+                  : 'Dar por cerrado el préstamo a ') + loan.borrowerName
+              "
+            >
+              <i
+                class="bi"
+                [class.bi-archive]="loan.status !== 'CLOSED'"
+                [class.bi-arrow-counterclockwise]="loan.status === 'CLOSED'"
+                aria-hidden="true"
+              ></i>
+            </button>
+          }
+          <button
+            class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+            type="button"
+            (click)="askRemove(loan)"
+            [attr.aria-label]="'Eliminar el préstamo a ' + loan.borrowerName"
+          >
+            <i class="bi bi-trash" aria-hidden="true"></i>
+          </button>
+        </span>
+      </div>
+    }
+
+    @if (expandedId() === loan.id) {
+      <div class="fs-loan__detail" animate.enter="fs-anim-expand">
+        @if (loan.notes) {
+          <p class="fs-loan__notes">{{ loan.notes }}</p>
+        }
+        @if (loan.closedOn) {
+          <p class="fs-loan__notes">Cerrado el {{ date(loan.closedOn) }}.</p>
+        }
+
+        <h3 class="fs-loan__subtitle">Cuotas</h3>
+        <ol class="fs-loan__list">
+          @for (item of loan.installments; track item.id) {
+            <li class="fs-loan__line" [attr.data-status]="item.status">
+              <span class="fs-loan__when">{{ date(item.dueDate) }}</span>
+              <span class="fs-num">{{ money(item.amount, loan.currency) }}</span>
+              <span class="fs-loan__tag">
+                {{ installmentLabel(item.status) }}
+                @if (item.status === 'PARTIAL' || (item.status === 'OVERDUE' && item.paid > 0)) {
+                  · faltan {{ money(item.amount - item.paid, loan.currency) }}
+                }
+              </span>
+            </li>
+          }
+        </ol>
+
+        <h3 class="fs-loan__subtitle">Pagos recibidos</h3>
+        @if (loan.payments.length) {
+          <ul class="fs-loan__list">
+            @for (payment of loan.payments; track payment.id) {
+              <li class="fs-loan__line">
+                <span class="fs-loan__when">{{ date(payment.paidOn) }}</span>
+                <span class="fs-num fs-income">{{ money(payment.amount, loan.currency) }}</span>
+                <span class="fs-loan__tag text-truncate">{{ payment.note }}</span>
+                <button
+                  class="fs-btn fs-btn--sm fs-btn--quiet-danger"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="removePayment(loan, payment.id)"
+                  [attr.aria-label]="'Quitar el pago del ' + date(payment.paidOn)"
+                >
+                  <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="fs-loan__notes">Todavía no te ha devuelto nada.</p>
+        }
+      </div>
+    }
+  </li>
+</ng-template>
+
+<!-- Alta y cambio de un préstamo. -->
+@if (showForm()) {
+  <fs-bottom-sheet
+    [title]="editingId() ? 'Editar préstamo' : 'Nuevo préstamo'"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="closeForm()"
+  >
+    <form id="loanForm" class="fs-sheet-form fs-form" [formGroup]="form" (ngSubmit)="save()">
+      <div class="fs-form__wide">
+        <label class="fs-label" for="loanBorrower">¿A quién le prestaste?</label>
+        <input
+          id="loanBorrower"
+          class="fs-field"
+          type="text"
+          maxlength="70"
+          placeholder="Juan"
+          autocomplete="off"
+          formControlName="borrowerName"
+        />
+      </div>
+
+      <div>
+        <label class="fs-label" for="loanPrincipal">¿Cuánto?</label>
+        <div class="fs-new__amount">
+          <input
+            id="loanPrincipal"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0.01"
+            step="0.01"
+            placeholder="1000.00"
+            formControlName="principal"
+          />
+          <div class="fs-money-switch" role="group" aria-label="Moneda del préstamo">
+            @for (option of currencies; track option) {
+              <button
+                type="button"
+                class="fs-money-switch__btn"
+                [class.is-active]="currency() === option"
+                [attr.aria-pressed]="currency() === option"
+                [attr.aria-label]="currencyName(option)"
+                [disabled]="saving()"
+                (click)="currency.set(option)"
+              >
+                {{ currencySign(option) }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span class="fs-label">¿Cuándo se lo diste?</span>
+        <fs-date-field
+          inputId="loanLentOn"
+          ariaLabel="Día en que prestaste el dinero"
+          mode="date"
+          [value]="lentOn()"
+          (valueChange)="setLentOn($event)"
+        />
+      </div>
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="loanInterestLabel">¿Ganas algo con esto?</span>
+        <div class="fs-picks" role="group" aria-labelledby="loanInterestLabel">
+          <button
+            type="button"
+            class="fs-pick"
+            [class.is-active]="!withInterest()"
+            [attr.aria-pressed]="!withInterest()"
+            (click)="setWithInterest(false)"
+          >
+            Sin interés
+          </button>
+          <button
+            type="button"
+            class="fs-pick"
+            [class.is-active]="withInterest()"
+            [attr.aria-pressed]="withInterest()"
+            (click)="setWithInterest(true)"
+          >
+            Con interés
+          </button>
+        </div>
+      </div>
+
+      @if (withInterest()) {
+        <div class="fs-form__wide">
+          <label class="fs-label" for="loanInterest">Interés (monto fijo)</label>
+          <input
+            id="loanInterest"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="0.01"
+            placeholder="100.00"
+            formControlName="interest"
+          />
+          <p class="fs-hint">
+            Lo que te devuelve encima de lo prestado. En total te tiene que devolver
+            <strong>{{ money(total(), currency()) }}</strong
+            >.
+          </p>
+        </div>
+      }
+
+      <div class="fs-form__wide">
+        <span class="fs-label" id="loanModeLabel">¿Cómo te lo devuelve?</span>
+        <div class="fs-picks" role="group" aria-labelledby="loanModeLabel">
+          <button
+            type="button"
+            class="fs-pick"
+            [class.is-active]="mode() === 'SINGLE'"
+            [attr.aria-pressed]="mode() === 'SINGLE'"
+            (click)="setMode('SINGLE')"
+          >
+            En un solo pago
+          </button>
+          <button
+            type="button"
+            class="fs-pick"
+            [class.is-active]="mode() === 'INSTALLMENTS'"
+            [attr.aria-pressed]="mode() === 'INSTALLMENTS'"
+            (click)="setMode('INSTALLMENTS')"
+          >
+            Por partes
+          </button>
+        </div>
+      </div>
+
+      @if (mode() === 'SINGLE') {
+        <div class="fs-form__wide">
+          <span class="fs-label">¿Cuándo te lo devuelve?</span>
+          <fs-date-field
+            inputId="loanSingleDate"
+            ariaLabel="Día en que te devuelve el dinero"
+            mode="date"
+            [value]="firstDate()"
+            (valueChange)="setFirstDate($event)"
+          />
+        </div>
+      } @else {
+        <div>
+          <label class="fs-label" for="loanCount">Número de cuotas</label>
+          <input
+            id="loanCount"
+            class="fs-field fs-num"
+            type="number"
+            inputmode="numeric"
+            min="2"
+            max="120"
+            step="1"
+            [value]="count()"
+            (change)="setCount($any($event.target).value)"
+          />
+        </div>
+
+        <div>
+          <span class="fs-label">Primera cuota</span>
+          <fs-date-field
+            inputId="loanFirstDate"
+            ariaLabel="Día de la primera cuota"
+            mode="date"
+            [value]="firstDate()"
+            (valueChange)="setFirstDate($event)"
+          />
+        </div>
+
+        <div class="fs-form__wide">
+          <span class="fs-label" id="loanFrequencyLabel">Cada cuánto</span>
+          <div class="fs-picks" role="group" aria-labelledby="loanFrequencyLabel">
+            @for (option of frequencies; track option[0]) {
+              <button
+                type="button"
+                class="fs-pick"
+                [class.is-active]="frequency() === option[0]"
+                [attr.aria-pressed]="frequency() === option[0]"
+                (click)="setFrequency(option[0])"
+              >
+                {{ option[1] }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (plan().length) {
+          <div class="fs-form__wide">
+            <span class="fs-label">Cuotas</span>
+            <ol class="fs-plan">
+              @for (item of plan(); track $index) {
+                <li class="fs-plan__row">
+                  <span class="fs-plan__number">{{ $index + 1 }}</span>
+                  <fs-date-field
+                    [inputId]="'loanRowDate' + $index"
+                    [ariaLabel]="'Fecha de la cuota ' + ($index + 1)"
+                    mode="date"
+                    [value]="item.dueDate"
+                    (valueChange)="updateRow($index, 'dueDate', $event)"
+                  />
+                  <input
+                    class="fs-field fs-field--sm fs-num"
+                    type="number"
+                    inputmode="decimal"
+                    min="0.01"
+                    step="0.01"
+                    [attr.aria-label]="'Importe de la cuota ' + ($index + 1)"
+                    [value]="item.amount"
+                    (input)="updateRow($index, 'amount', $any($event.target).value)"
+                  />
+                </li>
+              }
+            </ol>
+            <p class="fs-hint">Puedes retocar cada cuota. Tienen que sumar el total.</p>
+          </div>
+        }
+      }
+
+      @if (total() > 0 && !planMatches()) {
+        <p class="fs-error fs-form__wide" role="alert">
+          Las cuotas suman {{ money(planSum(), currency()) }} y el total es
+          {{ money(total(), currency()) }}.
+        </p>
+      }
+      @if (planBeforeLending()) {
+        <p class="fs-error fs-form__wide" role="alert">
+          Ninguna devolución puede ser antes del día en que prestaste el dinero.
+        </p>
+      }
+
+      <div class="fs-form__wide">
+        <label class="fs-label" for="loanNotes">Nota</label>
+        <textarea
+          id="loanNotes"
+          class="fs-field fs-loan__textarea"
+          rows="2"
+          maxlength="255"
+          placeholder="Para qué fue, cómo quedaron…"
+          formControlName="notes"
+        ></textarea>
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="closeForm()">Cancelar</button>
+      <button class="fs-btn fs-btn--solid" type="submit" form="loanForm" [disabled]="!canSave()">
+        {{ editingId() ? 'Guardar' : 'Registrar' }}
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}
+
+@if (paying(); as loan) {
+  <fs-bottom-sheet
+    [title]="'Pago de ' + loan.borrowerName"
+    animate.enter="is-opening"
+    animate.leave="is-closing"
+    (closed)="cancelPayment()"
+  >
+    <form
+      id="loanPaymentForm"
+      class="fs-sheet-form"
+      [formGroup]="paymentForm"
+      (ngSubmit)="savePayment(loan)"
+    >
+      <div>
+        <label class="fs-label" for="loanPaymentAmount">¿Cuánto te devolvió?</label>
+        <input
+          id="loanPaymentAmount"
+          class="fs-field fs-num"
+          type="number"
+          inputmode="decimal"
+          min="0.01"
+          step="0.01"
+          [attr.max]="loan.outstanding"
+          formControlName="amount"
+        />
+        <p class="fs-hint">Falta {{ money(loan.outstanding, loan.currency) }} en total.</p>
+      </div>
+      <div>
+        <span class="fs-label">Fecha</span>
+        <fs-date-field
+          inputId="loanPaymentDate"
+          ariaLabel="Día en que te devolvió el dinero"
+          mode="date"
+          [value]="paidOn()"
+          (valueChange)="paidOn.set($event)"
+        />
+      </div>
+      <div>
+        <label class="fs-label" for="loanPaymentNote">Nota</label>
+        <input
+          id="loanPaymentNote"
+          class="fs-field"
+          type="text"
+          maxlength="140"
+          placeholder="Transferencia, efectivo…"
+          autocomplete="off"
+          formControlName="note"
+        />
+      </div>
+    </form>
+
+    <div class="fs-sheet-actions" sheetFoot>
+      <button class="fs-btn fs-btn--ghost" type="button" (click)="cancelPayment()">Cancelar</button>
+      <button
+        class="fs-btn fs-btn--solid"
+        type="submit"
+        form="loanPaymentForm"
+        [disabled]="saving() || paymentForm.invalid"
+      >
+        Registrar
+      </button>
+    </div>
+  </fs-bottom-sheet>
+}

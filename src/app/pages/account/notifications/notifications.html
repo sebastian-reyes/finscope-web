@@ -50,8 +50,9 @@
     }
     @case ('off') {
       <p class="fs-hint fs-push__lead">
-        Te avisamos el día antes y el mismo día de cada movimiento fijo pendiente, y cuando un
-        presupuesto se acerca a su límite. Llegan aunque no abras la aplicación.
+        Te avisamos el día antes y el mismo día de cada movimiento fijo pendiente, cuando un
+        presupuesto se acerca a su límite y cuando te toca cobrar un préstamo. Llegan aunque no
+        abras la aplicación.
       </p>
       <button
         type="button"
@@ -100,6 +101,21 @@
             <span class="fs-toggle__text">
               <span class="fs-toggle__title">Presupuestos</span>
               <span class="fs-toggle__hint">Al llegar al 90 % y al pasarte</span>
+            </span>
+          </label>
+          <label class="fs-toggle">
+            <input
+              type="checkbox"
+              role="switch"
+              [checked]="prefs.loanDue"
+              (change)="setPreference('loanDue', $any($event.target).checked)"
+            />
+            <span class="fs-toggle__track" aria-hidden="true"></span>
+            <span class="fs-toggle__text">
+              <span class="fs-toggle__title">Préstamos por cobrar</span>
+              <span class="fs-toggle__hint"
+                >Tres días antes de cada cuota, el mismo día y al día siguiente si no te pagó</span
+              >
             </span>
           </label>
         </div>

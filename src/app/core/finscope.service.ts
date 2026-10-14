@@ -8,6 +8,10 @@ import {
   ConfirmRecurringTransactionRequest,
   CopyBudgetsRequest,
   CreateTransactionRequest,
+  LoanResponse,
+  SaveLoanPaymentRequest,
+  SaveLoanRequest,
+  UpdateLoanRequest,
   NotificationPreferencesResponse,
   PushConfigResponse,
   PushTestResponse,
@@ -241,6 +245,47 @@ export class FinscopeService {
    */
   copyBudgets(request: CopyBudgetsRequest): Observable<BudgetResponse[]> {
     return this.http.post<BudgetResponse[]>(`${this.api}/budgets/copy`, request);
+  }
+
+  // Préstamos: a quién se le prestó, cuánto falta y cuándo vence cada cuota
+
+  /** Todos los préstamos, con lo vencido primero y lo saldado al final. */
+  listLoans(): Observable<LoanResponse[]> {
+    return this.http.get<LoanResponse[]>(`${this.api}/loans`);
+  }
+
+  /** Registra un préstamo con su plan. No crea ningún movimiento: prestar no es gastar. */
+  createLoan(request: SaveLoanRequest): Observable<LoanResponse> {
+    return this.http.post<LoanResponse>(`${this.api}/loans`, request satisfies SaveLoanRequest);
+  }
+
+  /** Cambia un préstamo; con `closed` lo da por cerrado o lo reabre. */
+  updateLoan(id: number, request: UpdateLoanRequest): Observable<LoanResponse> {
+    return this.http.patch<LoanResponse>(
+      `${this.api}/loans/${id}`,
+      request satisfies UpdateLoanRequest,
+    );
+  }
+
+  /** Borra el préstamo con su plan y sus pagos. */
+  deleteLoan(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.api}/loans/${id}`);
+  }
+
+  /**
+   * Registra lo que el deudor devolvió. Se aplica sola a la cuota más antigua pendiente, así
+   * que no hace falta decir a cuál corresponde.
+   */
+  addLoanPayment(id: number, request: SaveLoanPaymentRequest): Observable<LoanResponse> {
+    return this.http.post<LoanResponse>(
+      `${this.api}/loans/${id}/payments`,
+      request satisfies SaveLoanPaymentRequest,
+    );
+  }
+
+  /** Quita un pago apuntado por error; las cuotas que cubría vuelven a pendiente. */
+  deleteLoanPayment(id: number, paymentId: number): Observable<LoanResponse> {
+    return this.http.delete<LoanResponse>(`${this.api}/loans/${id}/payments/${paymentId}`);
   }
 
   // Movimientos fijos: lo que se repite y qué falta por confirmar este mes

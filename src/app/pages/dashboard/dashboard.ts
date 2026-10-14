@@ -11,12 +11,19 @@ import { ToastService } from '../../core/toast.service';
 import { TransactionEditorService } from '../../core/transaction-editor.service';
 import { mediaQuery } from '../../core/viewport';
 import { describeError } from '../../core/api-error';
-import { BASE_CURRENCY, CURRENCY_NAMES, currencySymbol } from '../../core/format/money';
+import {
+  BASE_CURRENCY,
+  CURRENCY_NAMES,
+  currencySymbol,
+  formatMoney,
+} from '../../core/format/money';
+import { isoDate } from '../../core/format/loan-plan';
 import { currentMonth, monthLabel, toInputDateTime } from '../../core/format/period';
 import {
   BudgetResponse,
   Currency,
   CurrencySummaryResponse,
+  LoanResponse,
   RecurringOccurrenceResponse,
   SummaryConversion,
   SummaryGranularity,
@@ -30,6 +37,7 @@ import { BudgetSummaryComponent } from './budget-summary';
 import { DateFieldComponent } from '../../shared/ui/date-field';
 import { QuickTransactionComponent } from './quick-transaction';
 import { RecentTransactionsComponent } from './recent-transactions';
+import { LoanSummaryComponent } from './loan-summary';
 import { RecurringSummaryComponent } from './recurring-summary';
 import { SpendingBreakdown, SpendingChartComponent } from './spending-chart';
 import { TrendChartComponent } from './trend-chart';
@@ -78,6 +86,7 @@ const WIDE = '(min-width: 992px)';
     QuickTransactionComponent,
     RecentTransactionsComponent,
     RecurringSummaryComponent,
+    LoanSummaryComponent,
     RouterLink,
     SegmentedDirective,
     SpendingChartComponent,
@@ -205,6 +214,18 @@ export class DashboardPage {
 
   /** Mientras se registra uno, para que no se pueda dar dos veces por pagado. */
   protected readonly confirming = signal(false);
+
+  /**
+   * Los préstamos, para ver quién te tiene que pagar pronto sin cambiar de pantalla. No
+   * dependen del mes que se mire: lo que te deben te lo deben en cualquier mes.
+   */
+  protected readonly loans = signal<LoanResponse[]>([]);
+
+  /** Si los préstamos no pudieron cargarse. Caen solos, como los fijos. */
+  protected readonly loansFailed = signal(false);
+
+  /** Mientras se registra un cobro, para que no se pueda dar dos veces. */
+  protected readonly collecting = signal(false);
   /** Los mismos catálogos que usa la hoja de registro, para no pedirlos dos veces. */
   protected readonly types = this.editor.types;
   protected readonly categories = this.editor.categories;
@@ -523,8 +544,10 @@ export class DashboardPage {
       recurring: this.api
         .listRecurring(filters.month!, filters.year!)
         .pipe(catchError(() => of(null))),
+      // Y los préstamos igual: son un recordatorio, no parte del balance.
+      loans: this.api.listLoans().pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ summary, series, previous, recent, budgets, recurring }) => {
+      next: ({ summary, series, previous, recent, budgets, recurring, loans }) => {
         this.summary.set(summary);
         this.previous.set(previous);
         this.series.set(series);
@@ -533,6 +556,8 @@ export class DashboardPage {
         this.budgetsFailed.set(budgets === null);
         this.recurring.set(recurring ?? []);
         this.recurringFailed.set(recurring === null);
+        this.loans.set(loans ?? []);
+        this.loansFailed.set(loans === null);
         this.loading.set(false);
       },
       error: (error) => {
@@ -597,6 +622,40 @@ export class DashboardPage {
           this.toasts.error(describeError(error));
         },
       });
+  }
+
+  /**
+   * Registra que el deudor pagó lo que faltaba de su próxima cuota, con fecha de hoy.
+   *
+   * Solo se recargan los préstamos y no la pantalla entera: un cobro de un préstamo no es un
+   * movimiento, así que el balance, el reparto y los presupuestos no cambian.
+   *
+   * @param loan préstamo del que se acaba de cobrar
+   */
+  protected onLoanCollected(loan: LoanResponse): void {
+    if (this.collecting()) {
+      return;
+    }
+    const amount = loan.nextDueAmount ?? loan.outstanding;
+    this.collecting.set(true);
+    this.api.addLoanPayment(loan.id, { paidOn: isoDate(), amount }).subscribe({
+      next: () => {
+        this.toasts.success(
+          `${formatMoney(amount, loan.currency)} de ${loan.borrowerName} registrados`,
+        );
+        this.api.listLoans().subscribe({
+          next: (loans) => {
+            this.loans.set(loans);
+            this.collecting.set(false);
+          },
+          error: () => this.collecting.set(false),
+        });
+      },
+      error: (error) => {
+        this.collecting.set(false);
+        this.toasts.error(describeError(error));
+      },
+    });
   }
 
   /** Alguien creó una categoría desde el formulario: el catálogo de aquí ya no vale. */

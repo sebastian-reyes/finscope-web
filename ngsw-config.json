@@ -53,7 +53,8 @@
         "https://api.fin-scope.app/transactions**",
         "https://api.fin-scope.app/transactions/**",
         "https://api.fin-scope.app/budgets**",
-        "https://api.fin-scope.app/recurring-transactions**"
+        "https://api.fin-scope.app/recurring-transactions**",
+        "https://api.fin-scope.app/loans**"
       ],
       "cacheConfig": {
         "strategy": "freshness",

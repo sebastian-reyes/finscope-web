@@ -3,15 +3,20 @@ import { RouterOutlet } from '@angular/router';
 import { CatalogueTabsComponent, SectionTab } from '../../shared/ui/catalogue-tabs';
 import { SlideOutletDirective } from '../../shared/ui/slide-outlet';
 
-/** Las dos caras del plan del mes, en el orden del razonamiento. */
+/**
+ * Las caras del plan, en el orden del razonamiento: cuánto se piensa gastar, qué parte ya
+ * tiene dueño, y qué dinero prestado tiene que volver.
+ */
 export const PLAN_TABS: readonly SectionTab[] = [
   { path: '/budgets', label: 'Presupuestos', icon: 'bi-clipboard-check' },
   { path: '/recurring', label: 'Fijos', icon: 'bi-arrow-repeat' },
+  { path: '/loans', label: 'Préstamos', icon: 'bi-cash-coin' },
 ];
 
 /**
- * Marco del plan del mes: los presupuestos, que dicen cuánto se piensa gastar, y los
- * movimientos fijos, que dicen qué parte de eso ya tiene dueño antes de empezar.
+ * Marco del plan del mes: los presupuestos, que dicen cuánto se piensa gastar, los
+ * movimientos fijos, que dicen qué parte de eso ya tiene dueño antes de empezar, y los
+ * préstamos, el dinero que se dejó a otros y tiene que volver.
  *
  * Antes compartían marco con las categorías y los tags, y la pestaña se llamaba
  * «Categorías» y abría en ellas: lo que se mira cada mes quedaba a un toque de más, detrás
@@ -26,7 +31,7 @@ export const PLAN_TABS: readonly SectionTab[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, CatalogueTabsComponent, SlideOutletDirective],
   template: `
-    <fs-catalogue-tabs [tabs]="tabs" label="Presupuestos y fijos" />
+    <fs-catalogue-tabs [tabs]="tabs" label="Presupuestos, fijos y préstamos" />
     <router-outlet [fsSlide]="destinations" />
   `,
 })

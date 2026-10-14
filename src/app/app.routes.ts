@@ -72,6 +72,11 @@ export const routes: Routes = [
         path: 'recurring',
         loadComponent: () => import('./pages/recurring/recurring').then((m) => m.RecurringPage),
       },
+      {
+        // Lo prestado entra en el plan porque se mira igual: qué tiene que volver y cuándo.
+        path: 'loans',
+        loadComponent: () => import('./pages/loans/loans').then((m) => m.LoansPage),
+      },
     ],
   },
   {
