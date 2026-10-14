@@ -8,7 +8,7 @@
  */
 
 /** Versión del contrato con la que se comprobaron por última vez estos tipos. */
-export const CONTRACT_VERSION = '6.11.0';
+export const CONTRACT_VERSION = '6.12.0';
 
 export interface UserResponse {
   id: number;
@@ -550,6 +550,108 @@ export interface SkipRecurringTransactionRequest {
   year: number;
 }
 
+// Préstamos: dinero que el usuario prestó y espera recuperar
+
+/**
+ * Estado de un préstamo hoy. No se guarda: lo resuelve la API con lo devuelto y la fecha de
+ * cada cuota. `CLOSED` es que se dio por cerrado sin que se devolviera todo.
+ */
+export type LoanStatus = 'ACTIVE' | 'OVERDUE' | 'PAID' | 'CLOSED';
+
+/**
+ * Estado de una cuota. Lo devuelto se aplica en orden a la cuota más antigua, así que una
+ * cuota a medias es `PARTIAL` hasta su fecha y `OVERDUE` después.
+ */
+export type LoanInstallmentStatus = 'PENDING' | 'PARTIAL' | 'OVERDUE' | 'PAID';
+
+/** Una cuota del plan con lo que ya la cubre. */
+export interface LoanInstallmentResponse {
+  id: number;
+  /** Orden en el plan, desde 1. */
+  number: number;
+  /** Día en que vence, `yyyy-MM-dd`. */
+  dueDate: string;
+  amount: number;
+  /** Parte cubierta por lo devuelto, entre cero y `amount`. */
+  paid: number;
+  status: LoanInstallmentStatus;
+}
+
+/** Dinero que el deudor devolvió. */
+export interface LoanPaymentResponse {
+  id: number;
+  paidOn: string;
+  amount: number;
+  note?: string;
+}
+
+/**
+ * Un préstamo con su plan, lo devuelto y lo que falta.
+ *
+ * No es un movimiento: prestar no es gastar ni cobrar es ingresar, así que no aparece en el
+ * historial ni en el análisis. Las cifras derivadas las calcula la API para que la pantalla y
+ * los avisos del teléfono digan lo mismo.
+ */
+export interface LoanResponse {
+  id: number;
+  borrowerName: string;
+  principal: number;
+  /** Lo que se gana encima, como monto fijo. Cero si es sin interés. */
+  interest: number;
+  /** Capital más interés: lo que hay que devolver. */
+  total: number;
+  currency: Currency;
+  lentOn: string;
+  notes?: string;
+  /** Día en que se dio por cerrado. Solo viene si está `CLOSED`. */
+  closedOn?: string;
+  paid: number;
+  outstanding: number;
+  /** Parte de lo que falta cuya cuota ya venció. */
+  overdueAmount: number;
+  status: LoanStatus;
+  /** Primera cuota sin cubrir del todo. Ausente si ya no se espera nada. */
+  nextDueDate?: string;
+  /** Lo que falta de esa cuota, que puede ser menos que su importe. */
+  nextDueAmount?: number;
+  installments: LoanInstallmentResponse[];
+  /** Del pago más reciente al más antiguo. */
+  payments: LoanPaymentResponse[];
+}
+
+/** Una cuota del plan al darlo de alta o cambiarlo. */
+export interface LoanInstallmentRequest {
+  dueDate: string;
+  amount: number;
+}
+
+/**
+ * Alta de un préstamo. Las cuotas deben sumar capital más interés y ninguna puede vencer
+ * antes del día del préstamo.
+ */
+export interface SaveLoanRequest {
+  borrowerName: string;
+  principal: number;
+  interest?: number;
+  currency?: Currency;
+  lentOn: string;
+  notes?: string;
+  installments: LoanInstallmentRequest[];
+}
+
+/**
+ * Cambio de un préstamo; lo que no venga no se toca. Si cambia el capital o el interés, el
+ * plan tiene que venir también. `closed` lo da por cerrado o lo reabre.
+ */
+export type UpdateLoanRequest = Partial<SaveLoanRequest> & { closed?: boolean };
+
+/** Dinero que el deudor devolvió. */
+export interface SaveLoanPaymentRequest {
+  paidOn: string;
+  amount: number;
+  note?: string;
+}
+
 // Avisos al teléfono (Web Push)
 
 /** Si el servidor puede mandar avisos y con qué clave se suscribe el navegador. */
@@ -574,6 +676,8 @@ export interface NotificationPreferencesResponse {
   recurringDue: boolean;
   /** Al llegar al 90 % de un presupuesto del mes y al pasarse. */
   budgetLimit: boolean;
+  /** En los tres días previos a una cuota por cobrar, el mismo día y al día siguiente. */
+  loanDue: boolean;
 }
 
 /** Cambio de preferencias: lo que no venga no se toca. */

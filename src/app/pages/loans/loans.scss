@@ -1,0 +1,350 @@
+@use '../../../styles/tokens' as t;
+
+// El rótulo de sección, el estado vacío, el buscador y el esqueleto salen de la capa base;
+// aquí vive solo lo propio de los préstamos.
+
+.fs-block {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.fs-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+}
+
+.fs-skeleton {
+  height: 3.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.fs-foot {
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+// --- Resumen ----------------------------------------------------------------------------
+// Abre la pantalla con la pregunta con la que se entra: «¿cuánto me deben?».
+.fs-sum__figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.fs-sum__amount {
+  font-size: var(--fs-text-lg);
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.fs-sum__done {
+  font-size: var(--fs-text-lg);
+  color: var(--fs-income);
+  line-height: 1;
+}
+
+.fs-sum__of,
+.fs-sum__reading {
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+.fs-sum__reading {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.fs-sum__late {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+.fs-sum__gain {
+  color: var(--fs-income);
+}
+
+// --- Lista ------------------------------------------------------------------------------
+.fs-loan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-loan__section {
+  margin: 1.5rem 0 0.75rem;
+  font-size: var(--fs-text-sm);
+  font-weight: 600;
+  color: var(--fs-ink-muted);
+}
+
+.fs-loan__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fs-loan__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fs-loan__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background-color: var(--fs-shade);
+  color: var(--fs-ink-muted);
+}
+
+.fs-loan__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fs-loan__name {
+  margin: 0;
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+  color: var(--fs-ink);
+}
+
+.fs-loan__meta {
+  margin: 0.1rem 0 0;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+}
+
+.fs-loan__figures {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.fs-loan__amount {
+  font-size: var(--fs-text-base);
+  font-weight: 600;
+}
+
+// El estado va con palabras y no solo con color, igual que en los fijos.
+.fs-loan__state {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  white-space: nowrap;
+}
+
+.fs-loan__item[data-status='OVERDUE'] .fs-loan__state {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+.fs-loan__item[data-status='PAID'] .fs-loan__state {
+  color: var(--fs-income);
+}
+
+// Lo saldado y lo cerrado ya no piden nada: siguen ahí, pero apagados.
+.fs-loan__item[data-status='PAID'] .fs-loan__icon,
+.fs-loan__item[data-status='CLOSED'] .fs-loan__icon {
+  opacity: 0.72;
+}
+
+.fs-loan__item[data-status='CLOSED'] .fs-loan__amount {
+  color: var(--fs-ink-faint);
+}
+
+// La barra dice cuánto del total ya volvió. El color es el de cobrar, porque lo que llena
+// la barra es dinero que regresa.
+.fs-loan__track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background-color: var(--fs-shade);
+  overflow: hidden;
+}
+
+.fs-loan__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--fs-income);
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fs-loan__item[data-status='OVERDUE'] .fs-loan__fill {
+  background-color: var(--fs-expense);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-loan__fill {
+    transition: none;
+  }
+}
+
+.fs-loan__reading {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-muted);
+}
+
+.fs-loan__item[data-status='OVERDUE'] .fs-loan__next {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+.fs-loan__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// Cambiar, cerrar y borrar van al otro extremo: lo que se viene a hacer es registrar pagos.
+.fs-loan__tools {
+  margin-left: auto;
+  display: flex;
+  gap: 0.15rem;
+}
+
+.fs-loan__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+}
+
+// --- Detalle ----------------------------------------------------------------------------
+.fs-loan__detail {
+  border-top: 1px solid var(--fs-line);
+  padding-top: 0.75rem;
+}
+
+.fs-loan__notes {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-text-sm);
+  color: var(--fs-ink-muted);
+  white-space: pre-line;
+}
+
+.fs-loan__subtitle {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--fs-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fs-ink-faint);
+}
+
+.fs-loan__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-loan__line {
+  display: grid;
+  grid-template-columns: 5.5rem auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.25rem;
+  font-size: var(--fs-text-sm);
+  border-top: 1px solid var(--fs-line);
+}
+
+.fs-loan__line:first-child {
+  border-top: 0;
+}
+
+.fs-loan__when {
+  color: var(--fs-ink-muted);
+}
+
+.fs-loan__tag {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  text-align: right;
+}
+
+.fs-loan__line[data-status='PAID'] .fs-loan__tag {
+  color: var(--fs-income);
+}
+
+.fs-loan__line[data-status='OVERDUE'] .fs-loan__tag {
+  color: var(--fs-expense-ink);
+  font-weight: 500;
+}
+
+// --- Formulario -------------------------------------------------------------------------
+// Dos columnas en cuanto hay sitio, como el de los fijos.
+.fs-form {
+  display: grid;
+  gap: 0.75rem;
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: t.$fs-bp-sm) {
+  .fs-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fs-form__wide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.fs-new__amount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fs-new__amount .fs-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-loan__textarea {
+  resize: vertical;
+  padding-block: 0.5rem;
+}
+
+.fs-plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fs-plan__row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) minmax(0, 8rem);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fs-plan__number {
+  font-size: var(--fs-text-xs);
+  color: var(--fs-ink-faint);
+  text-align: right;
+}

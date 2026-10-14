@@ -9,6 +9,7 @@ import { TransactionEditorService } from '../../core/transaction-editor.service'
 import {
   BudgetResponse,
   CategoryResponse,
+  LoanResponse,
   RecurringOccurrenceResponse,
   SummarySeriesResponse,
   TagResponse,
@@ -114,8 +115,44 @@ const RECURRING: RecurringOccurrenceResponse[] = [
   },
 ];
 
+/** Juan debe 250 de una cuota que vence mañana; Ana ya devolvió todo. */
+const LOANS: LoanResponse[] = [
+  {
+    id: 21,
+    borrowerName: 'Juan',
+    principal: 500,
+    interest: 0,
+    total: 500,
+    currency: 'PEN',
+    lentOn: '2026-07-01',
+    paid: 250,
+    outstanding: 250,
+    overdueAmount: 0,
+    status: 'ACTIVE',
+    nextDueDate: '2026-08-16',
+    nextDueAmount: 250,
+    installments: [],
+    payments: [],
+  },
+  {
+    id: 22,
+    borrowerName: 'Ana',
+    principal: 100,
+    interest: 0,
+    total: 100,
+    currency: 'USD',
+    lentOn: '2026-06-01',
+    paid: 100,
+    outstanding: 0,
+    overdueAmount: 0,
+    status: 'PAID',
+    installments: [],
+    payments: [],
+  },
+];
+
 /** Qué parte de la pantalla se contesta con un error en lugar de con sus datos. */
-type Broken = 'summary' | 'budgets' | 'recurring';
+type Broken = 'summary' | 'budgets' | 'recurring' | 'loans';
 
 /**
  * Con qué parámetros se entra a la pantalla. Se lee al construirla, así que quien lo cambie
@@ -176,6 +213,7 @@ describe('DashboardPage', () => {
     const recent = http.expectOne(`/transactions?${period}&page=0&size=6&sort=date,desc`);
     const budgets = http.expectOne(`/budgets?${period}`);
     const recurring = http.expectOne(`/recurring-transactions?${period}`);
+    const loans = http.expectOne('/loans');
     const boom = { status: 500, statusText: 'Server Error' };
 
     // El resumen se contesta el último a propósito. Es el único de los cinco cuyo error no
@@ -193,6 +231,11 @@ describe('DashboardPage', () => {
       recurring.flush('roto', boom);
     } else {
       recurring.flush(RECURRING);
+    }
+    if (broken === 'loans') {
+      loans.flush('roto', boom);
+    } else {
+      loans.flush(LOANS);
     }
     if (broken === 'summary') {
       summary.flush('roto', boom);
@@ -354,6 +397,39 @@ describe('DashboardPage', () => {
     settlePeriod(7);
   });
 
+  it('enseña quién te tiene que pagar pronto y no cuenta lo ya saldado', () => {
+    settle();
+
+    expect(card('loans')).toContain('S/ 250.00');
+    expect(card('loans')).toContain('por cobrar en 1 préstamo');
+    expect(card('loans')).toContain('Juan');
+    expect(card('loans')).toContain('Vence mañana');
+    expect(card('loans')).not.toContain('Ana');
+  });
+
+  it('registra el cobro de la próxima cuota con fecha de hoy sin recargar el resto', () => {
+    settle();
+
+    host().querySelector<HTMLButtonElement>('.fs-dash__loans .fs-loansum__item .fs-btn')!.click();
+    fixture.detectChanges();
+
+    const request = http.expectOne('/loans/21/payments');
+    expect(request.request.body).toEqual({ paidOn: '2026-08-15', amount: 250 });
+    request.flush({ ...LOANS[0], status: 'PAID', paid: 500, outstanding: 0 });
+
+    // Un cobro de un préstamo no es un movimiento: solo vuelven a pedirse los préstamos.
+    http.expectOne('/loans').flush([{ ...LOANS[0], status: 'PAID' }, LOANS[1]]);
+    fixture.detectChanges();
+    expect(card('loans')).toContain('Nadie te debe nada');
+  });
+
+  it('si los préstamos fallan, el resto del inicio sigue en pie', () => {
+    settle('loans');
+
+    expect(card('loans')).toContain('No se pudieron cargar tus préstamos');
+    expect(card('balance')).toContain('1,800.00');
+  });
+
   it('no deja dar por pagado dos veces el mismo fijo', () => {
     settle();
 
@@ -428,6 +504,7 @@ describe('DashboardPage', () => {
       http.expectOne('/transactions?month=8&year=2026&page=0&size=6&sort=date,desc').flush(RECENT);
       http.expectOne('/budgets?month=8&year=2026').flush(BUDGETS);
       http.expectOne('/recurring-transactions?month=8&year=2026').flush(RECURRING);
+      http.expectOne('/loans').flush(LOANS);
       http
         .expectOne(`/transactions/summary?month=8&year=2026&${scope}`)
         .flush({ ...SUMMARY, currency: 'USD', rate: 3.55 });

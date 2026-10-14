@@ -121,13 +121,13 @@ export class App {
   // llega tocando la imagen del saludo del inicio.
   protected readonly rightNav: NavItem[] = [
     this.analysisNav,
-    // Los fijos no tienen hueco propio: comparten el del plan, y sin contarlos aquí la barra
-    // no marcaba ninguna sección estando en ellos.
+    // Los fijos y los préstamos no tienen hueco propio: comparten el del plan, y sin contarlos
+    // aquí la barra no marcaba ninguna sección estando en ellos.
     {
       path: '/budgets',
       label: 'Plan',
       icon: 'bi-clipboard-check',
-      covers: ['/recurring'],
+      covers: ['/recurring', '/loans'],
     },
   ];
 
@@ -148,6 +148,7 @@ export class App {
       children: [
         { path: '/budgets', label: 'Presupuestos', icon: 'bi-clipboard-check' },
         { path: '/recurring', label: 'Fijos', icon: 'bi-arrow-repeat' },
+        { path: '/loans', label: 'Préstamos', icon: 'bi-cash-coin' },
       ],
     },
     {
@@ -195,6 +196,7 @@ export class App {
     '/analysis',
     '/budgets',
     '/recurring',
+    '/loans',
     '/account',
     ...ACCOUNT_SECTIONS,
   ];

@@ -348,6 +348,33 @@
     }
   </section>
 
+  <section class="fs-panel fs-card fs-dash__loans" aria-labelledby="loansTitle">
+    <div class="fs-card__head">
+      <h2 class="fs-card__title" id="loansTitle">
+        <i class="bi bi-cash-coin" aria-hidden="true"></i>Préstamos
+      </h2>
+      @if (loans().length) {
+        <a class="fs-btn fs-btn--sm fs-btn--ghost" [routerLink]="['/loans']">
+          Ver todo<i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </a>
+      }
+    </div>
+    @if (loading()) {
+      <div class="fs-skeleton fs-skeleton--line"></div>
+      <div class="fs-skeleton fs-skeleton--line"></div>
+    } @else if (loansFailed()) {
+      <p class="fs-muted">
+        No se pudieron cargar tus préstamos. Lo demás de esta pantalla no depende de ellos.
+      </p>
+    } @else {
+      <fs-loan-summary
+        [loans]="loans()"
+        [busy]="collecting()"
+        (collected)="onLoanCollected($event)"
+      />
+    }
+  </section>
+
   <section class="fs-panel fs-card fs-dash__trend" aria-labelledby="trendTitle">
     <h2 class="fs-card__title" id="trendTitle">
       <i class="bi bi-graph-up" aria-hidden="true"></i>Evolución
