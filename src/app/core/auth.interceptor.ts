@@ -19,7 +19,7 @@ const PUBLIC_URLS = PUBLIC_PATHS.map((path) => `${environment.apiUrl}${path}`);
 /**
  * Añade el token de acceso a cada petición y renueva la sesión cuando caduca.
  *
- * El token de acceso vive quince minutos y el de refresco treinta días, así que la sesión
+ * El token de acceso vive una hora y el de refresco noventa días, así que la sesión
  * larga es la normal: quedarse mirando el historial un rato y luego editar un movimiento
  * caía siempre en un 401, y hasta ahora eso mandaba al acceso aunque el refresco siguiera
  * siendo válido. Ante un 401 se renueva y se repite la petición una sola vez; solo si la
@@ -60,7 +60,12 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
 
       return auth.refreshOnce(sentToken).pipe(
         catchError((failure: unknown) => {
-          expire();
+          // Solo la API diciendo que el refresco no vale cierra la sesión. Sin red, con el
+          // servidor caído o con el cupo agotado, el refresco sigue siendo bueno: la petición
+          // falla, pero la siguiente vuelve a intentarlo en lugar de mandar al acceso.
+          if (isRejected(failure)) {
+            expire();
+          }
           return throwError(() => failure);
         }),
         switchMap((accessToken) =>
@@ -78,6 +83,17 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     }),
   );
 };
+
+/**
+ * Indica si la renovación falló porque la API rechazó el token de refresco, y no por la red
+ * o por el servidor. Un 400 cuenta también: es lo que contesta a un refresco ausente.
+ *
+ * @param failure error con el que terminó la renovación
+ * @return si la sesión ya no se puede renovar
+ */
+function isRejected(failure: unknown): boolean {
+  return failure instanceof HttpErrorResponse && (failure.status === 401 || failure.status === 400);
+}
 
 /**
  * Firma la petición con el token, si es que le toca llevarlo.
