@@ -138,6 +138,17 @@ describe('authInterceptor', () => {
     expect(navigate).toHaveBeenCalledWith(['/login'], { queryParams: { expired: true } });
   });
 
+  it('no cierra la sesión si la renovación falla por la red o el servidor', () => {
+    http.get('/transactions').subscribe({ error: () => undefined });
+
+    backend.expectOne('/transactions').flush(null, { status: 401, statusText: 'Unauthorized' });
+    backend.expectOne('/auth/refresh').flush(null, { status: 503, statusText: 'Unavailable' });
+
+    expect(auth.isLoggedIn()).toBe(true);
+    expect(localStorage.getItem('finscope.refreshToken')).toBe('refresco-1');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('no intenta renovar lo que ya es una llamada de credenciales', () => {
     http.post('/auth/login', {}).subscribe({ error: () => undefined });
 

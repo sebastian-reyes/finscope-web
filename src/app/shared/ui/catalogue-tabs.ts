@@ -42,6 +42,7 @@ export interface SectionTab {
        en lugar de contra la pantalla siguiente. */
     :host {
       display: block;
+      container-type: inline-size;
     }
 
     /* La forma y la pastilla deslizante salen del control segmentado de la capa base; aquí
@@ -70,6 +71,18 @@ export interface SectionTab {
          el desplazamiento. */
       flex: none;
       white-space: nowrap;
+    }
+
+    /* Con iconos, las tres opciones del plan piden unos 22rem. Por debajo, lo que sobra es el
+       icono y no la palabra: sin él vuelven a caber todas sin tener que desplazar la tira. */
+    @container (max-width: 22rem) {
+      .fs-tabs__link {
+        padding-inline: 0.6rem;
+      }
+
+      .fs-tabs__link i {
+        display: none;
+      }
     }
   `,
 })

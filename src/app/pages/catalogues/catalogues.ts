@@ -34,6 +34,19 @@ export const PLAN_TABS: readonly SectionTab[] = [
     <fs-catalogue-tabs [tabs]="tabs" label="Presupuestos, fijos y préstamos" />
     <router-outlet [fsSlide]="destinations" />
   `,
+  styles: `
+    /* En el teléfono la carcasa pone el avatar de la configuración (\`.fs-me\`) arriba a la
+       derecha, y aquí la primera fila es el conmutador y no un título: con tres opciones la
+       tira llegaba hasta el borde y el avatar se le montaba encima de «Préstamos», más arriba
+       que ella. Se le deja el hueco del avatar (2.25rem y el espacio entre ambos) y se sube
+       lo que la tira es más alta que él, para que los dos queden centrados en la misma fila. */
+    @media (max-width: 991.98px) {
+      fs-catalogue-tabs {
+        margin-top: -0.45rem;
+        margin-right: 3rem;
+      }
+    }
+  `,
 })
 export class CataloguesPage {
   protected readonly tabs = PLAN_TABS;
