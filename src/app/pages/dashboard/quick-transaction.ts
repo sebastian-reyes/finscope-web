@@ -21,7 +21,6 @@ import { TagsFieldComponent } from '../../shared/ui/tags-field';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
-import { describeError } from '../../core/api-error';
 import {
   BASE_CURRENCY,
   CURRENCIES,
@@ -429,7 +428,7 @@ export class QuickTransactionComponent {
         this.saved.emit(created.id);
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.finish();
       },
     });

@@ -573,6 +573,6 @@ export class LoansPage {
 
   private fail(error: unknown): void {
     this.saving.set(false);
-    this.toasts.error(describeError(error));
+    this.toasts.failure(error);
   }
 }

@@ -2,7 +2,6 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Subject, forkJoin } from 'rxjs';
 import { FinscopeService } from './finscope.service';
 import { ToastService } from './toast.service';
-import { describeError } from './api-error';
 import {
   CategoryResponse,
   TagResponse,
@@ -111,7 +110,7 @@ export class TransactionEditorService {
       // Un catálogo que no llega deja el formulario sin categorías que ofrecer, y eso hay
       // que decirlo; lo que no se puede es tumbar con ello la pantalla que hay detrás, que
       // sigue siendo legible.
-      error: (error) => this.toasts.error(describeError(error)),
+      error: (error) => this.toasts.failure(error),
     });
   }
 

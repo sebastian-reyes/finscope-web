@@ -18,7 +18,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ExchangeRateService } from '../../core/exchange-rate.service';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
-import { describeError } from '../../core/api-error';
 import {
   BASE_CURRENCY,
   CURRENCIES,
@@ -504,7 +503,7 @@ export class TransactionEditorComponent implements OnInit, AfterViewInit, OnDest
   }
 
   private fail(error: unknown): void {
-    this.toasts.error(describeError(error));
+    this.toasts.failure(error);
     this.finish();
     this.confirmingDelete.set(false);
   }

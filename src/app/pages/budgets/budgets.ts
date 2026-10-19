@@ -425,7 +425,7 @@ export class BudgetsPage {
           }
         },
         error: (error) => {
-          this.toasts.error(describeError(error));
+          this.toasts.failure(error);
           this.copying.set(false);
         },
       });
@@ -468,7 +468,7 @@ export class BudgetsPage {
   }
 
   private fail(error: unknown): void {
-    this.toasts.error(describeError(error));
+    this.toasts.failure(error);
     this.saving.set(false);
   }
 }

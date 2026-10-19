@@ -17,7 +17,6 @@ import { RefreshService } from '../../core/refresh.service';
 import { SignOutService } from '../../core/sign-out.service';
 import { ThemeService } from '../../core/theme.service';
 import { ToastService } from '../../core/toast.service';
-import { describeError } from '../../core/api-error';
 import { mediaQuery } from '../../core/viewport';
 import { AvatarComponent } from '../../shared/ui/avatar';
 import { CatalogueTabsComponent } from '../../shared/ui/catalogue-tabs';
@@ -190,7 +189,7 @@ export class AccountPage {
       next: () => this.refreshing.set(false),
       error: (error) => {
         this.refreshing.set(false);
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
       },
     });
   }

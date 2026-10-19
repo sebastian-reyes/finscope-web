@@ -259,16 +259,26 @@
     <div
       class="fs-toast"
       [class.fs-toast--error]="toast.tone === 'error'"
+      [class.fs-toast--titled]="toast.title"
+      [style.--fs-toast-ms.ms]="toast.visibleMs"
       animate.enter="is-in"
       animate.leave="is-out"
     >
       <i
         class="bi"
-        [class.bi-check-circle-fill]="toast.tone === 'success'"
-        [class.bi-exclamation-circle-fill]="toast.tone === 'error'"
+        [class.bi-check-lg]="toast.tone === 'success'"
+        [class.bi-exclamation-lg]="toast.tone === 'error'"
         aria-hidden="true"
       ></i>
-      <span>{{ toast.text }}</span>
+      @if (toast.title) {
+        <div class="fs-toast__body">
+          <p class="fs-toast__title">{{ toast.title }}</p>
+          <p class="fs-toast__text">{{ toast.text }}</p>
+        </div>
+      } @else {
+        <span>{{ toast.text }}</span>
+      }
+      <span class="fs-toast__timer" aria-hidden="true"></span>
       <button
         type="button"
         class="fs-toast__close"
