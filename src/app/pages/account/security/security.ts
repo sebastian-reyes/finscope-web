@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../../core/auth.service';
 import { ToastService } from '../../../core/toast.service';
-import { describeError } from '../../../core/api-error';
 
 /**
  * El correo con el que se entra y la contraseña.
@@ -75,7 +74,7 @@ export class AccountSecurityPage {
         this.toasts.success('Te hemos mandado el enlace. Mira tu correo.');
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.sendingVerification.set(false);
       },
     });
@@ -102,7 +101,7 @@ export class AccountSecurityPage {
         this.toasts.success('Te hemos mandado el enlace. Mira tu correo.');
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.sendingPassword.set(false);
       },
     });
@@ -143,7 +142,7 @@ export class AccountSecurityPage {
         this.pendingEmail.set(email);
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.sendingChange.set(false);
       },
     });

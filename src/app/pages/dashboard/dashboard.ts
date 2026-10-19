@@ -602,6 +602,7 @@ export class DashboardPage {
       this.toasts.error(
         `Confírmalo desde Fijos: hace falta el tipo de cambio de hoy para registrarlo en ` +
           `${this.currencyName(item.currency).toLowerCase()}.`,
+        'Falta el tipo de cambio',
       );
       return;
     }
@@ -619,7 +620,7 @@ export class DashboardPage {
         },
         error: (error) => {
           this.confirming.set(false);
-          this.toasts.error(describeError(error));
+          this.toasts.failure(error);
         },
       });
   }
@@ -653,7 +654,7 @@ export class DashboardPage {
       },
       error: (error) => {
         this.collecting.set(false);
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
       },
     });
   }

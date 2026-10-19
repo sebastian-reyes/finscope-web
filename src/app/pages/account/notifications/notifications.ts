@@ -10,7 +10,6 @@ import { FinscopeService } from '../../../core/finscope.service';
 import { NotificationPreferencesResponse } from '../../../core/models';
 import { PushService } from '../../../core/push.service';
 import { ToastService } from '../../../core/toast.service';
-import { describeError } from '../../../core/api-error';
 
 /**
  * Los avisos: si llegan a este dispositivo y cuáles quiere la cuenta.
@@ -58,7 +57,7 @@ export class AccountNotificationsPage {
       if (this.pushStatus() === 'denied') {
         return;
       }
-      this.toasts.error(describeError(error));
+      this.toasts.failure(error);
     }
   }
 
@@ -79,12 +78,15 @@ export class AccountNotificationsPage {
         if (delivered > 0) {
           this.toasts.success('Aviso enviado. Debería llegarte en unos segundos.');
         } else {
-          this.toasts.error('No hay ningún dispositivo que pueda recibirlo. Vuelve a activarlos.');
+          this.toasts.error(
+            'No hay ningún dispositivo que pueda recibirlo. Vuelve a activarlos.',
+            'No se mandó el aviso',
+          );
         }
       },
       error: (error) => {
         this.sendingTest.set(false);
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
       },
     });
   }
@@ -103,7 +105,7 @@ export class AccountNotificationsPage {
       next: (saved) => this.preferences.set(saved),
       error: (error) => {
         this.preferences.set(previous);
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
       },
     });
   }
@@ -111,7 +113,7 @@ export class AccountNotificationsPage {
   private loadPreferences(): void {
     this.api.getNotificationPreferences().subscribe({
       next: (preferences) => this.preferences.set(preferences),
-      error: (error) => this.toasts.error(describeError(error)),
+      error: (error) => this.toasts.failure(error),
     });
   }
 }

@@ -11,7 +11,6 @@ import {
 } from '@angular/core';
 import { FinscopeService } from '../../core/finscope.service';
 import { ToastService } from '../../core/toast.service';
-import { describeError } from '../../core/api-error';
 import { CategoryResponse, TransactionTypeCode } from '../../core/models';
 import { CategoryChipComponent } from './category-chip';
 
@@ -305,7 +304,7 @@ export class CategoryPickerComponent {
         this.created.emit(category);
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.saving.set(false);
       },
     });

@@ -290,7 +290,7 @@ export class CategoriesPage {
   }
 
   private fail(error: unknown): void {
-    this.toasts.error(describeError(error));
+    this.toasts.failure(error);
     this.saving.set(false);
   }
 }

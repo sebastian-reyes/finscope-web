@@ -9,7 +9,6 @@ import {
 import { AuthService } from '../../../core/auth.service';
 import { AVATARS, INITIALS_AVATAR, avatarOf } from '../../../core/format/avatars';
 import { ToastService } from '../../../core/toast.service';
-import { describeError } from '../../../core/api-error';
 import { AvatarComponent } from '../../../shared/ui/avatar';
 
 /**
@@ -222,7 +221,7 @@ export class AccountProfilePage {
     this.auth.updateProfile({ avatar: id }).subscribe({
       error: (error) => {
         this.chosen.set(previous);
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
       },
     });
   }
@@ -246,7 +245,7 @@ export class AccountProfilePage {
         this.toasts.success(user.displayName ? 'Nombre actualizado' : 'Nombre quitado');
       },
       error: (error) => {
-        this.toasts.error(describeError(error));
+        this.toasts.failure(error);
         this.saving.set(false);
       },
     });

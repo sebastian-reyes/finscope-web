@@ -569,24 +569,98 @@
 }
 
 .fs-toast {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.7rem 0.9rem;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem 0.7rem 0.75rem;
   border-radius: t.$fs-radius;
   background-color: var(--fs-ink);
   color: var(--fs-paper);
   font-size: 0.875rem;
+  line-height: 1.4;
   box-shadow: var(--fs-shadow-raised);
   pointer-events: auto;
 
+  // El icono va en una pastilla del color de su tono: se reconoce el tipo de aviso antes de
+  // leer una sola palabra.
   i:first-child {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background-color: color-mix(in srgb, currentColor 18%, transparent);
     color: var(--fs-income);
+    font-size: 1rem;
   }
 }
 
 .fs-toast--error i:first-child {
   color: var(--fs-expense);
+}
+
+// Con título, el aviso ocupa dos líneas o más; icono y cierre se quedan arriba, con la
+// primera, en lugar de flotar a media altura del párrafo.
+.fs-toast--titled {
+  align-items: flex-start;
+  padding-top: 0.8rem;
+  padding-bottom: 0.9rem;
+
+  .fs-toast__close {
+    margin-top: 0.15rem;
+  }
+}
+
+.fs-toast__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-toast__title,
+.fs-toast__text {
+  margin: 0;
+}
+
+.fs-toast__title {
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.fs-toast__text {
+  margin-top: 0.15rem;
+  opacity: 0.78;
+  font-size: 0.8125rem;
+}
+
+// Una línea que se vacía al ritmo del aviso: dice cuánto queda sin que haya que contarlo.
+// Es un hijo, no el propio aviso, así que no compite con `animate.leave`, que solo mira las
+// animaciones del elemento al que pone la clase.
+.fs-toast__timer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background-color: var(--fs-income);
+  opacity: 0.7;
+  transform-origin: left;
+  animation: fs-toast-timer var(--fs-toast-ms, 4s) linear both;
+}
+
+.fs-toast--error .fs-toast__timer {
+  background-color: var(--fs-expense);
+}
+
+@keyframes fs-toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 // El aviso de sin conexión no es un error —la aplicación funciona, con datos de antes—, así

@@ -68,7 +68,13 @@
 }
 
 @if (error()) {
-  <div class="fs-alert" role="alert">{{ error() }}</div>
+  <div class="fs-alert" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <div>
+      <p class="fs-alert__title">No se pudo cargar tu resumen</p>
+      <p>{{ error() }}</p>
+    </div>
+  </div>
 }
 
 <div class="fs-dash">

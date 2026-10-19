@@ -310,9 +310,10 @@
 .fs-alert {
   display: flex;
   align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.85rem 1rem;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
   margin-bottom: 1rem;
+  border: 1px solid color-mix(in srgb, var(--fs-expense) 22%, transparent);
   border-radius: t.$fs-radius;
   background-color: var(--fs-expense-tint);
   color: var(--fs-expense-ink);
@@ -321,14 +322,34 @@
 }
 
 .fs-alert i {
-  flex: none;
-  margin-top: 0.1rem;
   color: var(--fs-expense);
+}
+
+// El icono principal va en una pastilla del tono del aviso, como en los avisos flotantes:
+// el tipo se reconoce antes de leer. Solo el primero; un icono dentro del texto se queda
+// en línea.
+.fs-alert > i:first-child {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.1rem;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, currentColor 16%, transparent);
+  font-size: 0.95rem;
+}
+
+.fs-alert > span,
+.fs-alert > div {
+  flex: 1;
+  min-width: 0;
 }
 
 // Un aviso que no es un fallo —la sesión que caduca— no se pinta de rojo: eso reservaría el
 // color de alarma para algo que no lo es.
 .fs-alert--warn {
+  border-color: var(--fs-line);
   background-color: var(--fs-shade);
   color: var(--fs-ink);
 }
@@ -340,6 +361,7 @@
 .fs-alert__title {
   margin: 0 0 0.15rem;
   font-weight: 600;
+  color: var(--fs-ink);
 }
 
 .fs-alert p {

@@ -711,7 +711,7 @@ export class RecurringPage {
 
   private fail(error: unknown): void {
     this.saving.set(false);
-    this.toasts.error(describeError(error));
+    this.toasts.failure(error);
   }
 
   private resetForm(): void {
